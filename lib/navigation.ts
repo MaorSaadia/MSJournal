@@ -56,13 +56,13 @@ export const navigation = [
     title: "Prop Accounts",
     href: "/prop-accounts",
     icon: WalletCards,
-    description: "Manage evaluation and funded account rules.",
+    description: "Manage evaluation, funded, and personal trading accounts.",
   },
   {
     title: "Settings",
     href: "/settings",
     icon: Settings,
     description:
-      "Manage your preferences and future CSV source timezone. Asia/Jerusalem, America/New_York, and other IANA timezones will be supported with daylight-saving rules.",
+      "Manage your profile, display timezone, appearance, and private session.",
   },
 ];

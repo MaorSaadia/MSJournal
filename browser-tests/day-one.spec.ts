@@ -1,4 +1,21 @@
 import { test, expect } from "@playwright/test";
+test.beforeEach(async ({ page }) => {
+  test.skip(
+    process.env.MSJOURNAL_TEST_DISPOSABLE !== "true" ||
+      !process.env.MSJOURNAL_TEST_OWNER_PASSWORD ||
+      !process.env.OWNER_EMAIL,
+    "Authenticated design review requires an explicitly disposable configured development database and secure owner test credentials.",
+  );
+  await page.goto("/login");
+  await page
+    .getByLabel("Owner email", { exact: true })
+    .fill(process.env.OWNER_EMAIL!);
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill(process.env.MSJOURNAL_TEST_OWNER_PASSWORD!);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.waitForURL("/");
+});
 test("Day 1 dashboard, filters, navigation, themes, and responsive layouts", async ({
   page,
 }) => {
@@ -10,7 +27,7 @@ test("Day 1 dashboard, filters, navigation, themes, and responsive layouts", asy
   });
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.emulateMedia({ colorScheme: "light" });
-  await page.goto("/");
+  await page.goto("/?mode=demo");
   await expect(page.getByRole("heading", { name: "Dashboard." })).toBeVisible();
   await page.locator(".recharts-surface").first().waitFor();
   await page.waitForTimeout(800);
@@ -109,7 +126,7 @@ test("Day 1 dashboard, filters, navigation, themes, and responsive layouts", asy
     .getByRole("button", { name: "Import Trades", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toContainText(
-    "CSV importing arrives in a later milestone",
+    "CSV importing is the next milestone",
   );
   await page.getByRole("button", { name: "Close", exact: true }).click();
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
@@ -125,6 +142,7 @@ test("Day 1 dashboard, filters, navigation, themes, and responsive layouts", asy
     page.getByRole("link", { name: "Reports", exact: true }),
   ).toHaveAttribute("aria-current", "page");
   await page.getByRole("link", { name: "Back to Dashboard" }).click();
+  await page.getByRole("link", { name: "Demo", exact: true }).click();
   await page.getByRole("button", { name: "Choose appearance" }).first().click();
   await page.getByRole("button", { name: "Dark", exact: true }).click();
   await page.keyboard.press("Escape");

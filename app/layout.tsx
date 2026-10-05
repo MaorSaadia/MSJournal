@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
+import "./day-two.css";
 import { Providers } from "@/components/providers";
-import { Shell } from "@/components/shell";
 
 export const metadata: Metadata = {
-  title: { default: "Dashboard · MSJournal", template: "%s · MSJournal" },
-  description:
-    "A personal futures trading journal. Day 1 fictional dashboard demo.",
+  title: { default: "MSJournal", template: "%s · MSJournal" },
+  description: "Your private futures trading journal.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -19,9 +18,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
     >
       <body>
-        <Providers>
-          <Shell>{children}</Shell>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

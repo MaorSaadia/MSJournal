@@ -21,6 +21,7 @@ import { FinancialChart, ProfileChart, TimeChart, TimeData } from "./charts";
 import { Panel, Empty } from "./panel";
 import { Heatmap } from "./heatmap";
 import { TradingCalendar } from "./calendar";
+import { ModeControl } from "./mode-control";
 function RecentTrades({ trades }: { trades: Trade[] }) {
   if (!trades.length) return <Empty />;
   return (
@@ -68,13 +69,15 @@ export function Dashboard({
   accounts,
   trades,
   cashMovements,
+  displayTimezone = "Asia/Jerusalem",
 }: {
   accounts: Account[];
   trades: Trade[];
   cashMovements: CashMovement[];
+  displayTimezone?: string;
 }) {
   const [filters, setFilters] = useState<Filters>(initialFilters);
-  const [timezone, setTimezone] = useState<string>("Asia/Jerusalem");
+  const [timezone, setTimezone] = useState<string>(displayTimezone);
   const selected = useMemo(
     () => filterTrades(trades, filters),
     [trades, filters],
@@ -109,7 +112,7 @@ export function Dashboard({
         />
       </header>
       <div className="dashboard-intro">
-        <p>Your performance. A clearer perspective.</p>
+        <ModeControl mode="demo" />
         <span className="demo-indicator">
           <FlaskConical size={12} />
           Demo data<span className="demo-period"> · Jan–Mar 2026</span>
@@ -224,9 +227,11 @@ export function Dashboard({
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
                 >
-                  {DISPLAY_TIMEZONES.map((t) => (
-                    <option key={t}>{t}</option>
-                  ))}
+                  {[...new Set([...DISPLAY_TIMEZONES, displayTimezone])].map(
+                    (t) => (
+                      <option key={t}>{t}</option>
+                    ),
+                  )}
                 </select>
               </label>
               <div className="chart-legend">

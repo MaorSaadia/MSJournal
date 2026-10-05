@@ -1,0 +1,636 @@
+.login-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.login-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 30px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+.login-card {
+  width: min(440px, calc(100% - 32px));
+  margin: auto;
+  padding: 30px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.login-card .eyebrow {
+  display: block;
+  margin: 20px 0 8px;
+}
+.login-card > .muted {
+  margin: 12px 0 24px;
+  font-size: 12px;
+}
+.login-card h1 {
+  font-size: 29px;
+}
+.login-card .dialog-symbol {
+  margin: 0;
+}
+.login-submit {
+  width: 100%;
+  margin: 20px 0 16px;
+}
+.login-privacy {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-bottom: 9px;
+}
+.login-card > .small {
+  line-height: 1.6;
+  font-size: 10px;
+}
+.login-footer {
+  text-align: center;
+  padding: 25px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+.setup-notice,
+.discard-notice {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 14px;
+  background: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 14px 0;
+}
+.setup-notice p {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  margin-top: 6px;
+}
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-weight: 500;
+  font-size: 12px;
+  margin: 0;
+  min-width: 0;
+}
+.form-field input,
+.form-field textarea {
+  width: 100%;
+  border: 1px solid var(--input);
+  background: var(--card);
+  color: var(--foreground);
+  border-radius: 6px;
+  padding: 10px 11px;
+  font-size: 12px;
+  min-height: 39px;
+  font-weight: 400;
+}
+.form-field textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+.form-field input[readonly] {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.form-field input[aria-invalid="true"],
+.form-field select[aria-invalid="true"] {
+  border-color: var(--negative);
+}
+.form-field select {
+  min-height: 39px;
+}
+.form-field small {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  font-weight: 400;
+}
+.form-error {
+  color: var(--negative);
+  font-size: 11px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+.optional-label {
+  display: inline;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 400;
+}
+.login-card form {
+  display: grid;
+  gap: 17px;
+}
+.password-input {
+  position: relative;
+}
+.password-input input {
+  padding-right: 43px;
+}
+.password-input button {
+  position: absolute;
+  right: 6px;
+  top: 4px;
+  padding: 8px;
+  color: var(--muted-foreground);
+  border-radius: 5px;
+}
+.logout-control > button {
+  font-size: 11px;
+}
+.rail-bottom .logout-control {
+  margin-bottom: 8px;
+}
+.sidebar-bottom strong {
+  max-width: 118px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.accounts-page,
+.settings-page {
+  padding: 23px 20px;
+  max-width: 2100px;
+  margin: 0 auto;
+}
+.page-description {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.7;
+  margin-top: 9px;
+}
+.account-toolbar {
+  margin: 25px 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.account-tabs {
+  display: flex;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 3px;
+  gap: 3px;
+  margin-right: auto;
+}
+.account-tabs button {
+  padding: 8px 11px;
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.account-tabs button.selected {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.account-tabs span {
+  margin-left: 5px;
+  font-size: 10px;
+}
+.account-toolbar > select {
+  width: auto;
+  min-width: 115px;
+  max-width: 240px;
+  height: 35px;
+  font-size: 11px;
+}
+.account-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: var(--card);
+  height: 35px;
+}
+.account-search svg {
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+}
+.account-search input {
+  background: transparent;
+  padding: 8px 0;
+  width: 185px;
+  outline: none;
+  font-size: 11px;
+}
+.account-search:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.managed-account-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+}
+.managed-account-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 9px;
+  box-shadow: var(--shadow);
+}
+.managed-account-card header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.managed-account-card header > div {
+  min-width: 0;
+}
+.managed-account-card h2 {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.managed-account-card header p {
+  margin-top: 5px;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.managed-account-card .stage-badge {
+  font-size: 9px;
+  flex-shrink: 0;
+}
+.managed-account-card dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 17px;
+  margin: 20px 0 15px;
+  border-top: 1px solid var(--border);
+  padding-top: 17px;
+}
+.managed-account-card dl > div {
+  min-width: 0;
+}
+.managed-account-card dt {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  margin-bottom: 6px;
+}
+.managed-account-card dd {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.managed-account-card dd small {
+  font-size: 9px;
+  color: var(--muted-foreground);
+}
+.broker-identifier {
+  font-family: var(--font-geist-mono), monospace;
+}
+.mapping-note,
+.baseline-note {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  padding: 10px 11px;
+  background: var(--muted);
+  border-radius: 5px;
+  line-height: 1.6;
+  margin: 7px 0;
+}
+.managed-account-card footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-top: 14px;
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.managed-account-card footer button {
+  font-size: 11px;
+}
+.accounts-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 65px 25px;
+  text-align: center;
+}
+.accounts-empty h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 15px 0 9px;
+}
+.accounts-empty p {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  max-width: 390px;
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+.account-page-note {
+  margin-top: 20px;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  line-height: 1.7;
+}
+.account-form-dialog {
+  max-width: min(680px, calc(100% - 24px));
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  background: var(--card);
+}
+.account-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+.form-wide {
+  grid-column: span 2;
+}
+.account-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 9px;
+  padding-top: 18px;
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.account-form-actions button {
+  font-size: 12px;
+}
+.form-explanation {
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+  margin: 15px 0 10px;
+}
+.discard-notice {
+  border-color: var(--negative);
+  margin: 0;
+}
+.discard-notice p {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.discard-notice > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 9px;
+}
+.success-notice {
+  border: 1px solid color-mix(in srgb, var(--positive) 20%, transparent);
+  background: var(--win-bg);
+  color: var(--positive);
+  padding: 11px 14px;
+  border-radius: 6px;
+  margin: 13px 0;
+  font-size: 12px;
+}
+.settings-card {
+  max-width: 600px;
+  margin-top: 25px;
+}
+.settings-card form {
+  display: grid;
+  gap: 20px;
+  padding: 23px;
+}
+.settings-card form > button {
+  justify-self: end;
+  font-size: 12px;
+}
+.theme-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 17px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.theme-setting strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.theme-setting p {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+.settings-session {
+  max-width: 600px;
+  margin-top: 15px;
+  padding: 22px;
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+}
+.settings-session > svg {
+  color: var(--positive);
+  flex-shrink: 0;
+}
+.settings-session h2 {
+  font-size: 12px;
+  font-weight: 600;
+}
+.settings-session p {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  line-height: 1.7;
+  margin-top: 7px;
+}
+.settings-session .logout-control {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.dashboard-mode {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.dashboard-mode a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  border-radius: 4px;
+  padding: 5px 9px;
+}
+.dashboard-mode a.selected {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: 550;
+}
+.private-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.real-empty-banner {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px;
+  margin-bottom: 17px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 8px;
+}
+.real-empty-banner .dialog-symbol {
+  width: 39px;
+  height: 39px;
+  border-radius: 9px;
+  margin: 0;
+  flex-shrink: 0;
+}
+.real-empty-banner strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.real-empty-banner p {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  line-height: 1.7;
+  margin-top: 5px;
+}
+.real-empty-banner .back-link {
+  margin: 0 0 0 auto;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+.pending-spinner {
+  animation: progress-spin 1s linear infinite;
+}
+@keyframes progress-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 1400px) {
+  .managed-account-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 800px) {
+  .accounts-page,
+  .settings-page {
+    padding: 20px 16px;
+  }
+  .managed-account-grid {
+    grid-template-columns: 1fr;
+  }
+  .account-tabs {
+    margin-right: 0;
+  }
+  .account-search {
+    flex: 1;
+  }
+  .account-search input {
+    width: 100%;
+  }
+  .account-toolbar > select {
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+  }
+  .settings-session {
+    flex-wrap: wrap;
+  }
+  .settings-session .logout-control {
+    margin-left: 31px;
+  }
+}
+@media (max-width: 600px) {
+  .login-header {
+    padding: 16px 20px;
+  }
+  .login-card {
+    padding: 24px;
+    margin: 35px auto;
+  }
+  .accounts-page,
+  .settings-page {
+    padding: 16px 12px;
+  }
+  .accounts-page .page-header {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .accounts-page .page-header > button {
+    font-size: 11px;
+    gap: 5px;
+    padding: 0 9px;
+    margin-top: 16px;
+  }
+  .account-toolbar {
+    gap: 7px;
+  }
+  .account-tabs {
+    width: 100%;
+  }
+  .account-tabs button {
+    flex: 1;
+  }
+  .account-search {
+    flex: auto;
+    width: 100%;
+  }
+  .account-form-dialog {
+    padding: 22px 18px;
+    max-height: calc(100dvh - 24px);
+  }
+  .account-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 15px;
+  }
+  .form-wide {
+    grid-column: span 1;
+  }
+  .managed-account-card dl .form-wide {
+    grid-column: span 2;
+  }
+  .form-field input,
+  .form-field textarea,
+  .form-field select {
+    font-size: 16px;
+  }
+  .form-field {
+    font-size: 12px;
+  }
+  .settings-card form {
+    padding: 19px;
+  }
+  .settings-session {
+    padding: 18px;
+  }
+  .real-empty-banner {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .real-empty-banner > div:nth-child(2) {
+    flex: 1;
+  }
+  .real-empty-banner .back-link {
+    margin-left: 52px;
+  }
+  .dashboard-mode a {
+    font-size: 9px;
+    padding: 5px 7px;
+  }
+  .private-indicator {
+    font-size: 9px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pending-spinner {
+    animation: none;
+  }
+}

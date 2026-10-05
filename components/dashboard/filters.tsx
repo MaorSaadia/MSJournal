@@ -20,10 +20,14 @@ export function DashboardFilters({
   filters,
   onChange,
   accounts,
+  demo = true,
 }: {
   filters: Filters;
   onChange: (f: Filters) => void;
-  accounts: Account[];
+  accounts: (Pick<Account, "id" | "name" | "firm"> & {
+    stage: "Evaluation" | "Funded" | "Personal";
+  })[];
+  demo?: boolean;
 }) {
   const [dateOpen, setDateOpen] = useState(false);
   const [start, setStart] = useState(filters.start),
@@ -31,7 +35,7 @@ export function DashboardFilters({
   const extraCount =
     Number(filters.symbol !== "all") + Number(filters.direction !== "all");
   const accountLabel =
-    filters.accounts.length === accounts.length
+    accounts.length === 0 ? "No accounts" : filters.accounts.length === accounts.length
       ? "All accounts"
       : filters.accounts.length === 1
         ? accounts.find((a) => a.id === filters.accounts[0])?.name
@@ -121,30 +125,32 @@ export function DashboardFilters({
         <PopoverContent className="date-popover" align="end">
           <strong>Date range</strong>
           <p className="small muted">Close dates · Asia/Jerusalem</p>
-          <div className="date-presets">
-            <Button
-              variant="outline"
-              onClick={() => {
-                onChange({
-                  ...filters,
-                  start: initialFilters.start,
-                  end: initialFilters.end,
-                });
-                setDateOpen(false);
-              }}
-            >
-              March demo
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                onChange({ ...filters, ...DEMO_PERIOD });
-                setDateOpen(false);
-              }}
-            >
-              All demo dates
-            </Button>
-          </div>
+          {demo && (
+            <div className="date-presets">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  onChange({
+                    ...filters,
+                    start: initialFilters.start,
+                    end: initialFilters.end,
+                  });
+                  setDateOpen(false);
+                }}
+              >
+                March demo
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  onChange({ ...filters, ...DEMO_PERIOD });
+                  setDateOpen(false);
+                }}
+              >
+                All demo dates
+              </Button>
+            </div>
+          )}
           <label className="field-label">
             From
             <input
@@ -181,13 +187,13 @@ export function DashboardFilters({
             Apply range
           </Button>
           <p className="small muted">
-            Demo range limited to 2 years per selection.
+            Range limited to 2 years per selection.
           </p>
         </PopoverContent>
       </Popover>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="account-trigger">
+          <Button variant="outline" className="account-trigger" disabled={accounts.length === 0}>
             <WalletCards size={15} />
             {accountLabel}
             <ChevronDown size={13} />

@@ -4,7 +4,7 @@ import { ArrowLeft, Sprout } from "lucide-react";
 import { navigation } from "@/lib/navigation";
 export function generateStaticParams() {
   return navigation
-    .filter((n) => n.href !== "/")
+    .filter((n) => !["/", "/prop-accounts", "/settings"].includes(n.href))
     .map((n) => ({ section: n.href.slice(1) }));
 }
 export async function generateMetadata({
@@ -31,7 +31,7 @@ export default async function ComingSoon({
     <div className="coming-page">
       <header className="page-header">
         <h1>{item.title}</h1>
-        <span className="badge">Day 1 preview</span>
+        <span className="badge">Coming soon</span>
       </header>
       <section className="coming-card">
         <div className="coming-icon">

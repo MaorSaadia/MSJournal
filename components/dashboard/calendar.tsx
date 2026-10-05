@@ -32,12 +32,16 @@ export function TradingCalendar({
   trades,
   filters,
   accounts,
+  initialMonth = "2026-03",
+  demo = true,
 }: {
   trades: Trade[];
   filters: Filters;
   accounts: Account[];
+  initialMonth?: string;
+  demo?: boolean;
 }) {
-  const [month, setMonth] = useState("2026-03");
+  const [month, setMonth] = useState(initialMonth);
   const [direction, setDirection] = useState(1);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const start = dayDate(`${month}-01`),
@@ -206,8 +210,9 @@ export function TradingCalendar({
       </AnimatePresence>
       {!monthResults.length && (
         <p className="calendar-empty-note">
-          No matching demo trades in {format(start, "MMMM yyyy")}. Demo records
-          cover January–March 2026.
+          {demo
+            ? `No matching demo trades in ${format(start, "MMMM yyyy")}. Demo records cover January–March 2026.`
+            : `No trades imported yet for ${format(start, "MMMM yyyy")}.`}
         </p>
       )}
       <div className="calendar-footer">

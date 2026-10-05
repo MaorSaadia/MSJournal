@@ -15,6 +15,7 @@ import {
   Sprout,
 } from "lucide-react";
 import { navigation } from "@/lib/navigation";
+import { LogoutButton } from "@/components/auth/logout";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,7 +29,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-function ThemeControl() {
+export function ThemeControl() {
   const { theme, setTheme } = useTheme();
   return (
     <Popover>
@@ -84,22 +85,26 @@ function ImportButton({ compact = false }: { compact?: boolean }) {
         </div>
         <DialogTitle>Bring your trades into focus</DialogTitle>
         <DialogDescription>
-          Tradovate CSV importing arrives in a later milestone. Today, explore
-          MSJournal with a fully fictional dataset.
+          Tradovate CSV importing is the next milestone. Today, manage your
+          accounts or switch the Dashboard to Demo to explore fictional results.
         </DialogDescription>
         <div className="note-box">
           Future imports will let you choose the CSV source timezone, including
           Asia/Jerusalem and America/New_York, and normalize timestamps to UTC
           using daylight-saving rules.
         </div>
-        <p className="small muted">
-          No files are uploaded or processed in this demo.
-        </p>
+        <p className="small muted">No files are uploaded or processed today.</p>
       </DialogContent>
     </Dialog>
   );
 }
-export function Shell({ children }: { children: React.ReactNode }) {
+export function Shell({
+  children,
+  displayName,
+}: {
+  children: React.ReactNode;
+  displayName: string;
+}) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -141,8 +146,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="sidebar-bottom">
           <div className="demo-avatar">MS</div>
           <div>
-            <strong>Personal workspace</strong>
-            <span>Day 1 · Demo experience</span>
+            <strong title={displayName}>{displayName}</strong>
+            <span>Private workspace · Day 2</span>
           </div>
         </div>
       )}
@@ -159,6 +164,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <i />
         </Link>
         <div className="rail-bottom">
+          <LogoutButton compact />
           <ThemeControl />
         </div>
       </aside>
@@ -209,7 +215,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <span>
             <Sprout size={13} /> A little reflection. A better next trade.
           </span>
-          <span>MSJournal · Day 1</span>
+          <span>MSJournal · Day 2</span>
         </footer>
       </div>
     </div>
