@@ -5,7 +5,7 @@ import {
   exactDecimal,
 } from "@/lib/accounts/validation";
 import { authorizedSelection } from "@/lib/accounts/types";
-import { safeRedirect, isOwner } from "@/lib/auth-policy";
+import { safeRedirect } from "@/lib/auth-policy";
 import { readFileSync } from "node:fs";
 const input = {
   displayName: "My evaluation",
@@ -94,10 +94,8 @@ describe("Day 2 exact account input and data separation", () => {
     );
   });
 });
-describe("private owner policy", () => {
-  it("compares normalized owner identities and rejects unsafe redirects", () => {
-    expect(isOwner(" OWNER@example.com ", "owner@example.com")).toBe(true);
-    expect(isOwner("intruder@example.com", "owner@example.com")).toBe(false);
+describe("private redirect policy", () => {
+  it("rejects unsafe redirects", () => {
     for (const url of [
       "https://evil.example",
       "//evil.example",

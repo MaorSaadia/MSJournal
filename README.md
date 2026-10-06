@@ -1,103 +1,111 @@
-# MSJournal — Day 2
+# MSJournal — Day 2, independent user journals
 
-A private, single-owner futures journal. The existing Next.js/React dashboard now has Better Auth email/password authentication, Neon PostgreSQL through a reusable node-postgres pool, Drizzle, persisted trading accounts and settings. Use npm and the tracked lockfile. Geist fonts are bundled locally.
+One Next.js application with Better Auth, Neon PostgreSQL and Drizzle. Anyone using the local website can create an account through signup; each authenticated user sees only their own trading accounts and preferences. The Day 1 dashboard, light/dark themes, emerald/violet palette, responsive layout and Motion animations remain intact. No CSV importing or Day 3 work is included.
 
-## Local setup
+## Run locally
 
-1. Install Node.js 20.9 or newer and run `npm.cmd ci`.
-2. In Neon, select the intended **development branch** and database, or create a free development project/branch yourself. From **Connect**, choose the database role and the **direct/unpooled** PostgreSQL connection string. No services are provisioned by this project. Use an isolated branch for browser fixtures. Keep TLS enabled; `sslmode=verify-full` verifies the server certificate. The app uses its own small `pg.Pool` and interactive transactions. A direct connection also supports the owner command's session advisory lock.
-3. Copy `.env.example` to `.env.local`. Configure these four variables locally; never send secrets through chat or commit them:
+Use Node.js 20.9 or newer and npm with the tracked package lockfile. On PowerShell use `npm.cmd`; `npm` works on compatible shells.
 
-| Variable             | Value                                                       |
-| -------------------- | ----------------------------------------------------------- |
-| `DATABASE_URL`       | Your development branch's PostgreSQL URL                    |
-| `BETTER_AUTH_SECRET` | Cryptographically random secret, at least 32 characters     |
-| `BETTER_AUTH_URL`    | Exact application origin, initially `http://localhost:3000` |
-| `OWNER_EMAIL`        | The single allowed owner's email                            |
+```powershell
+npm.cmd ci
+Copy-Item .env.example .env.local   # Only if .env.local does not already exist
+```
 
-Generate the auth secret with a password manager's random generator. No separate migration URL is needed. Next.js and the CLI load `.env.local`; process environment variables take precedence. HTTPS origins use secure cookies. Plain HTTP is accepted only on loopback for development. Open the same host and port as `BETTER_AUTH_URL`; `localhost` and `127.0.0.1` are different origins.
+Configure these variables locally. Never share or commit credentials:
 
-4. Review `drizzle/0000_faithful_gambit.sql`, then run:
+| Variable                          | Purpose                                                                                                          |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                    | Intended Neon development database connection URL                                                                |
+| `BETTER_AUTH_SECRET`              | Cryptographically random secret of at least 32 characters; keep the existing value to preserve existing sessions |
+| `BETTER_AUTH_URL`                 | Exact browser origin, initially `http://localhost:3000`                                                          |
+| `RESEND_API_KEY`                  | Server-only Resend key, optional for local signup/sign-in                                                        |
+| `AUTH_EMAIL_FROM`                 | Resend sender, such as `MSJournal <auth@your-verified-domain>`                                                   |
+| `AUTH_REQUIRE_EMAIL_VERIFICATION` | `false` initially; enable only after email delivery is verified                                                  |
+
+Choose the intended development database in Neon’s **Connect** dialog. Both direct and Neon pooled PostgreSQL URLs support this app's node-postgres interactive transactions. Keep TLS enabled; `sslmode=verify-full` explicitly verifies the server certificate. No separate migration URL is required for the current SQL. No database is provisioned automatically.
+
+Next.js and the CLI load `.env.local`; process variables take precedence. Restart the running app after changing environment variables. Use the exact configured host and port: `localhost` and `127.0.0.1` are different origins. HTTPS uses secure cookies; HTTP is limited to loopback for local development.
+
+Review existing versioned SQL in `drizzle/` before applying migrations:
 
 ```powershell
 npm.cmd run db:migrate -- --reviewed
-npm.cmd run owner:bootstrap
 npm.cmd run dev
 ```
 
-Bootstrap prompts twice for a 12–128 character password **without displaying it** and refuses duplicate owners. A securely injected `MSJOURNAL_OWNER_PASSWORD` process variable is supported for noninteractive terminals; never save the password in `.env.local`, scripts or shell history. The command uses an isolated local Better Auth API instance and library password hashing. It exposes no setup endpoint and never enables signup in the running application.
+Open `http://localhost:3000/signup`. Enter your name, email, password and confirmation. Successful local signup creates a Better Auth session and opens a welcome page with **Add your first trading account**. Choose **Prop Accounts → Add Account**. No terminal bootstrap is required for individual users. Sign in at `/login`, request recovery at `/forgot-password`, and sign out through Settings or the utility rail.
 
-Open `http://localhost:3000/login`, sign in with your configured owner email and password, then choose **Prop Accounts → Add Account**. Create an Evaluation, Funded or Personal account. Personal accounts do not require a prop firm. Refresh after saving to reload from Neon. Archive preserves records, and restore makes them selectable again; hard deletion is unavailable.
+`OWNER_EMAIL`, owner allowlists, `owner:bootstrap`, `owner:recover` and the owner-password environment inputs have been removed. A leftover `OWNER_EMAIL` in a private local file is ignored and can be removed. Existing user IDs, supported password hashes, trading accounts and settings are preserved: former owners are ordinary users. This revision changes no tables and requires no new schema migration.
 
-Use `npm` instead of `npm.cmd` on compatible shells. Production preview: `npm.cmd run build`, then `npm.cmd run start`.
+## Email recovery and verification
 
-## Schema and maintenance
+In Resend, verify a sending domain using its DNS instructions, create a sending API key, then set `RESEND_API_KEY` and `AUTH_EMAIL_FROM`. Restart MSJournal. Do not use Resend's limited test sender as a general sender for independent users.
 
-Only Better Auth's user, session, authentication-account, verification and rate-limit tables, `trading_accounts`, and user preferences exist. Authentication accounts are separate from trading accounts. Money uses PostgreSQL `numeric(18,2)` and exact validated decimal strings. Broker identifiers remain text. Owner foreign keys and server predicates protect records. A partial unique index reserves nonempty identifiers per owner/platform **including archived records**.
+The forgot-password page uses Better Auth's supported token flow and a generic confirmation that does not reveal account existence. Reset emails contain a one-hour link. The reset page validates matching passwords, handles expired/invalid/used links, resets through Better Auth and returns to sign-in. Successful resets revoke previous database sessions; cached session cookies cannot restore access.
+
+Missing email configuration disables recovery clearly without blocking local signup/sign-in. Failed Resend delivery returns an availability error instead of a fake success. Email sending is awaited to surface failures; before public release, review timing protection and durable email handling alongside the delivery/error policy. No plaintext passwords or reset tokens are stored in application logs. Auth request logging is disabled, links use `Referrer-Policy: no-referrer`, and the reset screen removes its token from browser history after reading it into memory. Configure any future proxy/hosting logs to redact authentication URL credentials too. Do not capture recovery URLs in analytics or tracing.
+
+Email verification is prepared using Better Auth's `sendVerificationEmail` and `/verify-email` flow. With `AUTH_REQUIRE_EMAIL_VERIFICATION=false`, no verification gate or automatic verification email blocks local users. After configuring and testing Resend, set it to `true`. Signup then asks the user to verify; verification starts a supported session and opens onboarding. Existing unverified users must verify before signing in once the gate is enabled. Resend verification links from `/verify-email` if needed.
+
+Before enabling public access: verify the sending domain and sender permissions, test actual recovery and verification delivery, set an HTTPS `BETTER_AUTH_URL`, retain a strong secret, and review rate limits and trusted proxy/IP handling. This project has not been publicly deployed.
+
+## Private data and dashboard
+
+Every business query and mutation derives the user ID from the server session. Reads, edits, archive/restore and settings are scoped to it. Client-supplied identity fields are rejected. The existing `owner_id` database column means record ownership, not an owner role; keeping it avoids rewriting data. Broker identifiers remain unique **per user/platform**, including archived accounts, and can be reused by another user. Sessions are database-backed, private API responses are uncached, and mutation origins are checked. No organizations, roles, teams or billing are added.
+
+**My Accounts** shows only the signed-in user's unarchived accounts. URL selections are validated against that list, so IDs from another journal or archived accounts are removed. New users start with no real data; after creating accounts they see **No trades imported yet**. Ratios and current balances are unavailable. Nominal account size and optional dated opening balances are explicit metadata, never verified current balances.
+
+**Demo** opens `/?mode=demo` behind login with a persistent **Demo data** indicator. The fixed fictional dataset covers January–March 2026, initially March. Fictional accounts and trades stay in `data/demo.ts` and are never inserted into Neon or attached to real accounts. Shared financial calculations, calendar, filters, heatmap, charts and read-only day details remain available. Daily grouping uses Asia/Jerusalem close dates; entry-time display can use other IANA timezones, including New York. Reporting timezones are stored for future imports, with no CSV interpretation yet.
+
+Settings persist display name, display timezone and USD currency per user. Email is read-only. Theme stays with next-themes in the browser for fast startup. Financial inputs use exact decimal strings and PostgreSQL numeric columns; identifiers remain text. Archive preserves account history; the application does not offer hard deletion.
+
+## Diagnose authentication
 
 ```powershell
-npm.cmd run db:generate                  # Generate migrations after schema changes
-npm.cmd run db:migrate -- --reviewed     # Apply reviewed, versioned SQL
-npm.cmd run db:studio                    # Local database inspection
-npm.cmd run auth:generate                # Installed Better Auth reference schema
+npm.cmd run auth:diagnose
 ```
 
-`auth:generate` writes `drizzle/auth-reference.ts` for comparison; `db/schema.ts` is the application schema. Review generated SQL before applying it. Migrations never run during application requests. No reset/drop command is used. Studio can show private records; keep it local and close it when finished.
+This read-only command loads the same environment, reports the nonsecret auth origin/cookie/email flags, checks Neon reachability, schema columns, migration history and counts of credential hashes compatible with the library's format. It does not print emails, passwords, tokens, connection strings or record IDs. Hash format alone does not establish how a password was originally created or prove password correctness.
 
-### Local owner password recovery
+During this revision the configured Neon database was reachable, all schema columns matched and migration history existed, but it contained **zero registered users and zero password records**. This explains invalid credentials before signup. There was no historical runtime trace establishing the earlier service failure; stale environment settings or transient connectivity cannot be claimed as its proven cause. Current credential failures return 401, service failures return a sanitized 503, origin failures and throttling have separate messages. No password was overwritten or table reset to fix login.
 
-Stop the application, keep the same configured owner email, and run:
-
-```powershell
-npm.cmd run owner:recover
-```
-
-Enter and confirm a new hidden password, then restart the app. The local command uses Better Auth's supported request/reset APIs with a token retained only in its process. Password update and revocation of previous sessions run atomically. Database sessions and disabled cookie caching prevent old cookies from restoring access. No email provider, public reset endpoint or fake reset UI is included. Do not edit password hashes manually.
-
-## Real accounts and explicit demo
-
-**My Accounts** is the default dashboard. Only authorized, unarchived Neon accounts appear in its selector. Selected IDs persist in the URL and are validated; forged or archived IDs are removed. No accounts shows **Add your first account**; accounts without trades shows **No trades imported yet**. Results, ratios and current balances stay unavailable. Nominal size and an optional dated opening balance are entered metadata, never verified current balances.
-
-**Demo** opens `/?mode=demo` behind the same private login. The Day 1 dashboard keeps its compact layout, emerald/violet palette, both themes, responsive navigation, charts, filters, calendar, heatmap and reduced-motion behavior. Its persistent **Demo data** indicator identifies the fictional content. Demo accounts/trades stay in `data/demo.ts`; they are never inserted into Neon or attached to real accounts.
-
-The demo covers **January 1–March 31, 2026**, initially March. Four fictional accounts start at USD 50,000 on January 1. Explicit fictional cash movements: Evergreen +$250 on February 2; Northstar −$1,200 on February 12; Harbor −$850 on March 18. These are not firm-policy claims. Shared integer-cent calculations derive net P&L, rates, ratios, cumulative results, drawdown and balances. Undefined ratios show an em dash. Balance scope includes account/date filters and preceding results/cash movements; symbol/direction filters affect performance only. The radar is illustrative without an implemented scoring methodology.
-
-Settings persist display name, default display timezone and USD currency in Neon. Owner email is read-only. Theme remains a browser preference through next-themes for fast startup. IANA reporting/display timezones support DST, including Jerusalem and New York. Demo close-day grouping remains **Asia/Jerusalem**, while entry-time display can change. Real account reporting timezone is retained for future imports; no CSV interpretation exists yet.
-
-Public signup is rejected by the API and disabled in Better Auth. Private routes and every data service/mutation authorize the configured owner. Client-supplied owner IDs are rejected. Private API responses are uncached, mutations check the configured origin, and Better Auth provides cookie/origin protections and database-backed login rate limiting. Sign out revokes the session.
-
-## Verification
+## Verification and maintenance
 
 ```powershell
 npm.cmd run typecheck
 npm.cmd run lint
 npm.cmd test
 npm.cmd run build
+npm.cmd run db:generate        # Detect/generate intentional schema changes
+npm.cmd run db:studio          # Local inspection only
+npm.cmd run db:check           # Transaction-only, rolled-back account fixtures
+npm.cmd run auth:generate      # Installed Better Auth reference schema
 ```
 
-Focused tests cover financial/date behavior, exact account inputs, duplicate-index scope, ownership predicates, forged input rejection, session policy and server signup rejection. Mocked service/session tests verify authorization logic, **not live Neon persistence**.
+The schema includes only authentication tables, trading accounts and preferences. Generated reference auth schema is for comparison; `db/schema.ts` is the application schema. Review SQL before applying it. Migrations never run during page requests. No reset/drop command is used.
 
-Day 2 verification passed: production build, TypeScript, ESLint, 19 focused tests, transaction-only live database checks, and the unauthenticated browser suite. The two authenticated browser suites were skipped because no owner/test password was configured. Light, dark and mobile login screenshots were captured and inspected.
-
-For browser checks, configure `BETTER_AUTH_URL=http://127.0.0.1:3100`, then start the preview in a separate terminal:
+For browser verification, start a preview on the test origin in a separate terminal:
 
 ```powershell
+npm.cmd run build
+$env:BETTER_AUTH_URL = 'http://127.0.0.1:3100'
 npm.cmd run start -- --hostname 127.0.0.1 --port 3100
+```
+
+In the test terminal, use the same test origin and an intended disposable development database:
+
+```powershell
+$env:BETTER_AUTH_URL = 'http://127.0.0.1:3100'
+$env:MSJOURNAL_TEST_DISPOSABLE = 'true'
 npm.cmd run test:browser
 ```
 
-The suite uses installed Google Chrome. Unauthenticated checks run without credentials: private-route redirects, private API denial, signup rejection, login appearance, theme persistence and mobile overflow. Screenshots save to `artifacts/day-two-login-{light,dark,mobile}.png`.
+Chrome must be installed. Authenticated suites require verification disabled for local disposable emails. They create random users through supported APIs/UI and clean up only their own marked fixtures, never existing user records. Tests cover signup/onboarding, sign-out/sign-in, existing supported credential records, refresh sessions, two-user account/settings isolation, scoped broker-ID uniqueness, archive/restore, real/demo separation, and responsive auth screens. A captured in-process email callback tests the library's reset-token/session flow without sending email; it is not a replacement provider in the app. Real Resend recovery/verification delivery remains unverified until credentials and a sender are configured.
 
-Authenticated checks are opt-in. On a **disposable Neon development branch**, migrate/bootstrap its owner and securely inject `MSJOURNAL_TEST_DISPOSABLE=true` and `MSJOURNAL_TEST_OWNER_PASSWORD` into the test process. Tests cover create/edit persistence after refresh, duplicates, archive/restore, validated selection, real/demo separation, mobile forms, logout and the original demo. Fixture accounts are archived instead of deleted. Never run fixtures against personal records. These suites skip without the required inputs.
+The unchanged dependency audit reports nine advisory entries in development tooling: the Next lint chain and Drizzle Kit's legacy esbuild loader. Forced fixes propose incompatible downgrades and were not applied.
 
-A Neon connection became available during implementation and the reviewed migration was applied successfully. `npm.cmd run db:check` checks exact numeric/text storage, editing, owner predicates, duplicate protection for archived identifiers, archive and restore using temporary records inside a rolled-back transaction. It never commits fixture records. These database checks do not replace authenticated browser verification.
+Revision verification: production build, strict type-check, ESLint and 25 focused tests passed. All five browser checks passed across the complete run and the rerun of the two corrected test selectors. Live checks covered separate journals, unchanged supported password records, refresh persistence, archive/restore, demo layout, reset/session revocation, themes and mobile screens. A separate loopback preview with an intentionally unreachable database returned the expected sanitized 503. Fixture cleanup returned the database to its original zero-user state. No real pre-existing user existed to test; compatibility was verified with a disposable pre-existing Better Auth credential. Actual Resend email delivery remains unverified.
 
-The configured owner email still contains the example address, and no owner was created. Replace `OWNER_EMAIL` locally and run `owner:bootstrap`. Authenticated refresh persistence, login rate limiting, recovery/session revocation and account-management browser workflows remain unverified until an owner is configured. Builds also work without credentials; missing configuration is explained on the login screen without fabricated authentication or storage.
+## References and scope
 
-## Scope and references
-
-The dependency audit reports nine advisory entries in development tooling: the inherited Next lint chain (`braces`) and Drizzle Kit's legacy esbuild loader. npm's suggested fixes downgrade Next's lint configuration and Drizzle Kit incompatibly, so no forced downgrade was applied. These tools are not exposed as application endpoints.
-
-CSV importing is the next milestone. No importing, reconstruction, live broker connections, prop-rule engines, payouts, file storage, billing or public deployment is implemented. Work stops at Day 2 for review.
-
-Configuration follows installed Next.js guides in `node_modules/next/dist/docs/`, [Better Auth's Drizzle adapter](https://better-auth.com/docs/adapters/drizzle), [Next.js integration](https://better-auth.com/docs/integrations/next), [email/password](https://better-auth.com/docs/authentication/email-password), [rate limiting](https://better-auth.com/docs/concepts/rate-limit), [Drizzle PostgreSQL](https://orm.drizzle.team/docs/get-started-postgresql), [migrations](https://orm.drizzle.team/docs/migrations) and [transactions](https://orm.drizzle.team/docs/transactions).
+Configuration follows installed Next.js guides, [Better Auth email/password authentication](https://better-auth.com/docs/authentication/email-password), [email verification](https://better-auth.com/docs/concepts/email), [Drizzle adapter](https://better-auth.com/docs/adapters/drizzle) and [Resend Node.js delivery](https://resend.com/docs/send-with-nodejs). Work stops at the revised Day 2 authentication milestone. No CSV importing, broker connections, trade reconstruction or public deployment.

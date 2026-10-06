@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
 import { isConfigured } from "@/lib/config";
-import { ownerSession } from "@/lib/session";
+import { userSession } from "@/lib/session";
 import { safeRedirect } from "@/lib/auth-policy";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,7 +16,7 @@ export default async function Login({
   let signedIn = false,
     unavailable = false;
   try {
-    signedIn = !!(await ownerSession(await headers()));
+    signedIn = !!(await userSession(await headers()));
   } catch {
     unavailable = true;
   }

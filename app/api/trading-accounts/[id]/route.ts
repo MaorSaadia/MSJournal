@@ -3,7 +3,7 @@ import {
   saveTradingAccount,
   archiveTradingAccount,
 } from "@/lib/accounts/service";
-import { requireOwner } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { privateError, privateJson, requireOrigin } from "@/lib/private-api";
 import { z } from "zod";
 export const runtime = "nodejs";
@@ -23,7 +23,7 @@ export async function GET(request: Request, context: Context) {
 }
 export async function PATCH(request: Request, context: Context) {
   try {
-    await requireOwner(request.headers);
+    await requireUser(request.headers);
     requireOrigin(request);
     const { id } = await context.params;
     const input = await request.json();

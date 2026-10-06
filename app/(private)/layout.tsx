@@ -1,4 +1,4 @@
-import { requirePageOwner } from "@/lib/session";
+import { requirePageUser } from "@/lib/session";
 import { Shell } from "@/components/shell";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,6 +7,6 @@ export default async function PrivateLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const owner = await requirePageOwner();
+  const owner = await requirePageUser();
   return <Shell displayName={owner.name}>{children}</Shell>;
 }

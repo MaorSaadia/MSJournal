@@ -10,7 +10,7 @@ const fixture = vi.hoisted(() => ({
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/session", () => ({
-  requireOwner: fixture.authorize,
+  requireUser: fixture.authorize,
   UnauthorizedError: class extends Error {},
 }));
 vi.mock("@/db/client", () => ({

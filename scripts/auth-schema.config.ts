@@ -12,7 +12,7 @@ export const auth = betterAuth({
   session: { modelName: "auth_sessions", cookieCache: { enabled: false } },
   account: { modelName: "auth_accounts" },
   verification: { modelName: "auth_verifications" },
-  emailAndPassword: { enabled: true, disableSignUp: true },
+  emailAndPassword: { enabled: true },
   rateLimit: {
     enabled: true,
     storage: "database",

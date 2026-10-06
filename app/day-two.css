@@ -1,7 +1,35 @@
 .login-page {
+  & a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+}
+
+.auth-fields {
+  display: grid;
+  gap: 17px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.auth-fields .login-submit {
+  margin: 4px 0 0;
+}
+.auth-fields .auth-inline-link {
+  margin-top: 0;
+}
+.auth-fields > small {
+  margin-top: -10px;
+}
+.auth-inline-link {
+  font-size: 12px;
+  display: inline-block;
+  margin-top: 12px;
 }
 .login-header {
   display: flex;

@@ -1,9 +1,6 @@
-export const normalizeEmail = (email: string) => email.trim().toLowerCase();
-export function isOwner(email: string, configuredEmail: string) {
-  return normalizeEmail(email) === normalizeEmail(configuredEmail);
-}
 const destinations = new Set([
   "/",
+  "/welcome",
   "/prop-accounts",
   "/settings",
   "/day-view",
@@ -35,4 +32,9 @@ export const publicAuthPaths = new Set([
   "/sign-in/email",
   "/sign-out",
   "/get-session",
+  "/sign-up/email",
+  "/request-password-reset",
+  "/reset-password",
+  "/send-verification-email",
+  "/verify-email",
 ]);

@@ -1,5 +1,5 @@
 import { getPreferences, savePreferences } from "@/lib/preferences";
-import { requireOwner } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { privateError, privateJson, requireOrigin } from "@/lib/private-api";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
 }
 export async function PATCH(request: Request) {
   try {
-    await requireOwner(request.headers);
+    await requireUser(request.headers);
     requireOrigin(request);
     return privateJson({
       preferences: await savePreferences(await request.json(), request.headers),

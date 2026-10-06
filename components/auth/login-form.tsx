@@ -1,23 +1,16 @@
 "use client";
 import { useState } from "react";
-import { motion } from "motion/react";
-import {
-  LockKeyhole,
-  Eye,
-  EyeOff,
-  LoaderCircle,
-  ArrowRight,
-} from "lucide-react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import type { z } from "zod";
+import { LoaderCircle, ArrowRight } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { authError } from "@/lib/auth-messages";
+import { loginInput } from "@/lib/auth-validation";
+import { AuthFrame } from "./auth-frame";
+import { PasswordField } from "./password-field";
 import { Button } from "@/components/ui/button";
-import { ThemeControl } from "@/components/shell";
-const loginSchema = z.object({
-  email: z.email("Enter a valid email address.").trim(),
-  password: z.string().min(1, "Enter your password.").max(128),
-});
 export function LoginForm({
   configured,
   destination,
@@ -27,17 +20,16 @@ export function LoginForm({
   destination: string;
   unavailable?: boolean;
 }) {
-  const [visible, setVisible] = useState(false),
-    [error, setError] = useState("");
+  const [error, setError] = useState("");
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<z.infer<typeof loginInput>>({
+    resolver: zodResolver(loginInput),
     defaultValues: { email: "", password: "" },
   });
-  async function signIn(input: z.infer<typeof loginSchema>) {
+  async function signIn(input: z.infer<typeof loginInput>) {
     setError("");
     try {
       const result = await authClient.signIn.email({
@@ -45,112 +37,64 @@ export function LoginForm({
         callbackURL: destination,
       });
       if (result.error) {
-        setError(
-          result.error.status === 429
-            ? "Too many attempts. Wait one minute and try again."
-            : result.error.status === 503
-              ? "Sign-in is temporarily unavailable. Check your database configuration."
-              : "The email or password is incorrect.",
-        );
+        setError(authError(result.error, "login"));
         return;
       }
       window.location.replace(destination);
     } catch {
-      setError("Unable to sign in. Check the connection and try again.");
+      setError(
+        "Authentication is temporarily unavailable. Please try again later.",
+      );
     }
   }
   return (
-    <div className="login-page">
-      <header className="login-header">
-        <span className="brand-name">
-          MS<span>Journal</span>
-        </span>
-        <ThemeControl />
-      </header>
-      <motion.main
-        className="login-card"
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="dialog-symbol">
-          <LockKeyhole size={25} />
-        </div>
-        <span className="eyebrow">YOUR PRIVATE WORKSPACE</span>
-        <h1>
-          Welcome back<span className="title-dot">.</span>
-        </h1>
-        <p className="muted">A little reflection. A better next trade.</p>
-        {!configured && (
-          <div className="setup-notice" role="status">
-            <strong>Private sign-in needs local setup</strong>
-            <p>
-              Configure Neon and authentication in <code>.env.local</code>,
-              apply the reviewed migration, then bootstrap your owner account.
-              Follow README.md. Your journal stays private until setup is
-              complete.
-            </p>
-          </div>
-        )}
-        {unavailable && (
-          <p role="alert" className="form-error">
-            The database is temporarily unavailable. Check your local
-            configuration.
-          </p>
-        )}
-        <form onSubmit={handleSubmit(signIn)} noValidate>
+    <AuthFrame
+      title="Welcome back"
+      description="A little reflection. A better next trade."
+      configured={configured}
+    >
+      {unavailable && (
+        <p className="form-error" role="alert">
+          Authentication is temporarily unavailable. Please try again later.
+        </p>
+      )}
+      <form onSubmit={handleSubmit(signIn)} noValidate>
+        <fieldset
+          disabled={!configured || isSubmitting}
+          className="auth-fields"
+        >
           <label className="form-field">
-            Owner email
+            Email
             <input
               {...register("email")}
               type="email"
               autoComplete="username"
-              placeholder="you@example.com"
-              disabled={!configured || isSubmitting}
               aria-invalid={!!errors.email}
-              aria-describedby={errors.email ? "login-email-error" : undefined}
+              aria-describedby={errors.email ? "email-error" : undefined}
             />
             {errors.email && (
-              <span id="login-email-error" className="form-error">
+              <span id="email-error" className="form-error">
                 {errors.email.message}
               </span>
             )}
           </label>
-          <label className="form-field">
-            Password
-            <div className="password-input">
-              <input
-                {...register("password")}
-                type={visible ? "text" : "password"}
-                autoComplete="current-password"
-                disabled={!configured || isSubmitting}
-                aria-invalid={!!errors.password}
-                aria-describedby={
-                  errors.password ? "login-password-error" : undefined
-                }
-              />
-              <button
-                type="button"
-                aria-label={visible ? "Hide password" : "Show password"}
-                onClick={() => setVisible(!visible)}
-              >
-                {visible ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-            {errors.password && (
-              <span id="login-password-error" className="form-error">
-                {errors.password.message}
-              </span>
-            )}
-          </label>
+          <PasswordField
+            {...register("password")}
+            autoComplete="current-password"
+            error={errors.password?.message}
+          />
+          <Link href="/forgot-password" className="auth-inline-link">
+            Forgot password?
+          </Link>
           {error && (
             <p className="form-error" role="alert">
               {error}
             </p>
           )}
           <Button
-            type="submit"
-            disabled={!configured || isSubmitting}
             className="login-submit"
+            type="submit"
+            disabled={isSubmitting}
           >
             {isSubmitting ? (
               <LoaderCircle size={16} className="pending-spinner" />
@@ -159,18 +103,14 @@ export function LoginForm({
             )}{" "}
             {isSubmitting ? "Signing in…" : "Sign in"}
           </Button>
-        </form>
-        <p className="login-privacy">
-          Owner access only. Public registration is disabled.
-        </p>
-        <p className="small muted">
-          Password recovery is available through the documented local owner
-          command.
-        </p>
-      </motion.main>
-      <footer className="login-footer">
-        MSJournal · Your personal trading journal
-      </footer>
-    </div>
+        </fieldset>
+      </form>
+      <p className="login-privacy">
+        Don’t have an account? <Link href="/signup">Sign up</Link>
+      </p>
+      <p className="small muted">
+        <Link href="/verify-email">Request an email verification link</Link>
+      </p>
+    </AuthFrame>
   );
 }

@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-test("private access, signup rejection, and responsive sign-in without credentials", async ({
+import { disposableUser, cleanupUsers, fillPassword } from "./fixture-users";
+test.afterEach(async () => {
+  await cleanupUsers();
+});
+test("private access, admin endpoint rejection, and responsive sign-in without credentials", async ({
   page,
   request,
 }) => {
@@ -31,7 +35,7 @@ test("private access, signup rejection, and responsive sign-in without credentia
   }
   expect(
     (
-      await request.post("/api/auth/sign-up/email", {
+      await request.post("/api/auth/admin/create-user", {
         data: {
           email: "outsider@example.com",
           password: "not-a-real-password",
@@ -89,21 +93,21 @@ test("disposable database account lifecycle, persistence, selection, demo separa
 }) => {
   test.skip(
     process.env.MSJOURNAL_TEST_DISPOSABLE !== "true" ||
-      !process.env.MSJOURNAL_TEST_OWNER_PASSWORD ||
-      !process.env.OWNER_EMAIL,
-    "Use a disposable Neon development branch and secure owner test credentials; never run fixtures against personal account data.",
+      process.env.AUTH_REQUIRE_EMAIL_VERIFICATION === "true",
+    "Use a disposable Neon development database with verification disabled.",
   );
   const marker = `Day 2 fixture ${Date.now()}`;
   let fixtureId: string | undefined;
-  await page.goto("/login");
+  const user = disposableUser();
+  await page.goto("/signup");
+  await page.getByLabel("Name", { exact: true }).fill(user.name);
+  await page.getByLabel("Email", { exact: true }).fill(user.email);
+  await fillPassword(page, "Password", user.password);
+  await fillPassword(page, "Confirm password", user.password);
   await page
-    .getByLabel("Owner email", { exact: true })
-    .fill(process.env.OWNER_EMAIL!);
-  await page
-    .getByLabel("Password", { exact: true })
-    .fill(process.env.MSJOURNAL_TEST_OWNER_PASSWORD!);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await page.waitForURL("/");
+    .getByRole("button", { name: "Create account", exact: true })
+    .click();
+  await page.waitForURL("/welcome");
   const base = new URL(page.url()).origin;
   try {
     await page.goto("/prop-accounts");

@@ -1,13 +1,16 @@
 import { toNextJsHandler } from "better-auth/next-js";
 import { getAuth } from "@/lib/auth";
-import { isConfigured } from "@/lib/config";
+import { isConfigured, emailConfigured } from "@/lib/config";
 import { publicAuthPaths } from "@/lib/auth-policy";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 async function handle(request: Request) {
   const path = new URL(request.url).pathname.replace(/^\/api\/auth/, "");
   let response: Response;
-  if (!publicAuthPaths.has(path))
+  if (
+    !publicAuthPaths.has(path) &&
+    !/^\/reset-password\/[A-Za-z0-9_-]+$/.test(path)
+  )
     response = Response.json(
       {
         message:
@@ -23,17 +26,38 @@ async function handle(request: Request) {
       },
       { status: 503 },
     );
+  else if (
+    ["/request-password-reset", "/send-verification-email"].includes(path) &&
+    !emailConfigured()
+  )
+    response = Response.json(
+      {
+        code: "EMAIL_UNAVAILABLE",
+        message:
+          "Email recovery is temporarily unavailable. Please try again later.",
+      },
+      { status: 503 },
+    );
   else {
     try {
       const handlers = toNextJsHandler(getAuth());
       response = await (request.method === "GET"
         ? handlers.GET(request)
         : handlers.POST(request));
+      if (response.status >= 500)
+        response = Response.json(
+          {
+            code: "AUTH_UNAVAILABLE",
+            message:
+              "Authentication is temporarily unavailable. Please try again later.",
+          },
+          { status: 503 },
+        );
     } catch {
       response = Response.json(
         {
           message:
-            "Sign-in is temporarily unavailable. Check the database setup and try again.",
+            "Authentication is temporarily unavailable. Please try again later.",
         },
         { status: 503 },
       );

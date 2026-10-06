@@ -3,7 +3,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { tradingAccounts } from "@/db/schema";
-import { requireOwner } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { accountValues, tradingAccountSchema } from "./validation";
 import type { TradingAccount } from "./types";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
@@ -42,7 +42,7 @@ export async function listTradingAccounts(
   headers?: Headers,
   activeOnly = false,
 ) {
-  const owner = await requireOwner(headers);
+  const owner = await requireUser(headers);
   try {
     const rows = await getDb()
       .select()
@@ -60,7 +60,7 @@ export async function listTradingAccounts(
   }
 }
 export async function getTradingAccount(id: string, headers?: Headers) {
-  const owner = await requireOwner(headers);
+  const owner = await requireUser(headers);
   try {
     const [row] = await getDb()
       .select()
@@ -82,7 +82,7 @@ export async function saveTradingAccount(
   id?: string,
   headers?: Headers,
 ) {
-  const owner = await requireOwner(headers);
+  const owner = await requireUser(headers);
   const values = accountValues(tradingAccountSchema.parse(input));
   try {
     const db = getDb();
@@ -113,7 +113,7 @@ export async function archiveTradingAccount(
   archive: boolean,
   headers?: Headers,
 ) {
-  const owner = await requireOwner(headers);
+  const owner = await requireUser(headers);
   try {
     const [row] = await getDb()
       .update(tradingAccounts)

@@ -7,24 +7,24 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@/lib/config", () => ({
   isConfigured: () => true,
-  readConfig: () => ({ OWNER_EMAIL: "owner@example.com" }),
+  readConfig: () => ({ AUTH_REQUIRE_EMAIL_VERIFICATION: "false" }),
 }));
-import { ownerSession, requireOwner, UnauthorizedError } from "@/lib/session";
+import { userSession, requireUser, UnauthorizedError } from "@/lib/session";
 describe("private session authorization", () => {
   beforeEach(() => auth.getSession.mockReset());
-  it("rejects absent or non-owner library sessions and disables cached-cookie authorization", async () => {
+  it("rejects absent sessions and authorizes independent users without cookie caching", async () => {
     auth.getSession.mockResolvedValue(null);
-    await expect(requireOwner(new Headers())).rejects.toBeInstanceOf(
+    await expect(requireUser(new Headers())).rejects.toBeInstanceOf(
       UnauthorizedError,
     );
     auth.getSession.mockResolvedValue({
       user: { id: "other", email: "outsider@example.com" },
     });
-    expect(await ownerSession(new Headers())).toBeNull();
+    expect((await userSession(new Headers()))?.user.id).toBe("other");
     auth.getSession.mockResolvedValue({
       user: { id: "owner", email: "OWNER@example.com" },
     });
-    expect((await requireOwner(new Headers())).id).toBe("owner");
+    expect((await requireUser(new Headers())).id).toBe("owner");
     expect(auth.getSession).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: { disableCookieCache: true } }),
     );
@@ -33,9 +33,9 @@ describe("private session authorization", () => {
     auth.getSession.mockResolvedValueOnce({
       user: { id: "owner", email: "owner@example.com" },
     });
-    expect((await requireOwner(new Headers())).id).toBe("owner");
+    expect((await requireUser(new Headers())).id).toBe("owner");
     auth.getSession.mockResolvedValue(null);
-    await expect(requireOwner(new Headers())).rejects.toBeInstanceOf(
+    await expect(requireUser(new Headers())).rejects.toBeInstanceOf(
       UnauthorizedError,
     );
   });

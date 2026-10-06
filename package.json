@@ -15,8 +15,7 @@
     "db:studio": "drizzle-kit studio --host 127.0.0.1",
     "db:check": "tsx scripts/check-db.ts",
     "auth:generate": "auth generate --config scripts/auth-schema.config.ts --output drizzle/auth-reference.ts --yes",
-    "owner:bootstrap": "tsx scripts/owner.ts bootstrap",
-    "owner:recover": "tsx scripts/owner.ts recover"
+    "auth:diagnose": "tsx scripts/diagnose-auth.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
@@ -38,6 +37,7 @@
     "react-dom": "19.2.8",
     "react-hook-form": "^7.89.0",
     "recharts": "^3.10.1",
+    "resend": "^6.32.0",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.7.0",
     "zod": "^4.6.5"

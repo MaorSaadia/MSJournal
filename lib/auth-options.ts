@@ -1,29 +1,44 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { createAuthMiddleware, APIError } from "better-auth/api";
-import { eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import * as schema from "../db/schema";
 import { readConfig } from "./config";
-import { isOwner } from "./auth-policy";
+import { sendAuthEmail } from "./auth-email";
 
-// Lazy construction allows a build without credentials; no fallback auth secrets.
 export function createAuth() {
-  const config = readConfig(),
-    db = getDb();
+  const config = readConfig();
+  const requireVerification = config.AUTH_REQUIRE_EMAIL_VERIFICATION === "true";
   return betterAuth({
     appName: "MSJournal",
     secret: config.BETTER_AUTH_SECRET,
     baseURL: config.BETTER_AUTH_URL,
     trustedOrigins: [new URL(config.BETTER_AUTH_URL).origin],
-    database: drizzleAdapter(db, { provider: "pg", schema, transaction: true }),
+    database: drizzleAdapter(getDb(), {
+      provider: "pg",
+      schema,
+      transaction: true,
+    }),
     emailAndPassword: {
       enabled: true,
-      disableSignUp: true,
+      disableSignUp: false,
+      autoSignIn: true,
       minPasswordLength: 12,
       maxPasswordLength: 128,
-      autoSignIn: false,
+      requireEmailVerification: requireVerification,
+      resetPasswordTokenExpiresIn: 3600,
       revokeSessionsOnPasswordReset: true,
+      sendResetPassword: async ({ user, url }) => {
+        await sendAuthEmail(user.email, url, "reset");
+      },
+    },
+    emailVerification: {
+      sendOnSignUp: requireVerification,
+      sendOnSignIn: requireVerification,
+      autoSignInAfterVerification: true,
+      expiresIn: 3600,
+      sendVerificationEmail: async ({ user, url }) => {
+        await sendAuthEmail(user.email, url, "verify");
+      },
     },
     session: {
       expiresIn: 60 * 60 * 24 * 7,
@@ -36,50 +51,18 @@ export function createAuth() {
       storage: "database",
       window: 60,
       max: 60,
-      customRules: { "/sign-in/email": { window: 60, max: 5 } },
+      customRules: {
+        "/sign-in/email": { window: 60, max: 5 },
+        "/sign-up/email": { window: 60, max: 5 },
+        "/request-password-reset": { window: 60, max: 3 },
+        "/send-verification-email": { window: 60, max: 3 },
+        "/reset-password": { window: 60, max: 5 },
+      },
     },
     advanced: {
       useSecureCookies: new URL(config.BETTER_AUTH_URL).protocol === "https:",
       defaultCookieAttributes: { httpOnly: true, sameSite: "lax" },
     },
     logger: { disabled: true },
-    hooks: {
-      before: createAuthMiddleware(async (ctx) => {
-        if (
-          ctx.path === "/sign-in/email" &&
-          (!ctx.body?.email ||
-            !isOwner(String(ctx.body.email), config.OWNER_EMAIL))
-        )
-          throw new APIError("UNAUTHORIZED", {
-            message: "Invalid email or password.",
-          });
-      }),
-    },
-    databaseHooks: {
-      user: {
-        create: {
-          before: async (data) => {
-            if (!isOwner(data.email, config.OWNER_EMAIL))
-              throw new APIError("FORBIDDEN", {
-                message: "Private workspace.",
-              });
-          },
-        },
-      },
-      session: {
-        create: {
-          before: async (data) => {
-            const [owner] = await db
-              .select({ email: schema.user.email })
-              .from(schema.user)
-              .where(eq(schema.user.id, data.userId));
-            if (!owner || !isOwner(owner.email, config.OWNER_EMAIL))
-              throw new APIError("FORBIDDEN", {
-                message: "Private workspace.",
-              });
-          },
-        },
-      },
-    },
   });
 }

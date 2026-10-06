@@ -25,20 +25,42 @@ const environmentSchema = z.object({
         ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))
     );
   }),
-  OWNER_EMAIL: z.email().transform((value) => value.trim().toLowerCase()),
+  RESEND_API_KEY: z.string().optional(),
+  AUTH_EMAIL_FROM: z.string().optional(),
+  AUTH_REQUIRE_EMAIL_VERIFICATION: z.enum(["true", "false"]).default("false"),
 });
 export class ConfigurationError extends Error {
   constructor() {
     super(
-      "Configure DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, and OWNER_EMAIL in .env.local. See README.md.",
+      "Configure DATABASE_URL, BETTER_AUTH_SECRET, and BETTER_AUTH_URL in .env.local. See README.md.",
     );
   }
 }
-export function readConfig(env: NodeJS.ProcessEnv = process.env) {
+export function readConfig(
+  env: Record<string, string | undefined> = process.env,
+) {
   const result = environmentSchema.safeParse(env);
-  if (!result.success) throw new ConfigurationError();
+  if (
+    !result.success ||
+    (result.data.AUTH_REQUIRE_EMAIL_VERIFICATION === "true" &&
+      !emailConfigured(result.data))
+  )
+    throw new ConfigurationError();
   return result.data;
 }
 export function isConfigured() {
-  return environmentSchema.safeParse(process.env).success;
+  try {
+    readConfig();
+    return true;
+  } catch {
+    return false;
+  }
+}
+export function emailConfigured(
+  env: { RESEND_API_KEY?: string; AUTH_EMAIL_FROM?: string } = {
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    AUTH_EMAIL_FROM: process.env.AUTH_EMAIL_FROM,
+  },
+) {
+  return !!env.RESEND_API_KEY?.trim() && !!env.AUTH_EMAIL_FROM?.trim();
 }

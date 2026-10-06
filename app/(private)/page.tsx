@@ -1,4 +1,4 @@
-import { requirePageOwner } from "@/lib/session";
+import { requirePageUser } from "@/lib/session";
 import { listTradingAccounts } from "@/lib/accounts/service";
 import { authorizedSelection } from "@/lib/accounts/types";
 import { getPreferences } from "@/lib/preferences";
@@ -11,7 +11,7 @@ export default async function Home({
 }: {
   searchParams: Promise<{ mode?: string; accounts?: string }>;
 }) {
-  await requirePageOwner();
+  await requirePageUser();
   const params = await searchParams;
   if (params.mode === "demo") {
     const [{ Dashboard }, demo, preferences] = await Promise.all([

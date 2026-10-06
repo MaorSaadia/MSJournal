@@ -1,20 +1,24 @@
 import { test, expect } from "@playwright/test";
+import { disposableUser, cleanupUsers, fillPassword } from "./fixture-users";
+test.afterEach(async () => {
+  await cleanupUsers();
+});
 test.beforeEach(async ({ page }) => {
   test.skip(
     process.env.MSJOURNAL_TEST_DISPOSABLE !== "true" ||
-      !process.env.MSJOURNAL_TEST_OWNER_PASSWORD ||
-      !process.env.OWNER_EMAIL,
-    "Authenticated design review requires an explicitly disposable configured development database and secure owner test credentials.",
+      process.env.AUTH_REQUIRE_EMAIL_VERIFICATION === "true",
+    "Authenticated design review requires a disposable development database with local verification disabled.",
   );
-  await page.goto("/login");
+  const user = disposableUser();
+  await page.goto("/signup");
+  await page.getByLabel("Name", { exact: true }).fill(user.name);
+  await page.getByLabel("Email", { exact: true }).fill(user.email);
+  await fillPassword(page, "Password", user.password);
+  await fillPassword(page, "Confirm password", user.password);
   await page
-    .getByLabel("Owner email", { exact: true })
-    .fill(process.env.OWNER_EMAIL!);
-  await page
-    .getByLabel("Password", { exact: true })
-    .fill(process.env.MSJOURNAL_TEST_OWNER_PASSWORD!);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await page.waitForURL("/");
+    .getByRole("button", { name: "Create account", exact: true })
+    .click();
+  await page.waitForURL("/welcome");
 });
 test("Day 1 dashboard, filters, navigation, themes, and responsive layouts", async ({
   page,

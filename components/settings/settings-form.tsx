@@ -12,6 +12,7 @@ import { requestJson } from "@/lib/client-api";
 import { Button } from "@/components/ui/button";
 import { ThemeControl } from "@/components/shell";
 import { LogoutButton } from "@/components/auth/logout";
+import Link from "next/link";
 export function SettingsForm({ preferences }: { preferences: Preferences }) {
   const router = useRouter();
   const [message, setMessage] = useState(""),
@@ -80,10 +81,10 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
             )}
           </label>
           <label className="form-field">
-            Owner email
+            Email
             <input value={preferences.email} readOnly aria-readonly="true" />
             <small>
-              Configured owner identity; email changes are not available here.
+              Your sign-in email. Email changes are not available here.
             </small>
           </label>
           <label className="form-field">
@@ -147,14 +148,14 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
       <section className="panel settings-session">
         <ShieldCheck size={21} />
         <div>
-          <h2>Private owner access</h2>
+          <h2>Your private session</h2>
           <p>
             Your session is stored in the database. Sign out to invalidate it on
             this device.
           </p>
           <p>
-            Password recovery uses the documented local owner command and
-            invalidates all previous sessions.
+            <Link href="/forgot-password">Reset your password</Link> by email. A
+            successful reset invalidates previous sessions.
           </p>
         </div>
         <LogoutButton />
