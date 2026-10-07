@@ -17,11 +17,29 @@ export const sourceTimezone = z
 // Enumerate real offsets around this wall date, then round-trip every candidate.
 // A gap has zero candidates and a repeated hour has two: neither is guessed.
 export function parseSourceTime(value: string, timezone: string): string {
-  const match = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/.exec(
-    value.trim(),
-  );
-  if (!match) throw new Error("Expected MM/DD/YYYY HH:mm:ss.");
-  const [, m, d, y, h, min, s] = match;
+  const text = value.trim();
+  const local =
+    /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})(?:\s?(Z|[+-]\d{2}:\d{2}))?$/.exec(
+      text,
+    );
+  const iso =
+    /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(Z|[+-]\d{2}:\d{2})$/.exec(
+      text,
+    );
+  if (!local && !iso)
+    throw new Error(
+      "Expected MM/DD/YYYY HH:mm:ss, optionally with Z or ±HH:mm; ISO timestamps require an explicit offset.",
+    );
+  const [, m, d, y, h, min, s] = local ?? [
+    "",
+    iso![2],
+    iso![3],
+    iso![1],
+    iso![4],
+    iso![5],
+    iso![6],
+  ];
+  const explicit = local?.[7] ?? iso?.[7];
   const parts = [
     Number(y),
     Number(m),
@@ -50,6 +68,20 @@ export function parseSourceTime(value: string, timezone: string): string {
     parts[5] > 59
   )
     throw new Error("Invalid calendar date or time.");
+  if (explicit) {
+    if (explicit === "Z") return new Date(wall).toISOString();
+    const hour = Number(explicit.slice(1, 3)),
+      minute = Number(explicit.slice(4, 6));
+    if (
+      hour > 14 ||
+      minute > 59 ||
+      (hour === 14 && minute !== 0) ||
+      explicit === "-00:00"
+    )
+      throw new Error("Invalid or unknown explicit UTC offset.");
+    const offset = (hour * 60 + minute) * (explicit[0] === "-" ? -1 : 1);
+    return new Date(wall - offset * 60000).toISOString();
+  }
   const offsets = new Set<number>();
   for (let hours = -48; hours <= 48; hours += 6)
     offsets.add(tzOffset(timezone, new Date(wall + hours * 3600000)));

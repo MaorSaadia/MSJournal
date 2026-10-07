@@ -27,6 +27,7 @@ import {
   confirmImport,
   listImports,
   importDetails,
+  lastSourceTimezones,
 } from "@/lib/imports/service";
 import { ImportError } from "@/lib/imports/errors";
 const enabled = process.env.MSJOURNAL_TEST_DISPOSABLE === "true";
@@ -162,6 +163,7 @@ describe.skipIf(!enabled)(
         "Account not found",
       );
       expect(await listImports()).toEqual([]);
+      expect(await lastSourceTimezones()).toEqual({});
     }, 30000);
     it("rolls back the entire batch on a mid-confirmation failure, then safely retries and handles concurrency", async () => {
       state.actor = ids[0];
@@ -238,6 +240,33 @@ describe.skipIf(!enabled)(
       const p = await previewImport(own, files());
       expect(p.counts.new).toBe(3);
       expect((await confirmImport(own, files(), p.token!)).added).toBe(3);
+      expect(await lastSourceTimezones()).toEqual({
+        [accounts[1]]: "Asia/Jerusalem",
+      });
+      const otherZone = { ...own, timezone: "America/New_York" };
+      const reparsed = files().map((f) =>
+        parseReport(
+          Buffer.from(
+            csv(
+              f.type,
+              f.type === "orders" ? [order()] : [performance(), performance()],
+            ),
+          ),
+          f.name,
+          f.type,
+          otherZone.timezone,
+        ),
+      );
+      const conflict = await previewImport(otherZone, reparsed);
+      expect(conflict.canConfirm).toBe(false);
+      expect(
+        conflict.files[0].errors.some((e) =>
+          e.message.includes("explicit correction workflow"),
+        ),
+      ).toBe(true);
+      expect(await lastSourceTimezones()).toEqual({
+        [accounts[1]]: "Asia/Jerusalem",
+      });
     }, 60000);
     it("rechecks conflicts at confirmation and blocks changed data atomically", async () => {
       state.actor = ids[0];

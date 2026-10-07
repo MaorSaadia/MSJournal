@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "motion/react";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeControl } from "@/components/shell";
 import { LogoutButton } from "@/components/auth/logout";
 import Link from "next/link";
+import { TimezoneSelector } from "@/components/ui/timezone-selector";
 export function SettingsForm({ preferences }: { preferences: Preferences }) {
   const router = useRouter();
   const [message, setMessage] = useState(""),
@@ -21,6 +22,7 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<z.infer<typeof preferencesSchema>>({
     resolver: zodResolver(preferencesSchema),
@@ -87,30 +89,31 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
               Your sign-in email. Email changes are not available here.
             </small>
           </label>
-          <label className="form-field">
-            Default display timezone *
-            <input
-              {...register("displayTimezone")}
-              list="settings-timezones"
-              aria-invalid={!!errors.displayTimezone}
+          <div className="form-field">
+            <span>Journal display timezone *</span>
+            <Controller
+              name="displayTimezone"
+              control={control}
+              render={({ field }) => (
+                <TimezoneSelector
+                  label="Journal display timezone"
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isSubmitting}
+                />
+              )}
             />
             <small>
-              Changes entry-time display. Daily grouping remains Asia/Jerusalem
-              until importing is implemented.
+              Changes timestamp presentation in import previews and history.
+              Stored UTC timestamps and CSV source timezones remain unchanged.
+              Future calendar grouping and analytics come later.
             </small>
             {errors.displayTimezone && (
               <span className="form-error">
                 {errors.displayTimezone.message}
               </span>
             )}
-          </label>
-          <datalist id="settings-timezones">
-            {["Asia/Jerusalem", "America/New_York", "Europe/London", "UTC"].map(
-              (t) => (
-                <option key={t} value={t} />
-              ),
-            )}
-          </datalist>
+          </div>
           <label className="form-field">
             Display currency
             <input {...register("currency")} readOnly aria-readonly="true" />

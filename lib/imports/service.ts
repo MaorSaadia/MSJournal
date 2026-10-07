@@ -67,6 +67,31 @@ async function evaluate(
   const account = await selectedAccount(db, userId, options.accountId, locking);
   const stored = new Map<string, Stored[]>();
   for (const file of files) {
+    const previous = await db
+      .select({ timezone: importBatches.timezone })
+      .from(importFiles)
+      .innerJoin(
+        importBatches,
+        and(
+          eq(importFiles.batchId, importBatches.id),
+          eq(importBatches.ownerId, userId),
+        ),
+      )
+      .where(
+        and(
+          eq(importFiles.ownerId, userId),
+          eq(importFiles.tradingAccountId, account.id),
+          eq(importFiles.reportType, file.type),
+          eq(importFiles.fileHash, file.hash),
+        ),
+      );
+    const different = previous.find((p) => p.timezone !== options.timezone);
+    if (different)
+      file.errors.push({
+        row: 0,
+        column: "Source timezone",
+        message: `This identical report was already imported using ${different.timezone}. Changing its source timezone requires an explicit correction workflow, which is not available yet. Nothing will be imported again.`,
+      });
     if (file.type === "orders") {
       const ids = [...new Set(file.rows.map((r) => r.identity))];
       const rows = ids.length
@@ -442,6 +467,28 @@ export async function listImports(headers?: Headers) {
     throw new WorkspaceUnavailableError();
   }
 }
+export async function lastSourceTimezones(
+  headers?: Headers,
+): Promise<Record<string, string>> {
+  const user = await requireUser(headers);
+  try {
+    const rows = await getDb()
+      .selectDistinctOn([importBatches.tradingAccountId], {
+        accountId: importBatches.tradingAccountId,
+        timezone: importBatches.timezone,
+      })
+      .from(importBatches)
+      .where(eq(importBatches.ownerId, user.id))
+      .orderBy(
+        importBatches.tradingAccountId,
+        desc(importBatches.createdAt),
+        desc(importBatches.id),
+      );
+    return Object.fromEntries(rows.map((r) => [r.accountId, r.timezone]));
+  } catch {
+    throw new WorkspaceUnavailableError();
+  }
+}
 export async function importDetails(
   id: string,
   page = 1,
@@ -486,8 +533,28 @@ export async function importDetails(
       ),
     );
     const rows = await db
-      .select({ row: importProvenance.sourceRow, raw: importProvenance.raw })
+      .select({
+        row: importProvenance.sourceRow,
+        raw: importProvenance.raw,
+        timestamp: tradovateOrders.timestamp,
+        soldAt: tradovatePerformance.soldAt,
+        boughtAt: tradovatePerformance.boughtAt,
+      })
       .from(importProvenance)
+      .leftJoin(
+        tradovateOrders,
+        and(
+          eq(tradovateOrders.id, importProvenance.orderRecordId),
+          eq(tradovateOrders.ownerId, user.id),
+        ),
+      )
+      .leftJoin(
+        tradovatePerformance,
+        and(
+          eq(tradovatePerformance.id, importProvenance.performanceRecordId),
+          eq(tradovatePerformance.ownerId, user.id),
+        ),
+      )
       .where(
         and(
           eq(importProvenance.fileId, file.id),

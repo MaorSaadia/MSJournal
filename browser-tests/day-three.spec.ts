@@ -5,6 +5,223 @@ import { csv, order, performance } from "../tests/fixtures/tradovate";
 test.afterEach(async () => {
   await cleanupUsers();
 });
+test("Performance-first upload, immediate type errors, searchable source zones and separate journal presentation", async ({
+  page,
+}) => {
+  test.skip(
+    process.env.MSJOURNAL_TEST_DISPOSABLE !== "true" ||
+      process.env.AUTH_REQUIRE_EMAIL_VERIFICATION === "true",
+    "Disposable local users only.",
+  );
+  test.setTimeout(120000);
+  const actor = disposableUser();
+  const origin = "http://127.0.0.1:3100";
+  expect(
+    (
+      await page.request.post("/api/auth/sign-up/email", {
+        headers: { Origin: origin },
+        data: actor,
+      })
+    ).status(),
+  ).toBe(200);
+  const created = await page.request.post("/api/trading-accounts", {
+    headers: { Origin: origin },
+    data: {
+      displayName: "Performance-only fixture",
+      firmChoice: "",
+      customFirm: "",
+      platform: "Tradovate",
+      brokerIdentifier: "",
+      stage: "Personal",
+      status: "Active",
+      nominalSize: "50000",
+      openingBalance: "",
+      openingBalanceDate: "",
+      currency: "USD",
+      reportingTimezone: "Asia/Jerusalem",
+      notes: "",
+    },
+  });
+  expect(created.status()).toBe(201);
+  await page.goto("/imports");
+  await expect(page.locator(".import-advanced")).not.toHaveAttribute("open");
+  await page.getByLabel("Performance CSV", { exact: true }).setInputFiles({
+    name: "Performance.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(csv("orders", [order()])),
+  });
+  await expect(page.locator(".import-drop").getByRole("alert")).toHaveText(
+    "This is a Tradovate Orders report. Select your Performance CSV, or use Advanced Orders import.",
+  );
+  await expect(
+    page.getByRole("button", { name: "Review import", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByText("No valid date range", { exact: true }),
+  ).toHaveCount(0);
+  const file = {
+    name: "arbitrary-name.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(csv("performance", [performance()])),
+  };
+  await page.getByLabel("Performance CSV", { exact: true }).setInputFiles(file);
+  await page
+    .getByRole("checkbox", { name: /I confirm this Performance report/ })
+    .check();
+  await expect(
+    page.getByRole("checkbox", { name: /Orders source account/ }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Review import", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Confirm import", exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByRole("button", {
+      name: "CSV source timezone: Asia/Jerusalem",
+      exact: true,
+    })
+    .click();
+  for (const id of [
+    "America/New_York",
+    "America/Chicago",
+    "America/Los_Angeles",
+    "Europe/London",
+    "Europe/Berlin",
+    "UTC",
+    "Asia/Dubai",
+    "Asia/Kolkata",
+    "Asia/Tokyo",
+    "Australia/Sydney",
+  ])
+    await expect(
+      page.locator(".timezone-options").getByText(id, { exact: true }),
+    ).toBeAttached();
+  await page
+    .getByRole("textbox", { name: "Search timezones" })
+    .fill("New York");
+  await page
+    .locator(".timezone-options")
+    .getByRole("button", { name: /New York/ })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Confirm import", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Review import", exact: true })
+    .click();
+  await expect(page.locator(".import-table tbody tr")).toContainText(
+    "23:52:15",
+  );
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByRole("button", { name: "Choose appearance" }).first().click();
+  await page.getByRole("button", { name: "Light", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    window.scrollTo(0, 0);
+  });
+  await page.screenshot({
+    path: "artifacts/day-three-performance-light.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Choose appearance" }).first().click();
+  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    window.scrollTo(0, 0);
+  });
+  await page.screenshot({
+    path: "artifacts/day-three-performance-dark.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    window.scrollTo(0, 0);
+  });
+  await page.screenshot({
+    path: "artifacts/day-three-performance-mobile.png",
+    fullPage: true,
+  });
+  // Journal preference is excluded from the confirmation identity, even if changed after preview.
+  expect(
+    (
+      await page.request.patch("/api/preferences", {
+        headers: { Origin: origin },
+        data: {
+          displayName: actor.name,
+          displayTimezone: "UTC",
+          currency: "USD",
+        },
+      })
+    ).status(),
+  ).toBe(200);
+  await page
+    .getByRole("button", { name: "Confirm import", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Imported performance records." }),
+  ).toBeVisible();
+  await expect(page.locator(".import-table tbody tr")).toContainText(
+    "Sold: 2 Sept 2026, 20:52:15",
+  );
+  await page.goto("/imports");
+  await expect(
+    page.getByRole("button", {
+      name: "CSV source timezone: America/New_York",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByLabel("Performance CSV", { exact: true }).setInputFiles(file);
+  await page
+    .getByRole("checkbox", { name: /I confirm this Performance report/ })
+    .check();
+  await page
+    .getByRole("button", { name: "Review import", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: /Confirm.*Already imported/ }),
+  ).toBeEnabled();
+  await page
+    .getByRole("button", {
+      name: "CSV source timezone: America/New_York",
+      exact: true,
+    })
+    .click();
+  await page.getByRole("textbox", { name: "Search timezones" }).fill("Israel");
+  await page
+    .locator(".timezone-options")
+    .getByRole("button", { name: /Israel/ })
+    .click();
+  await page
+    .getByRole("button", { name: "Review import", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Confirm import", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page
+      .getByText(
+        /Changing its source timezone requires an explicit correction workflow/,
+      )
+      .first(),
+  ).toBeVisible();
+  await page.goto("/settings");
+  await expect(
+    page.getByRole("button", {
+      name: "Journal display timezone: UTC",
+      exact: true,
+    }),
+  ).toBeVisible();
+});
 test("import routes and mutations deny unauthenticated access", async ({
   page,
   request,
@@ -75,6 +292,9 @@ test("private CSV preview, explicit mappings, persistence, overlaps, history, th
   );
   await page.goto("/imports");
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await page
+    .getByText("Advanced: import Orders report", { exact: true })
+    .click();
   await page.getByLabel("Orders CSV", { exact: true }).setInputFiles({
     name: "renamed-source.csv",
     mimeType: "text/csv",

@@ -5,6 +5,8 @@ import { requirePageUser } from "@/lib/session";
 import { importDetails } from "@/lib/imports/service";
 import { NotFoundError } from "@/lib/accounts/service";
 import { z } from "zod";
+import { getPreferences } from "@/lib/preferences";
+import { journalTimestamp } from "@/lib/timezones";
 export const metadata = { title: "Import details" };
 export default async function Page({
   params,
@@ -25,6 +27,8 @@ export default async function Page({
     throw e;
   }
   const { batch, accountName, files, file, rows, page } = details;
+  const { displayTimezone } = await getPreferences();
+  const performanceOnly = files.every((f) => f.reportType === "performance");
   const pages = Math.max(1, Math.ceil(file.total / 25));
   const href = (p: number) => `/imports/${id}?file=${file.id}&page=${p}`;
   return (
@@ -35,7 +39,9 @@ export default async function Page({
           <h1>
             {batch.outcome === "Already imported"
               ? "Already imported"
-              : "Source records imported"}
+              : performanceOnly
+                ? "Imported performance records"
+                : "Source records imported"}
             <span className="title-dot">.</span>
           </h1>
           <p className="muted">
@@ -51,14 +57,18 @@ export default async function Page({
         <p role="status" className="import-success">
           {batch.outcome === "Already imported"
             ? "These source records were already saved. No source records were added."
-            : "Source records saved successfully. Trade reconstruction and dashboard analytics follow in a later milestone."}
+            : performanceOnly
+              ? "Performance matched-portion records saved successfully. Reported P&L is gross and fees are unknown. Complete-trade reconstruction and dashboard metrics come in Day 4."
+              : "Source records saved successfully. Trade reconstruction and dashboard analytics follow in a later milestone."}
         </p>
       )}
       <section className="import-card">
         <h2>Batch details</h2>
         <p className="small muted">
           Tradovate · Source timezone: {batch.timezone} · Parser:{" "}
-          {batch.parserVersion} · Imported: {batch.createdAt.toISOString()}
+          {batch.parserVersion} · Imported:{" "}
+          {journalTimestamp(batch.createdAt, displayTimezone)} · Journal display
+          timezone: {displayTimezone}
         </p>
         <div className="import-file-summary">
           {files.map((f) => (
@@ -74,7 +84,8 @@ export default async function Page({
                 {f.total} rows · {f.added} new · {f.duplicates} duplicates
               </span>
               <small>
-                {f.start?.toISOString()} — {f.end?.toISOString()} (UTC)
+                {journalTimestamp(f.start, displayTimezone)} —{" "}
+                {journalTimestamp(f.end, displayTimezone)} ({displayTimezone})
               </small>
             </Link>
           ))}
@@ -98,6 +109,7 @@ export default async function Page({
                     : "Reported gross P&L"}
                 </th>
                 <th>Original record</th>
+                <th>Timestamp ({displayTimezone})</th>
               </tr>
             </thead>
             <tbody>
@@ -118,6 +130,24 @@ export default async function Page({
                         ))}
                       </dl>
                     </details>
+                  </td>
+                  <td>
+                    {file.reportType === "orders" ? (
+                      journalTimestamp(r.timestamp, displayTimezone)
+                    ) : (
+                      <>
+                        <div>
+                          Bought:{" "}
+                          {journalTimestamp(r.boughtAt, displayTimezone)}
+                        </div>
+                        <div>
+                          Sold: {journalTimestamp(r.soldAt, displayTimezone)}
+                        </div>
+                      </>
+                    )}
+                    <div className="small muted">
+                      Original source: {r.raw.Timestamp ?? r.raw.soldTimestamp}
+                    </div>
                   </td>
                 </tr>
               ))}

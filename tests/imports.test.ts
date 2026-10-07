@@ -3,6 +3,8 @@ import { parseReport, exactDecimal } from "@/lib/imports/parser";
 import { parseSourceTime, sourceTimezone } from "@/lib/imports/time";
 import { classify } from "@/lib/imports/identity";
 import { MAX_ROWS, counts, type ParsedFile } from "@/lib/imports/types";
+import { inspectReportType } from "@/lib/imports/reports";
+import { journalTimestamp, timezoneChoices } from "@/lib/timezones";
 import { csv, order, performance } from "./fixtures/tradovate";
 const parse = (
   type: "orders" | "performance",
@@ -96,7 +98,7 @@ describe("verified Tradovate source formats", () => {
         "orders",
         "UTC",
       ).errors[0].message,
-    ).toContain("matching upload area");
+    ).toContain("main Performance uploader");
     expect(
       parseReport(new Uint8Array([255]), "bad.csv", "orders", "UTC").errors[0]
         .message,
@@ -134,6 +136,15 @@ describe("verified Tradovate source formats", () => {
     ).toBeGreaterThan(0);
   });
   it("uses Jerusalem/New York DST, rejects gaps/repeated hours, and never uses machine timezone", () => {
+    expect(
+      parseSourceTime("10/25/2026 01:30:00+03:00", "America/New_York"),
+    ).toBe("2026-10-24T22:30:00.000Z");
+    expect(
+      parseSourceTime("2026-09-02T16:52:15+03:00", "America/New_York"),
+    ).toBe("2026-09-02T13:52:15.000Z");
+    expect(() =>
+      parseSourceTime("09/02/2026 16:52:15+25:00", "Asia/Jerusalem"),
+    ).toThrow("offset");
     expect(sourceTimezone.safeParse("+03:00").success).toBe(false);
     expect(parseSourceTime("01/15/2026 12:00:00", "Asia/Jerusalem")).toBe(
       "2026-01-15T10:00:00.000Z",
@@ -154,6 +165,41 @@ describe("verified Tradovate source formats", () => {
       parseSourceTime("03/08/2026 02:30:00", "America/New_York"),
     ).toThrow("does not exist");
   });
+});
+it("uses shared header detection and keeps journal presentation separate from source identity", () => {
+  expect(inspectReportType(csv("orders", [order()]), "performance")).toBe(
+    "This is a Tradovate Orders report. Select your Performance CSV, or use Advanced Orders import.",
+  );
+  expect(
+    inspectReportType(csv("performance", [performance()]), "performance"),
+  ).toBeNull();
+  expect(inspectReportType("unknown,headers\n1,2", "performance")).toContain(
+    "Expected a Tradovate Performance",
+  );
+  const result = parse("performance", [performance()]);
+  const before = structuredClone(result.rows);
+  expect(journalTimestamp("2026-09-02T13:52:15Z", "Asia/Jerusalem")).toContain(
+    "16:52:15",
+  );
+  expect(
+    journalTimestamp("2026-09-02T13:52:15Z", "America/New_York"),
+  ).toContain("09:52:15");
+  expect(result.rows).toEqual(before);
+  expect(timezoneChoices().map((t) => t.id)).toEqual(
+    expect.arrayContaining([
+      "Asia/Jerusalem",
+      "America/New_York",
+      "America/Chicago",
+      "America/Los_Angeles",
+      "Europe/London",
+      "Europe/Berlin",
+      "UTC",
+      "Asia/Dubai",
+      "Asia/Kolkata",
+      "Asia/Tokyo",
+      "Australia/Sydney",
+    ]),
+  );
 });
 describe("record-level overlaps", () => {
   it("recognizes unchanged orders, overlaps and repeated order rows without merging changes", () => {

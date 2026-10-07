@@ -13,16 +13,36 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { TradingAccount } from "@/lib/accounts/types";
+import { TimezoneSelector } from "@/components/ui/timezone-selector";
+import { journalTimestamp } from "@/lib/timezones";
+import { inspectReportType } from "@/lib/imports/reports";
 import {
   MAX_FILE_BYTES,
   type Preview,
   type ReportType,
 } from "@/lib/imports/types";
-export function ImportPage({ accounts }: { accounts: TradingAccount[] }) {
+export function ImportPage({
+  accounts,
+  displayTimezone,
+  lastTimezones,
+}: {
+  accounts: TradingAccount[];
+  displayTimezone: string;
+  lastTimezones: Record<string, string>;
+}) {
   const router = useRouter();
   const guard = useRef(false);
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
-  const [timezone, setTimezone] = useState("Asia/Jerusalem");
+  const [timezone, setTimezone] = useState(
+    lastTimezones[accounts[0]?.id] ?? "Asia/Jerusalem",
+  );
+  const [fileIssues, setFileIssues] = useState<
+    Partial<Record<ReportType, string>>
+  >({});
+  const [checking, setChecking] = useState<
+    Partial<Record<ReportType, boolean>>
+  >({});
+  const fileRevision = useRef({ orders: 0, performance: 0 });
   const [files, setFiles] = useState<Partial<Record<ReportType, File>>>({});
   const [ordersMapped, setOrdersMapped] = useState(false),
     [performanceMapped, setPerformanceMapped] = useState(false);
@@ -34,17 +54,37 @@ export function ImportPage({ accounts }: { accounts: TradingAccount[] }) {
     setPreview(null);
     setError("");
   }
-  function choose(type: ReportType, file?: File) {
+  async function choose(type: ReportType, file?: File) {
+    const revision = ++fileRevision.current[type];
     invalidate();
-    if (file && (!file.size || file.size > MAX_FILE_BYTES)) {
-      setError("Choose a nonempty CSV of at most 5 MiB.");
-      return;
-    }
     setFiles((old) => ({ ...old, [type]: file }));
+    setFileIssues((old) => ({ ...old, [type]: undefined }));
+    setChecking((old) => ({ ...old, [type]: false }));
     if (type === "orders") setOrdersMapped(false);
     else setPerformanceMapped(false);
+    if (!file) return;
+    if (file && (!file.size || file.size > MAX_FILE_BYTES)) {
+      setFileIssues((old) => ({
+        ...old,
+        [type]: "Choose a nonempty CSV of at most 5 MiB.",
+      }));
+      return;
+    }
+    setChecking((old) => ({ ...old, [type]: true }));
+    let issue: string | null;
+    try {
+      issue = inspectReportType(await file.text(), type);
+    } catch {
+      issue = "Could not read this file. Choose a UTF-8 Tradovate CSV.";
+    }
+    if (fileRevision.current[type] !== revision) return;
+    setChecking((old) => ({ ...old, [type]: false }));
+    setFileIssues((old) => ({ ...old, [type]: issue ?? undefined }));
   }
+  const checkingFile = Object.values(checking).some(Boolean);
+  const fileBlocked = Object.values(fileIssues).some(Boolean);
   async function send(action: "preview" | "confirm") {
+    if (checkingFile || fileBlocked) return;
     if (guard.current) return;
     guard.current = true;
     setBusy(action);
@@ -134,6 +174,9 @@ export function ImportPage({ accounts }: { accounts: TradingAccount[] }) {
                   value={accountId}
                   onChange={(e) => {
                     setAccountId(e.target.value);
+                    setTimezone(
+                      lastTimezones[e.target.value] ?? "Asia/Jerusalem",
+                    );
                     setOrdersMapped(false);
                     setPerformanceMapped(false);
                     invalidate();
@@ -146,31 +189,22 @@ export function ImportPage({ accounts }: { accounts: TradingAccount[] }) {
                   ))}
                 </select>
               </label>
-              <label>
-                CSV source timezone
-                <input
-                  list="import-timezones"
+              <div className="import-timezone-field">
+                <span>CSV source timezone</span>
+                <TimezoneSelector
+                  label="CSV source timezone"
+                  disabled={!!busy}
                   value={timezone}
-                  onChange={(e) => {
-                    setTimezone(e.target.value);
+                  onChange={(value) => {
+                    setTimezone(value);
                     invalidate();
                   }}
                 />
-                <datalist id="import-timezones">
-                  {[
-                    "Asia/Jerusalem",
-                    "America/New_York",
-                    "Europe/London",
-                    "UTC",
-                  ].map((t) => (
-                    <option key={t} value={t} />
-                  ))}
-                </datalist>
                 <small>
-                  Use the timezone of the export, including its daylight-saving
-                  rules.
+                  Choose the timezone used by the timestamps in your CSV export.
+                  This may differ from your journal display timezone.
                 </small>
-              </label>
+              </div>
             </fieldset>
             <p className="small muted">
               Source: Tradovate · One account per batch · Maximum 5 MiB and
@@ -178,57 +212,75 @@ export function ImportPage({ accounts }: { accounts: TradingAccount[] }) {
             </p>
           </section>
           <section className="import-card">
-            <div className="import-step">02 · Choose your reports</div>
-            <p className="muted small">
-              Upload either report or both. Both provide more source detail for
-              later reconciliation. Headers determine the report type.
-            </p>
-            <div className="import-upload-grid">
-              {(["orders", "performance"] as ReportType[]).map((type) => (
-                <UploadArea
-                  key={type}
-                  type={type}
-                  file={files[type]}
-                  disabled={!!busy}
-                  choose={(f) => choose(type, f)}
-                />
-              ))}
+            <div className="import-step">
+              02 · Upload your Performance report
             </div>
+            <UploadArea
+              type="performance"
+              file={files.performance}
+              disabled={!!busy}
+              issue={fileIssues.performance}
+              checking={checking.performance}
+              choose={(f) => void choose("performance", f)}
+            />
+            <details className="import-advanced">
+              <summary>
+                Advanced: import Orders report
+                {files.orders ? ` · ${files.orders.name}` : ""}
+              </summary>
+              <p className="small muted">
+                Optional source detail for future reconciliation. Performance
+                imports work independently.
+              </p>
+              <UploadArea
+                type="orders"
+                file={files.orders}
+                disabled={!!busy}
+                issue={fileIssues.orders}
+                checking={checking.orders}
+                choose={(f) => void choose("orders", f)}
+              />
+            </details>
             <fieldset className="import-confirmations" disabled={!!busy}>
-              {files.orders && !account?.brokerIdentifier && (
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={ordersMapped}
-                    onChange={(e) => {
-                      setOrdersMapped(e.target.checked);
-                      invalidate();
-                    }}
-                  />
-                  <span>
-                    I confirm the Orders source account belongs to{" "}
-                    <strong>{account?.displayName}</strong>. This is an import
-                    mapping only; account settings remain unchanged.
-                  </span>
-                </label>
-              )}
-              {files.performance && (
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={performanceMapped}
-                    onChange={(e) => {
-                      setPerformanceMapped(e.target.checked);
-                      invalidate();
-                    }}
-                  />
-                  <span>
-                    I confirm this Performance report belongs to{" "}
-                    <strong>{account?.displayName}</strong>. This report has no
-                    account identifier.
-                  </span>
-                </label>
-              )}
+              {files.orders &&
+                !fileIssues.orders &&
+                !checking.orders &&
+                !account?.brokerIdentifier && (
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={ordersMapped}
+                      onChange={(e) => {
+                        setOrdersMapped(e.target.checked);
+                        invalidate();
+                      }}
+                    />
+                    <span>
+                      I confirm the Orders source account belongs to{" "}
+                      <strong>{account?.displayName}</strong>. This is an import
+                      mapping only; account settings remain unchanged.
+                    </span>
+                  </label>
+                )}
+              {files.performance &&
+                !fileIssues.performance &&
+                !checking.performance && (
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={performanceMapped}
+                      onChange={(e) => {
+                        setPerformanceMapped(e.target.checked);
+                        invalidate();
+                      }}
+                    />
+                    <span>
+                      I confirm this Performance report belongs to{" "}
+                      <strong>{account?.displayName}</strong>. This report has
+                      no account identifier.
+                    </span>
+                  </label>
+                )}
             </fieldset>
             {error && (
               <div role="alert" className="import-error">
@@ -239,6 +291,8 @@ export function ImportPage({ accounts }: { accounts: TradingAccount[] }) {
               onClick={() => send("preview")}
               disabled={
                 !!busy ||
+                checkingFile ||
+                fileBlocked ||
                 !Object.values(files).some(Boolean) ||
                 !timezone.trim()
               }
@@ -254,14 +308,21 @@ export function ImportPage({ accounts }: { accounts: TradingAccount[] }) {
                   ? "Review again"
                   : "Review import"}
             </Button>
+            {fileBlocked && (
+              <p role="status" className="import-error">
+                Replace or remove the file with the report-type error before
+                reviewing.
+              </p>
+            )}
           </section>
           {preview && (
             <section className="import-card">
               <div className="import-step">03 · Review before saving</div>
               <h2>{account?.displayName}</h2>
               <p className="small muted">
-                Source timezone: <strong>{timezone}</strong> · No source records
-                have been saved yet.
+                CSV source timezone: <strong>{timezone}</strong> · Journal
+                display timezone: <strong>{displayTimezone}</strong> · No source
+                records have been saved yet.
               </p>
               <div className="import-counts">
                 {Object.entries(preview.counts).map(([key, value]) => (
@@ -272,7 +333,11 @@ export function ImportPage({ accounts }: { accounts: TradingAccount[] }) {
                 ))}
               </div>
               {preview.files.map((file) => (
-                <PreviewTable key={file.type} file={file} timezone={timezone} />
+                <PreviewTable
+                  key={file.type}
+                  file={file}
+                  timezone={displayTimezone}
+                />
               ))}
               <p className="small muted">
                 Confirmation reparses your files and rechecks the database.
@@ -281,7 +346,9 @@ export function ImportPage({ accounts }: { accounts: TradingAccount[] }) {
               </p>
               <Button
                 onClick={() => send("confirm")}
-                disabled={!!busy || !preview.canConfirm}
+                disabled={
+                  !!busy || checkingFile || fileBlocked || !preview.canConfirm
+                }
               >
                 {busy === "confirm" ? (
                   <LoaderCircle size={16} className="pending-spinner" />
@@ -290,12 +357,13 @@ export function ImportPage({ accounts }: { accounts: TradingAccount[] }) {
                 )}{" "}
                 {busy === "confirm"
                   ? "Saving source records…"
-                  : preview.counts.new
+                  : !preview.canConfirm || preview.counts.new
                     ? "Confirm import"
                     : "Confirm · Already imported"}
               </Button>
               {!preview.canConfirm && (
                 <p role="status" className="import-error">
+                  {preview.files.flatMap((f) => f.errors).at(0)?.message}{" "}
                   Resolve the errors above, then review again. Nothing will be
                   partially imported.
                 </p>
@@ -312,11 +380,15 @@ function UploadArea({
   file,
   disabled,
   choose,
+  issue,
+  checking,
 }: {
   type: ReportType;
   file?: File;
   disabled: boolean;
   choose: (file?: File) => void;
+  issue?: string;
+  checking?: boolean;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -336,11 +408,13 @@ function UploadArea({
       }}
     >
       <FileSpreadsheet size={24} />
-      <h3>{type === "orders" ? "Orders" : "Performance"}</h3>
+      <h3>
+        {type === "orders" ? "Orders" : "Upload Tradovate Performance CSV"}
+      </h3>
       <p>
         {type === "orders"
           ? "Order snapshots, including canceled orders and aggregate fills."
-          : "Matched buy/sell portions and reported gross P&L. No fees."}
+          : "Import your matched entry/exit records and reported gross P&L."}
       </p>
       <input
         ref={input}
@@ -381,6 +455,16 @@ function UploadArea({
       >
         {file ? "Replace file" : "Choose file"}
       </Button>
+      {checking && (
+        <span role="status" className="small muted">
+          Checking CSV headers…
+        </span>
+      )}
+      {issue && (
+        <p role="alert" className="import-error">
+          {issue}
+        </p>
+      )}
     </div>
   );
 }
@@ -394,12 +478,7 @@ export function PreviewTable({
   const [page, setPage] = useState(1);
   const pages = Math.max(1, Math.ceil(file.rows.length / 20));
   const current = Math.min(page, pages);
-  const local = (value: string) =>
-    new Intl.DateTimeFormat("en-GB", {
-      timeZone: timezone,
-      dateStyle: "medium",
-      timeStyle: "medium",
-    }).format(new Date(value));
+  const local = (value: string) => journalTimestamp(value, timezone);
   const accountIds =
     file.type === "orders"
       ? [
@@ -416,17 +495,18 @@ export function PreviewTable({
         {file.type === "orders" ? "Orders" : "Performance"}{" "}
         <span className="muted">· {file.name}</span>
       </h3>
-      <p className="small muted">
-        {file.start
-          ? `${local(file.start)} — ${local(file.end!)} (${timezone})`
-          : "No valid date range"}
-        {accountIds.length > 0 && (
-          <>
-            {" "}
-            · Source account: <strong>{accountIds.join(", ")}</strong>
-          </>
-        )}
-      </p>
+      {(file.start || accountIds.length > 0) && (
+        <p className="small muted">
+          {file.start &&
+            `${local(file.start)} — ${local(file.end!)} · Journal display timezone: ${timezone}`}
+          {accountIds.length > 0 && (
+            <>
+              {" "}
+              · Source account: <strong>{accountIds.join(", ")}</strong>
+            </>
+          )}
+        </p>
+      )}
       {(file.errors.length > 0 || file.warnings.length > 0) && (
         <details open={file.errors.length > 0} className="import-diagnostics">
           <summary>
@@ -461,7 +541,8 @@ export function PreviewTable({
               <th>{file.type === "orders" ? "Order status" : "Gross P&L"}</th>
               <th>Quantity</th>
               <th>
-                {file.type === "orders" ? "Order timestamp" : "Sold timestamp"}
+                {file.type === "orders" ? "Order timestamp" : "Sold timestamp"}{" "}
+                ({timezone})
               </th>
               <th>Import result</th>
             </tr>
@@ -481,6 +562,9 @@ export function PreviewTable({
                   {"timestamp" in r.values
                     ? local(r.values.timestamp)
                     : local(r.values.soldAt)}
+                  <div className="small muted">
+                    Original source: {r.raw.Timestamp ?? r.raw.soldTimestamp}
+                  </div>
                   <details>
                     <summary>Original source values</summary>
                     <dl>

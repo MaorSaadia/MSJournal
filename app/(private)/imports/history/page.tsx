@@ -2,10 +2,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { listImports } from "@/lib/imports/service";
 import { requirePageUser } from "@/lib/session";
+import { getPreferences } from "@/lib/preferences";
+import { journalTimestamp } from "@/lib/timezones";
 export const metadata = { title: "Import history" };
 export default async function Page() {
   await requirePageUser();
   const history = await listImports();
+  const { displayTimezone } = await getPreferences();
   return (
     <div className="accounts-page imports-page">
       <header className="page-header">
@@ -16,7 +19,8 @@ export default async function Page() {
           </h1>
           <p className="muted">
             Your latest 100 batches of saved source records. No journal trades
-            have been reconstructed.
+            have been reconstructed. Journal display timezone: {displayTimezone}
+            .
           </p>
         </div>
         <Button asChild>
@@ -41,8 +45,8 @@ export default async function Page() {
               <thead>
                 <tr>
                   <th>Account</th>
-                  <th>Reports / date range (UTC)</th>
-                  <th>Imported at (UTC)</th>
+                  <th>Reports / date range ({displayTimezone})</th>
+                  <th>Imported at ({displayTimezone})</th>
                   <th>Outcome</th>
                   <th>New records</th>
                   <th>Duplicates</th>
@@ -58,17 +62,14 @@ export default async function Page() {
                         <div key={f.id}>
                           {f.reportType} · {f.originalName}
                           <div className="muted small">
-                            {f.start?.toISOString().slice(0, 10)} —{" "}
-                            {f.end?.toISOString().slice(0, 10)}
+                            {journalTimestamp(f.start, displayTimezone)} —{" "}
+                            {journalTimestamp(f.end, displayTimezone)}
                           </div>
                         </div>
                       ))}
                     </td>
                     <td>
-                      {batch.createdAt
-                        .toISOString()
-                        .replace("T", " ")
-                        .replace(".000Z", " UTC")}
+                      {journalTimestamp(batch.createdAt, displayTimezone)}
                     </td>
                     <td>{batch.outcome}</td>
                     <td>{batch.added}</td>

@@ -12,57 +12,9 @@ import {
   type OrderValues,
   type PerformanceValues,
 } from "./types";
-export const HEADERS = {
-  orders: [
-    "orderId",
-    "Account",
-    "Order ID",
-    "B/S",
-    "Contract",
-    "Product",
-    "Product Description",
-    "avgPrice",
-    "filledQty",
-    "Fill Time",
-    "lastCommandId",
-    "Status",
-    "_priceFormat",
-    "_priceFormatType",
-    "_tickSize",
-    "spreadDefinitionId",
-    "Version ID",
-    "Timestamp",
-    "Date",
-    "Quantity",
-    "Text",
-    "Type",
-    "Limit Price",
-    "Stop Price",
-    "decimalLimit",
-    "decimalStop",
-    "Filled Qty",
-    "Avg Fill Price",
-    "decimalFillAvg",
-    "Venue",
-    "Notional Value",
-    "Currency",
-  ],
-  performance: [
-    "symbol",
-    "_priceFormat",
-    "_priceFormatType",
-    "_tickSize",
-    "buyFillId",
-    "sellFillId",
-    "qty",
-    "buyPrice",
-    "sellPrice",
-    "pnl",
-    "boughtTimestamp",
-    "soldTimestamp",
-    "duration",
-  ],
-} as const;
+import { HEADERS, detectReportHeaders, reportTypeError } from "./reports";
+export { HEADERS } from "./reports";
+
 export function hash(value: string | Uint8Array) {
   return createHash("sha256").update(value).digest("hex");
 }
@@ -209,11 +161,15 @@ function normalize(
     const timestamp = time("Timestamp")!;
     const short = /^(\d{1,2})\/(\d{1,2})\/(\d{2})$/.exec(read("Date"));
     const stamp = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(read("Timestamp"))!;
+    const isoStamp = /^(\d{4})-(\d{2})-(\d{2})/.exec(read("Timestamp"));
+    const stampMonth = stamp?.[1] ?? isoStamp![2],
+      stampDay = stamp?.[2] ?? isoStamp![3],
+      stampYear = stamp?.[3] ?? isoStamp![1];
     if (
       !short ||
-      Number(short[1]) !== Number(stamp[1]) ||
-      Number(short[2]) !== Number(stamp[2]) ||
-      Number(short[3]) + 2000 !== Number(stamp[3])
+      Number(short[1]) !== Number(stampMonth) ||
+      Number(short[2]) !== Number(stampDay) ||
+      Number(short[3]) + 2000 !== Number(stampYear)
     )
       throw new ColumnError(
         "Date",
@@ -345,17 +301,13 @@ export function parseReport(
       column: "headers",
       message: "Duplicate column headers are not supported.",
     });
-  const detected = HEADERS.orders.every((h) => headers.includes(h))
-    ? "orders"
-    : HEADERS.performance.every((h) => headers.includes(h))
-      ? "performance"
-      : null;
+  const detected = detectReportHeaders(headers);
   if (detected !== expected)
     file.errors.push({
       row: 1,
       column: "headers",
       message: detected
-        ? `This is a ${detected} report. Use its matching upload area.`
+        ? reportTypeError(expected, detected)!
         : `Missing required ${expected} headers: ${HEADERS[expected].filter((h) => !headers.includes(h)).join(", ")}`,
     });
   if (file.errors.length) return file;
