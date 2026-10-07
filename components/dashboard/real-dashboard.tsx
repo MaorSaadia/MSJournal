@@ -99,11 +99,15 @@ export function RealDashboard({
           </strong>
           <p>
             {accounts.length
-              ? "Your accounts are saved. Tradovate CSV importing comes in the next milestone; performance and current balances are unavailable."
+              ? "Import Tradovate source reports to prepare for trade reconstruction. Performance and current balances remain unavailable until journal trades are reconstructed."
               : "Create a trading account to begin. You can also review the fictional dashboard in Demo mode."}
           </p>
         </div>
-        {!accounts.length && (
+        {accounts.length ? (
+          <Link href="/imports" className="back-link">
+            Import source records
+          </Link>
+        ) : (
           <Link href="/prop-accounts" className="back-link">
             <Plus size={14} />
             Add Account

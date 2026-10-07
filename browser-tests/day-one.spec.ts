@@ -126,13 +126,12 @@ test("Day 1 dashboard, filters, navigation, themes, and responsive layouts", asy
   await page
     .getByLabel("Entry time display timezone")
     .selectOption("Asia/Jerusalem");
-  await page
-    .getByRole("button", { name: "Import Trades", exact: true })
-    .click();
-  await expect(page.getByRole("dialog")).toContainText(
-    "CSV importing is the next milestone",
-  );
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("link", { name: "Import Trades", exact: true }).click();
+  await expect(page).toHaveURL(/\/imports$/);
+  await expect(
+    page.getByRole("heading", { name: "Add your first account", exact: true }),
+  ).toBeVisible();
+  await page.goto("/?mode=demo");
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
   await expect(
     page.getByRole("button", { name: "Expand sidebar" }),

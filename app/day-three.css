@@ -1,0 +1,336 @@
+.imports-page {
+  max-width: 1440px;
+}
+.imports-page .page-header p {
+  margin-top: 7px;
+  font-size: 12px;
+}
+.import-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px;
+  margin-top: 16px;
+  min-width: 0;
+}
+.import-card h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.import-card h3 {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.import-card p {
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.import-step {
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 15px;
+}
+.import-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.import-notice svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.import-fields {
+  border: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 12px;
+  padding: 0;
+}
+.import-fields label {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.import-fields input,
+.import-fields select {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  color: var(--foreground);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-weight: 400;
+}
+.import-fields small {
+  color: var(--muted-foreground);
+  font-weight: 400;
+  font-size: 11px;
+}
+.import-upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.import-drop {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  transition:
+    border-color 0.18s,
+    background 0.18s;
+  min-width: 0;
+}
+.import-drop > svg {
+  color: var(--primary);
+}
+.import-drop p {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  max-width: 350px;
+  margin: 0;
+}
+.import-drop.dragging {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+}
+.import-file {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  max-width: 100%;
+}
+.import-file span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.import-file small {
+  display: block;
+  color: var(--muted-foreground);
+}
+.import-confirmations {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  margin: 18px 0;
+}
+.import-confirmations label {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.import-confirmations input {
+  margin-top: 4px;
+  accent-color: var(--primary);
+}
+.import-error {
+  color: var(--negative);
+  font-size: 12px;
+  margin: 12px 0;
+  line-height: 1.6;
+}
+.import-success {
+  padding: 14px 18px;
+  background: color-mix(in srgb, var(--primary) 9%, var(--card));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.import-counts {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin: 18px 0;
+}
+.import-counts > div {
+  background: var(--background);
+  border: 1px solid var(--border);
+  padding: 12px;
+  border-radius: 7px;
+}
+.import-counts span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  text-transform: capitalize;
+}
+.import-counts strong {
+  font-size: 23px;
+  font-variant-numeric: tabular-nums;
+}
+.import-preview {
+  margin: 22px 0;
+  min-width: 0;
+}
+.import-preview h3 {
+  overflow-wrap: anywhere;
+}
+.import-table-scroll {
+  overflow-x: auto;
+  width: 100%;
+}
+.import-table {
+  width: 100%;
+  min-width: 650px;
+  text-align: left;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.import-table th {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.import-table th,
+.import-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.import-table td {
+  font-variant-numeric: tabular-nums;
+}
+.import-table details {
+  max-width: 400px;
+  margin-top: 5px;
+}
+.import-table summary,
+.import-diagnostics summary {
+  cursor: pointer;
+  color: var(--primary);
+  font-size: 11px;
+}
+.import-table dl {
+  margin-top: 10px;
+}
+.import-table dl > div {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(100px, 1fr);
+  gap: 12px;
+  padding: 4px 0;
+  overflow-wrap: anywhere;
+}
+.import-table dt {
+  color: var(--muted-foreground);
+}
+.import-disposition {
+  text-transform: capitalize;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-size: 10px;
+  background: var(--background);
+}
+.import-disposition.new {
+  color: var(--primary);
+}
+.import-disposition.conflict {
+  color: var(--negative);
+}
+.import-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 14px 0;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.import-diagnostics {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.import-diagnostics ul {
+  max-height: 220px;
+  overflow: auto;
+  padding-left: 16px;
+  font-size: 12px;
+}
+.import-diagnostics li {
+  margin-top: 8px;
+}
+.import-link {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.import-empty {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+  padding: 40px 20px;
+}
+.import-empty svg {
+  color: var(--primary);
+}
+.import-file-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.import-file-summary a {
+  display: grid;
+  gap: 7px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.import-file-summary a[aria-current="page"] {
+  border-color: var(--primary);
+}
+.import-file-summary span,
+.import-file-summary small {
+  color: var(--muted-foreground);
+}
+@media (max-width: 700px) {
+  .import-fields,
+  .import-upload-grid,
+  .import-file-summary {
+    grid-template-columns: 1fr;
+  }
+  .import-card {
+    padding: 16px;
+  }
+  .import-counts {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .import-notice {
+    align-items: start;
+  }
+  .imports-page .page-header {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .import-drop {
+    transition: none;
+  }
+}

@@ -30,6 +30,17 @@ export async function cleanupUsers() {
         [email],
       );
       for (const row of rows) {
+        for (const table of [
+          "import_provenance",
+          "import_files",
+          "import_batches",
+          "tradovate_order_records",
+          "tradovate_performance_records",
+        ]) {
+          await connection.query(`delete from ${table} where owner_id=$1`, [
+            row.id,
+          ]);
+        }
         await connection.query(
           "delete from trading_accounts where owner_id=$1",
           [row.id],

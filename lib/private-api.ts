@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { readConfig } from "./config";
 import { UnauthorizedError } from "./session";
 import { DuplicateAccountError, NotFoundError } from "./accounts/service";
+import { ImportError } from "./imports/errors";
 export function requireOrigin(request: Request) {
   if (
     request.headers.get("origin") !==
@@ -18,6 +19,8 @@ export function privateJson(value: unknown, status = 200) {
   });
 }
 export function privateError(error: unknown) {
+  if (error instanceof ImportError)
+    return privateJson({ message: error.message }, error.status);
   if (error instanceof UnauthorizedError)
     return privateJson({ message: error.message }, 401);
   if (error instanceof OriginError)

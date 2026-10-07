@@ -67,37 +67,27 @@ export function ThemeControl() {
     </Popover>
   );
 }
-function ImportButton({ compact = false }: { compact?: boolean }) {
+function ImportButton({
+  compact = false,
+  onNavigate,
+}: {
+  compact?: boolean;
+  onNavigate: () => void;
+}) {
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          className={`import-button ${compact ? "compact-import" : ""}`}
-          title="Import Trades"
-        >
-          <Upload size={16} />
-          {!compact && "Import Trades"}
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <div className="dialog-symbol">
-          <Upload size={25} />
-        </div>
-        <DialogTitle>Bring your trades into focus</DialogTitle>
-        <DialogDescription>
-          Tradovate CSV importing is the next milestone. Today, manage your
-          accounts or switch the Dashboard to Demo to explore fictional results.
-        </DialogDescription>
-        <div className="note-box">
-          Future imports will let you choose the CSV source timezone, including
-          Asia/Jerusalem and America/New_York, and normalize timestamps to UTC
-          using daylight-saving rules.
-        </div>
-        <p className="small muted">No files are uploaded or processed today.</p>
-      </DialogContent>
-    </Dialog>
+    <Button
+      asChild
+      className={`import-button ${compact ? "compact-import" : ""}`}
+      title="Import Trades"
+    >
+      <Link href="/imports" aria-label="Import Trades" onClick={onNavigate}>
+        <Upload size={16} />
+        {!compact && "Import Trades"}
+      </Link>
+    </Button>
   );
 }
+
 export function Shell({
   children,
   displayName,
@@ -122,7 +112,7 @@ export function Shell({
           </>
         )}
       </div>
-      <ImportButton compact={compact} />
+      <ImportButton compact={compact} onNavigate={() => setMobileOpen(false)} />
       <div className="nav-label">{!compact && "WORKSPACE"}</div>
       <nav aria-label="Main navigation">
         {navigation.map((item, index) => (
@@ -147,7 +137,7 @@ export function Shell({
           <div className="demo-avatar">MS</div>
           <div>
             <strong title={displayName}>{displayName}</strong>
-            <span>Private workspace · Day 2</span>
+            <span>Private workspace · Day 3</span>
           </div>
         </div>
       )}
@@ -215,7 +205,7 @@ export function Shell({
           <span>
             <Sprout size={13} /> A little reflection. A better next trade.
           </span>
-          <span>MSJournal · Day 2</span>
+          <span>MSJournal · Day 3</span>
         </footer>
       </div>
     </div>

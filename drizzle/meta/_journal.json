@@ -8,6 +8,13 @@
       "when": 1791215137181,
       "tag": "0000_faithful_gambit",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791386815210,
+      "tag": "0001_bumpy_squadron_supreme",
+      "breakpoints": true
     }
   ]
 }

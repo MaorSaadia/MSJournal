@@ -12,6 +12,8 @@ import {
   index,
   uniqueIndex,
   check,
+  jsonb,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("auth_users", {
@@ -141,6 +143,7 @@ export const tradingAccounts = pgTable(
   },
   (table) => [
     index("trading_accounts_owner_idx").on(table.ownerId),
+    uniqueIndex("trading_accounts_id_owner_unique").on(table.id, table.ownerId),
     uniqueIndex("trading_accounts_owner_platform_broker_unique")
       .on(table.ownerId, table.platform, table.brokerIdentifier)
       .where(
@@ -168,6 +171,230 @@ export const tradingAccounts = pgTable(
       "trading_accounts_identifier_trimmed",
       sql`${table.brokerIdentifier} is null or (length(${table.brokerIdentifier}) > 0 and ${table.brokerIdentifier} = trim(${table.brokerIdentifier}))`,
     ),
+  ],
+);
+// Imported source records are deliberately separate from reconstructed journal trades.
+const sourceScope = () => ({
+  id: uuid("id").primaryKey().defaultRandom(),
+  ownerId: text("owner_id").notNull(),
+  tradingAccountId: uuid("trading_account_id").notNull(),
+});
+export const importBatches = pgTable(
+  "import_batches",
+  {
+    ...sourceScope(),
+    confirmationId: uuid("confirmation_id").notNull(),
+    payloadHash: text("payload_hash").notNull(),
+    source: text("source").notNull().default("Tradovate"),
+    timezone: text("source_timezone").notNull(),
+    parserVersion: text("parser_version").notNull(),
+    outcome: text("outcome").$type<"Imported" | "Already imported">().notNull(),
+    total: integer("total_count").notNull(),
+    added: integer("added_count").notNull(),
+    duplicates: integer("duplicate_count").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.tradingAccountId, t.ownerId],
+      foreignColumns: [tradingAccounts.id, tradingAccounts.ownerId],
+    }).onDelete("restrict"),
+    uniqueIndex("import_batches_id_scope_unique").on(
+      t.id,
+      t.ownerId,
+      t.tradingAccountId,
+    ),
+    uniqueIndex("import_batches_confirmation_unique").on(
+      t.ownerId,
+      t.confirmationId,
+    ),
+    index("import_batches_owner_time_idx").on(t.ownerId, t.createdAt),
+    check(
+      "import_batches_counts",
+      sql`${t.total} >= 0 and ${t.added} >= 0 and ${t.duplicates} >= 0 and ${t.total} = ${t.added} + ${t.duplicates}`,
+    ),
+    check("import_batches_source", sql`${t.source} = 'Tradovate'`),
+  ],
+);
+export const importFiles = pgTable(
+  "import_files",
+  {
+    ...sourceScope(),
+    batchId: uuid("batch_id").notNull(),
+    reportType: text("report_type").$type<"orders" | "performance">().notNull(),
+    originalName: text("original_name").notNull(),
+    fileHash: text("file_hash").notNull(),
+    bytes: integer("byte_count").notNull(),
+    total: integer("total_count").notNull(),
+    added: integer("added_count").notNull(),
+    duplicates: integer("duplicate_count").notNull(),
+    start: timestamp("range_start", { withTimezone: true }),
+    end: timestamp("range_end", { withTimezone: true }),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.batchId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        importBatches.id,
+        importBatches.ownerId,
+        importBatches.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+    uniqueIndex("import_files_id_scope_unique").on(
+      t.id,
+      t.ownerId,
+      t.tradingAccountId,
+    ),
+    uniqueIndex("import_files_batch_type_unique").on(t.batchId, t.reportType),
+    index("import_files_hash_idx").on(
+      t.ownerId,
+      t.tradingAccountId,
+      t.reportType,
+      t.fileHash,
+    ),
+    check(
+      "import_files_type",
+      sql`${t.reportType} in ('orders','performance')`,
+    ),
+    check(
+      "import_files_counts",
+      sql`${t.total} = ${t.added} + ${t.duplicates} and ${t.added} >= 0 and ${t.duplicates} >= 0 and ${t.bytes} > 0`,
+    ),
+  ],
+);
+export const tradovateOrders = pgTable(
+  "tradovate_order_records",
+  {
+    ...sourceScope(),
+    orderId: text("order_id").notNull(),
+    versionId: text("version_id").notNull(),
+    commandId: text("command_id").notNull(),
+    brokerAccount: text("broker_account").notNull(),
+    fingerprint: text("fingerprint").notNull(),
+    sourceTimezone: text("source_timezone").notNull(),
+    raw: jsonb("raw_values").$type<Record<string, string>>().notNull(),
+    symbol: text("symbol").notNull(),
+    product: text("product").notNull(),
+    side: text("side").notNull(),
+    status: text("status").notNull(),
+    orderType: text("order_type").notNull(),
+    quantity: numeric("quantity", { precision: 28, scale: 8 }).notNull(),
+    filledQuantity: numeric("filled_quantity", { precision: 28, scale: 8 }),
+    averagePrice: numeric("average_price", { precision: 28, scale: 8 }),
+    limitPrice: numeric("limit_price", { precision: 28, scale: 8 }),
+    stopPrice: numeric("stop_price", { precision: 28, scale: 8 }),
+    notionalValue: numeric("notional_value", { precision: 28, scale: 8 }),
+    currency: text("currency").notNull(),
+    timestamp: timestamp("source_timestamp", { withTimezone: true }).notNull(),
+    fillTime: timestamp("fill_time", { withTimezone: true }),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.tradingAccountId, t.ownerId],
+      foreignColumns: [tradingAccounts.id, tradingAccounts.ownerId],
+    }).onDelete("restrict"),
+    uniqueIndex("tradovate_orders_identity_unique").on(
+      t.ownerId,
+      t.tradingAccountId,
+      t.orderId,
+    ),
+    uniqueIndex("tradovate_orders_id_scope_unique").on(
+      t.id,
+      t.ownerId,
+      t.tradingAccountId,
+    ),
+    check(
+      "tradovate_orders_quantity",
+      sql`${t.quantity} > 0 and (${t.filledQuantity} is null or (${t.filledQuantity} >= 0 and ${t.filledQuantity} <= ${t.quantity}))`,
+    ),
+  ],
+);
+export const tradovatePerformance = pgTable(
+  "tradovate_performance_records",
+  {
+    ...sourceScope(),
+    identity: text("identity").notNull(),
+    buyFillId: text("buy_fill_id").notNull(),
+    sellFillId: text("sell_fill_id").notNull(),
+    fingerprint: text("fingerprint").notNull(),
+    occurrence: integer("occurrence").notNull(),
+    sourceTimezone: text("source_timezone").notNull(),
+    raw: jsonb("raw_values").$type<Record<string, string>>().notNull(),
+    symbol: text("symbol").notNull(),
+    quantity: numeric("quantity", { precision: 28, scale: 8 }).notNull(),
+    buyPrice: numeric("buy_price", { precision: 28, scale: 8 }).notNull(),
+    sellPrice: numeric("sell_price", { precision: 28, scale: 8 }).notNull(),
+    grossPnl: numeric("gross_pnl", { precision: 28, scale: 8 }).notNull(),
+    boughtAt: timestamp("bought_at", { withTimezone: true }).notNull(),
+    soldAt: timestamp("sold_at", { withTimezone: true }).notNull(),
+    duration: text("duration").notNull(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.tradingAccountId, t.ownerId],
+      foreignColumns: [tradingAccounts.id, tradingAccounts.ownerId],
+    }).onDelete("restrict"),
+    uniqueIndex("tradovate_performance_identity_unique").on(
+      t.ownerId,
+      t.tradingAccountId,
+      t.identity,
+      t.fingerprint,
+      t.occurrence,
+    ),
+    uniqueIndex("tradovate_performance_id_scope_unique").on(
+      t.id,
+      t.ownerId,
+      t.tradingAccountId,
+    ),
+    check(
+      "tradovate_performance_quantity",
+      sql`${t.quantity} > 0 and ${t.occurrence} > 0`,
+    ),
+  ],
+);
+export const importProvenance = pgTable(
+  "import_provenance",
+  {
+    ...sourceScope(),
+    fileId: uuid("file_id").notNull(),
+    sourceRow: integer("source_row").notNull(),
+    orderRecordId: uuid("order_record_id"),
+    performanceRecordId: uuid("performance_record_id"),
+    raw: jsonb("raw_values").$type<Record<string, string>>().notNull(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.fileId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        importFiles.id,
+        importFiles.ownerId,
+        importFiles.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [t.orderRecordId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        tradovateOrders.id,
+        tradovateOrders.ownerId,
+        tradovateOrders.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [t.performanceRecordId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        tradovatePerformance.id,
+        tradovatePerformance.ownerId,
+        tradovatePerformance.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+    uniqueIndex("import_provenance_file_row_unique").on(t.fileId, t.sourceRow),
+    check(
+      "import_provenance_record",
+      sql`(${t.orderRecordId} is null) <> (${t.performanceRecordId} is null)`,
+    ),
+    check("import_provenance_row", sql`${t.sourceRow} >= 2`),
   ],
 );
 export const userPreferences = pgTable(

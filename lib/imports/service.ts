@@ -1,0 +1,506 @@
+import "server-only";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { z } from "zod";
+import { getDb } from "@/db/client";
+import {
+  importBatches,
+  importFiles,
+  importProvenance,
+  tradingAccounts,
+  tradovateOrders,
+  tradovatePerformance,
+} from "@/db/schema";
+import { requireUser } from "@/lib/session";
+import { readConfig } from "@/lib/config";
+import { WorkspaceUnavailableError } from "@/lib/server-error";
+import { NotFoundError } from "@/lib/accounts/service";
+import { classify } from "./identity";
+import { hash } from "./parser";
+import { ImportError } from "./errors";
+import {
+  counts,
+  PARSER_VERSION,
+  type ImportOptions,
+  type ParsedFile,
+  type Preview,
+  type StoredIdentity,
+  type OrderValues,
+  type PerformanceValues,
+} from "./types";
+type DB = ReturnType<typeof getDb>;
+type TX = Parameters<Parameters<DB["transaction"]>[0]>[0];
+type Stored = StoredIdentity & { id: string };
+async function selectedAccount(
+  db: DB | TX,
+  userId: string,
+  id: string,
+  locking = false,
+) {
+  const query = db
+    .select()
+    .from(tradingAccounts)
+    .where(
+      and(
+        eq(tradingAccounts.id, z.uuid().parse(id)),
+        eq(tradingAccounts.ownerId, userId),
+      ),
+    );
+  // Account cannot be edited or archived during a confirmed transaction.
+  const [account] = await (locking ? query.for("update") : query);
+  if (!account) throw new NotFoundError();
+  if (
+    account.archivedAt ||
+    account.status !== "Active" ||
+    account.platform !== "Tradovate"
+  )
+    throw new ImportError("Choose an active, unarchived Tradovate account.");
+  return account;
+}
+async function evaluate(
+  db: DB | TX,
+  userId: string,
+  options: ImportOptions,
+  files: ParsedFile[],
+  locking = false,
+) {
+  const account = await selectedAccount(db, userId, options.accountId, locking);
+  const stored = new Map<string, Stored[]>();
+  for (const file of files) {
+    if (file.type === "orders") {
+      const ids = [...new Set(file.rows.map((r) => r.identity))];
+      const rows = ids.length
+        ? await db
+            .select({
+              id: tradovateOrders.id,
+              identity: tradovateOrders.orderId,
+              fingerprint: tradovateOrders.fingerprint,
+            })
+            .from(tradovateOrders)
+            .where(
+              and(
+                eq(tradovateOrders.ownerId, userId),
+                eq(tradovateOrders.tradingAccountId, account.id),
+                inArray(tradovateOrders.orderId, ids),
+              ),
+            )
+        : [];
+      const old = rows.map((r) => ({ ...r, occurrence: 1 }));
+      stored.set(file.type, old);
+      classify(file, old);
+      const identifiers = new Set(
+        file.rows.map((r) => (r.values as OrderValues).brokerAccount),
+      );
+      if (identifiers.size > 1)
+        file.errors.push({
+          row: 0,
+          column: "Account",
+          message:
+            "Orders contains multiple source accounts. Export one account per import.",
+        });
+      if (identifiers.size === 1) {
+        const identifier = [...identifiers][0];
+        if (account.brokerIdentifier && account.brokerIdentifier !== identifier)
+          file.errors.push({
+            row: 0,
+            column: "Account",
+            message:
+              "Orders account identifier does not match this trading account's configured broker identifier.",
+          });
+        if (!account.brokerIdentifier && !options.confirmOrders)
+          file.errors.push({
+            row: 0,
+            column: "Account",
+            message:
+              "Confirm the displayed source account belongs to the selected account. This will not change account settings.",
+          });
+      }
+    } else {
+      const ids = [...new Set(file.rows.map((r) => r.identity))];
+      const old = ids.length
+        ? await db
+            .select({
+              id: tradovatePerformance.id,
+              identity: tradovatePerformance.identity,
+              fingerprint: tradovatePerformance.fingerprint,
+              occurrence: tradovatePerformance.occurrence,
+            })
+            .from(tradovatePerformance)
+            .where(
+              and(
+                eq(tradovatePerformance.ownerId, userId),
+                eq(tradovatePerformance.tradingAccountId, account.id),
+                inArray(tradovatePerformance.identity, ids),
+              ),
+            )
+        : [];
+      stored.set(file.type, old);
+      classify(file, old);
+      if (!options.confirmPerformance)
+        file.errors.push({
+          row: 0,
+          column: "Account",
+          message:
+            "Performance has no account identifier. Explicitly confirm this report belongs to the selected account.",
+        });
+    }
+    if (!file.total && !file.errors.length)
+      file.errors.push({
+        row: 0,
+        column: "file",
+        message: "Report contains no source records.",
+      });
+  }
+  return stored;
+}
+function payloadHash(options: ImportOptions, files: ParsedFile[]) {
+  return hash(
+    JSON.stringify([
+      PARSER_VERSION,
+      options,
+      files.map((f) => [f.type, f.name, f.hash]),
+    ]),
+  );
+}
+function signedToken(userId: string, payload: string) {
+  const data = Buffer.from(
+    JSON.stringify({
+      userId,
+      payload,
+      id: randomUUID(),
+      expires: Date.now() + 30 * 60000,
+    }),
+  ).toString("base64url");
+  return (
+    data +
+    "." +
+    createHmac("sha256", readConfig().BETTER_AUTH_SECRET)
+      .update(data)
+      .digest("base64url")
+  );
+}
+function verifyToken(token: string, userId: string, payload: string) {
+  try {
+    const [data, signature, extra] = token.split(".");
+    const expected = createHmac("sha256", readConfig().BETTER_AUTH_SECRET)
+      .update(data)
+      .digest();
+    const supplied = Buffer.from(signature, "base64url");
+    if (
+      extra ||
+      supplied.length !== expected.length ||
+      !timingSafeEqual(expected, supplied)
+    )
+      throw new Error();
+    const value = z
+      .object({
+        userId: z.string(),
+        payload: z.string(),
+        id: z.uuid(),
+        expires: z.number(),
+      })
+      .parse(JSON.parse(Buffer.from(data, "base64url").toString()));
+    if (
+      value.userId !== userId ||
+      value.payload !== payload ||
+      value.expires < Date.now()
+    )
+      throw new Error();
+    return value.id;
+  } catch {
+    throw new ImportError(
+      "Preview expired or the files/settings changed. Review a fresh preview before confirming.",
+      409,
+    );
+  }
+}
+export async function previewImport(
+  options: ImportOptions,
+  files: ParsedFile[],
+  headers?: Headers,
+): Promise<Preview> {
+  const user = await requireUser(headers);
+  await evaluate(getDb(), user.id, options, files);
+  const canConfirm = files.every((f) => !f.errors.length);
+  return {
+    files,
+    counts: counts(files),
+    canConfirm,
+    token: canConfirm
+      ? signedToken(user.id, payloadHash(options, files))
+      : null,
+  };
+}
+function chunks<T>(values: T[], size = 200): T[][] {
+  return Array.from({ length: Math.ceil(values.length / size) }, (_, i) =>
+    values.slice(i * size, (i + 1) * size),
+  );
+}
+export async function confirmImport(
+  options: ImportOptions,
+  files: ParsedFile[],
+  token: string,
+  headers?: Headers,
+) {
+  const user = await requireUser(headers),
+    payload = payloadHash(options, files),
+    confirmationId = verifyToken(token, user.id, payload);
+  return getDb().transaction(async (tx) => {
+    // Transaction-scoped locks work with Neon's pooled PostgreSQL connection.
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${user.id + ":" + confirmationId},0))`,
+    );
+    const [prior] = await tx
+      .select()
+      .from(importBatches)
+      .where(
+        and(
+          eq(importBatches.ownerId, user.id),
+          eq(importBatches.confirmationId, confirmationId),
+        ),
+      );
+    if (prior) {
+      if (prior.payloadHash !== payload)
+        throw new ImportError("Confirmation does not match this import.", 409);
+      return {
+        id: prior.id,
+        outcome: prior.outcome,
+        added: prior.added,
+        duplicates: prior.duplicates,
+      };
+    }
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${user.id + ":" + options.accountId},0))`,
+    );
+    const existing = await evaluate(tx, user.id, options, files, true);
+    if (files.some((f) => f.errors.length))
+      throw new ImportError(
+        "Import blocked: validation or conflicting source records remain. Review a fresh preview; nothing was saved.",
+        409,
+      );
+    const summary = counts(files);
+    const scope = { ownerId: user.id, tradingAccountId: options.accountId };
+    const [batch] = await tx
+      .insert(importBatches)
+      .values({
+        ...scope,
+        confirmationId,
+        payloadHash: payload,
+        timezone: options.timezone,
+        parserVersion: PARSER_VERSION,
+        total: summary.total,
+        added: summary.new,
+        duplicates: summary.duplicates,
+        outcome: summary.new ? "Imported" : "Already imported",
+      })
+      .returning();
+    for (const file of files) {
+      const [savedFile] = await tx
+        .insert(importFiles)
+        .values({
+          ...scope,
+          batchId: batch.id,
+          reportType: file.type,
+          originalName: file.name,
+          fileHash: file.hash,
+          bytes: file.bytes,
+          total: file.total,
+          added: file.rows.filter((r) => r.disposition === "new").length,
+          duplicates: file.rows.filter((r) => r.disposition === "duplicate")
+            .length,
+          start: file.start ? new Date(file.start) : null,
+          end: file.end ? new Date(file.end) : null,
+        })
+        .returning();
+      const key = (r: StoredIdentity) =>
+        JSON.stringify([r.identity, r.fingerprint, r.occurrence]);
+      const references = new Map(
+        (existing.get(file.type) ?? []).map((r) => [key(r), r.id]),
+      );
+      const fresh = file.rows.filter((r) => r.disposition === "new");
+      for (const group of chunks(fresh)) {
+        if (file.type === "orders") {
+          const inserted = await tx
+            .insert(tradovateOrders)
+            .values(
+              group.map((r) => {
+                const v = r.values as OrderValues;
+                return {
+                  ...scope,
+                  ...v,
+                  timestamp: new Date(v.timestamp),
+                  fillTime: v.fillTime ? new Date(v.fillTime) : null,
+                  raw: r.raw,
+                  fingerprint: r.fingerprint,
+                  sourceTimezone: options.timezone,
+                };
+              }),
+            )
+            .returning({
+              id: tradovateOrders.id,
+              identity: tradovateOrders.orderId,
+              fingerprint: tradovateOrders.fingerprint,
+            });
+          inserted.forEach((r) =>
+            references.set(key({ ...r, occurrence: 1 }), r.id),
+          );
+        } else {
+          const inserted = await tx
+            .insert(tradovatePerformance)
+            .values(
+              group.map((r) => {
+                const v = r.values as PerformanceValues;
+                return {
+                  ...scope,
+                  ...v,
+                  boughtAt: new Date(v.boughtAt),
+                  soldAt: new Date(v.soldAt),
+                  identity: r.identity,
+                  occurrence: r.occurrence,
+                  raw: r.raw,
+                  fingerprint: r.fingerprint,
+                  sourceTimezone: options.timezone,
+                };
+              }),
+            )
+            .returning({
+              id: tradovatePerformance.id,
+              identity: tradovatePerformance.identity,
+              fingerprint: tradovatePerformance.fingerprint,
+              occurrence: tradovatePerformance.occurrence,
+            });
+          inserted.forEach((r) => references.set(key(r), r.id));
+        }
+      }
+      for (const group of chunks(file.rows))
+        await tx.insert(importProvenance).values(
+          group.map((r) => {
+            const id = references.get(key(r));
+            if (!id)
+              throw new ImportError(
+                "Source-record reconciliation failed; nothing was saved.",
+                409,
+              );
+            return {
+              ...scope,
+              fileId: savedFile.id,
+              sourceRow: r.row,
+              raw: r.raw,
+              orderRecordId: file.type === "orders" ? id : null,
+              performanceRecordId: file.type === "performance" ? id : null,
+            };
+          }),
+        );
+    }
+    return {
+      id: batch.id,
+      outcome: batch.outcome,
+      added: batch.added,
+      duplicates: batch.duplicates,
+    };
+  });
+}
+export async function listImports(headers?: Headers) {
+  const user = await requireUser(headers);
+  try {
+    const db = getDb();
+    const batches = await db
+      .select({
+        batch: importBatches,
+        accountName: tradingAccounts.displayName,
+      })
+      .from(importBatches)
+      .innerJoin(
+        tradingAccounts,
+        and(
+          eq(tradingAccounts.id, importBatches.tradingAccountId),
+          eq(tradingAccounts.ownerId, user.id),
+        ),
+      )
+      .where(eq(importBatches.ownerId, user.id))
+      .orderBy(desc(importBatches.createdAt))
+      .limit(100);
+    const files = batches.length
+      ? await db
+          .select()
+          .from(importFiles)
+          .where(
+            and(
+              eq(importFiles.ownerId, user.id),
+              inArray(
+                importFiles.batchId,
+                batches.map((b) => b.batch.id),
+              ),
+            ),
+          )
+      : [];
+    return batches.map((b) => ({
+      ...b,
+      files: files.filter((f) => f.batchId === b.batch.id),
+    }));
+  } catch {
+    throw new WorkspaceUnavailableError();
+  }
+}
+export async function importDetails(
+  id: string,
+  page = 1,
+  fileId?: string,
+  headers?: Headers,
+) {
+  const user = await requireUser(headers);
+  try {
+    const db = getDb();
+    const [result] = await db
+      .select({
+        batch: importBatches,
+        accountName: tradingAccounts.displayName,
+      })
+      .from(importBatches)
+      .innerJoin(
+        tradingAccounts,
+        and(
+          eq(tradingAccounts.id, importBatches.tradingAccountId),
+          eq(tradingAccounts.ownerId, user.id),
+        ),
+      )
+      .where(
+        and(
+          eq(importBatches.id, z.uuid().parse(id)),
+          eq(importBatches.ownerId, user.id),
+        ),
+      );
+    if (!result) throw new NotFoundError();
+    const files = await db
+      .select()
+      .from(importFiles)
+      .where(and(eq(importFiles.batchId, id), eq(importFiles.ownerId, user.id)))
+      .orderBy(importFiles.reportType);
+    const file = fileId ? files.find((f) => f.id === fileId) : files[0];
+    if (!file) throw new NotFoundError();
+    const currentPage = Math.max(
+      1,
+      Math.min(
+        Math.ceil(file.total / 25),
+        Number.isSafeInteger(page) ? page : 1,
+      ),
+    );
+    const rows = await db
+      .select({ row: importProvenance.sourceRow, raw: importProvenance.raw })
+      .from(importProvenance)
+      .where(
+        and(
+          eq(importProvenance.fileId, file.id),
+          eq(importProvenance.ownerId, user.id),
+        ),
+      )
+      .orderBy(importProvenance.sourceRow)
+      .limit(25)
+      .offset((currentPage - 1) * 25);
+    return { ...result, files, file, rows, page: currentPage };
+  } catch (error) {
+    if (error instanceof NotFoundError || error instanceof z.ZodError)
+      throw error;
+    throw new WorkspaceUnavailableError();
+  }
+}
