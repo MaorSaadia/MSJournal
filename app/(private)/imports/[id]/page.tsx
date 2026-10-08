@@ -13,7 +13,12 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string; file?: string; saved?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    file?: string;
+    saved?: string;
+    processing?: string;
+  }>;
 }) {
   await requirePageUser();
   const { id } = await params;
@@ -58,8 +63,18 @@ export default async function Page({
           {batch.outcome === "Already imported"
             ? "These source records were already saved. No source records were added."
             : performanceOnly
-              ? "Performance matched-portion records saved successfully. Reported P&L is gross and fees are unknown. Complete-trade reconstruction and dashboard metrics come in Day 4."
-              : "Source records saved successfully. Trade reconstruction and dashboard analytics follow in a later milestone."}
+              ? "Performance matched-portion records saved successfully. Reported P&L is gross; missing fees remain unknown."
+              : "Source records saved successfully. Orders never add a second copy of Performance P&L."}
+        </p>
+      )}
+      {query.saved && (
+        <p role="status" className="import-card">
+          {query.processing === "failed"
+            ? "Import saved. Journal processing failed; your source data is safe. Retry processing in Trade View."
+            : "Review processing status, matched groups, and gross P&L in Trade View."}{" "}
+          <Link className="back-link" href="/trade-view">
+            Open Trade View
+          </Link>
         </p>
       )}
       <section className="import-card">

@@ -15,6 +15,13 @@
       "when": 1791386815210,
       "tag": "0001_bumpy_squadron_supreme",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791465944551,
+      "tag": "0002_glorious_bruce_banner",
+      "breakpoints": true
     }
   ]
 }

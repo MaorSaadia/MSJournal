@@ -14,6 +14,7 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:studio": "drizzle-kit studio --host 127.0.0.1",
     "db:check": "tsx scripts/check-db.ts",
+    "db:check:journal": "tsx scripts/check-journal.ts",
     "auth:generate": "auth generate --config scripts/auth-schema.config.ts --output drizzle/auth-reference.ts --yes",
     "auth:diagnose": "tsx scripts/diagnose-auth.ts"
   },

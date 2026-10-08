@@ -179,6 +179,155 @@ const sourceScope = () => ({
   ownerId: text("owner_id").notNull(),
   tradingAccountId: uuid("trading_account_id").notNull(),
 });
+// Derived data can be replaced atomically; source imports remain immutable.
+export const journalRecords = pgTable(
+  "journal_records",
+  {
+    ...sourceScope(),
+    symbol: text("symbol").notNull(),
+    direction: text("direction")
+      .$type<"long" | "short" | "unknown">()
+      .notNull(),
+    status: text("status")
+      .$type<"Matched portions" | "Needs review">()
+      .notNull(),
+    explanation: text("explanation").notNull(),
+    entryAt: timestamp("entry_at", { withTimezone: true }),
+    exitAt: timestamp("exit_at", { withTimezone: true }).notNull(),
+    closedQuantity: numeric("closed_quantity", {
+      precision: 38,
+      scale: 8,
+    }).notNull(),
+    entryPrice: numeric("entry_price", { precision: 38, scale: 16 }),
+    exitPrice: numeric("exit_price", { precision: 38, scale: 16 }),
+    grossPnl: numeric("gross_pnl", { precision: 38, scale: 8 }).notNull(),
+    fees: numeric("fees", { precision: 38, scale: 8 }),
+    feeKind: text("fee_kind")
+      .$type<"Unknown" | "Estimated" | "Manual" | "Mixed">()
+      .notNull(),
+    version: text("processing_version").notNull(),
+    current: boolean("current").notNull().default(true),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.tradingAccountId, t.ownerId],
+      foreignColumns: [tradingAccounts.id, tradingAccounts.ownerId],
+    }).onDelete("restrict"),
+    uniqueIndex("journal_records_scope_unique").on(
+      t.id,
+      t.ownerId,
+      t.tradingAccountId,
+    ),
+    index("journal_records_owner_exit_idx").on(t.ownerId, t.exitAt),
+    check("journal_records_quantity", sql`${t.closedQuantity} > 0`),
+    check("journal_records_fees", sql`${t.fees} is null or ${t.fees} >= 0`),
+  ],
+);
+export const journalSources = pgTable(
+  "journal_sources",
+  {
+    ...sourceScope(),
+    recordId: uuid("record_id").notNull(),
+    sourceId: uuid("source_id").notNull(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.recordId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        journalRecords.id,
+        journalRecords.ownerId,
+        journalRecords.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [t.sourceId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        tradovatePerformance.id,
+        tradovatePerformance.ownerId,
+        tradovatePerformance.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+    uniqueIndex("journal_sources_source_unique").on(t.sourceId),
+  ],
+);
+export const accountFeeSettings = pgTable(
+  "account_fee_settings",
+  {
+    ...sourceScope(),
+    perSide: numeric("per_side", { precision: 28, scale: 8 }),
+    contractOverrides: jsonb("contract_overrides")
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
+    revision: uuid("revision").notNull().defaultRandom(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.tradingAccountId, t.ownerId],
+      foreignColumns: [tradingAccounts.id, tradingAccounts.ownerId],
+    }).onDelete("restrict"),
+    uniqueIndex("account_fee_settings_account_unique").on(t.tradingAccountId),
+    check(
+      "account_fee_settings_positive",
+      sql`${t.perSide} is null or ${t.perSide} >= 0`,
+    ),
+  ],
+);
+// Fees belong to immutable portions, so regrouping cannot discard a manual adjustment.
+export const journalPortionFees = pgTable(
+  "journal_portion_fees",
+  {
+    ...sourceScope(),
+    sourceId: uuid("source_id").notNull(),
+    amount: numeric("amount", { precision: 38, scale: 8 }),
+    kind: text("kind").$type<"Unknown" | "Estimated" | "Manual">().notNull(),
+    perSide: numeric("per_side", { precision: 28, scale: 8 }),
+    settingRevision: uuid("setting_revision"),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.sourceId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        tradovatePerformance.id,
+        tradovatePerformance.ownerId,
+        tradovatePerformance.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+    uniqueIndex("journal_portion_fees_source_unique").on(t.sourceId),
+    check(
+      "journal_portion_fees_positive",
+      sql`${t.amount} is null or ${t.amount} >= 0`,
+    ),
+  ],
+);
+export const journalProcessing = pgTable(
+  "journal_processing",
+  {
+    ...sourceScope(),
+    sourceCount: integer("source_count").notNull().default(0),
+    version: text("processing_version").notNull(),
+    status: text("status").$type<"Ready" | "Failed">().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.tradingAccountId, t.ownerId],
+      foreignColumns: [tradingAccounts.id, tradingAccounts.ownerId],
+    }).onDelete("restrict"),
+    uniqueIndex("journal_processing_account_unique").on(t.tradingAccountId),
+  ],
+);
 export const importBatches = pgTable(
   "import_batches",
   {

@@ -112,7 +112,10 @@ export function FinancialChart({
         domain={
           kind === "balance"
             ? ["dataMin - 400", "dataMax + 400"]
-            : ["auto", "auto"]
+            : [
+                (minimum: number) => Math.min(0, minimum),
+                (maximum: number) => Math.max(0, maximum),
+              ]
         }
       />
       <Tooltip content={<FinancialTooltip />} />
@@ -210,6 +213,7 @@ export function FinancialChart({
   return (
     <div
       className={`chart chart-${kind}`}
+      data-entrance={animate ? "running" : "complete"}
       role="img"
       aria-label={`${kind} chart: ${data.length} points; opening ${money(data[0].value * 100)}, ending ${money(data[data.length - 1].value * 100)}`}
     >

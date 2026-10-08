@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion } from "motion/react";
 import {
   Plus,
@@ -260,6 +261,11 @@ export function AccountsPage({
                     >
                       <Pencil size={14} />
                       Edit
+                    </Button>
+                    <Button asChild variant="outline">
+                      <Link href={`/prop-accounts/${account.id}/fees`}>
+                        Fees
+                      </Link>
                     </Button>
                     <Button
                       variant="ghost"

@@ -110,7 +110,10 @@ export function ImportPage({
         throw new Error(data.message ?? "Import could not be completed.");
       }
       if (action === "preview") setPreview(data);
-      else router.push(`/imports/${data.id}?saved=1`);
+      else
+        router.push(
+          `/imports/${data.id}?saved=1&processing=${data.processing?.status === "Failed" ? "failed" : "ready"}`,
+        );
     } catch (e) {
       setError(
         e instanceof Error
@@ -136,7 +139,7 @@ export function ImportPage({
             Import Trades<span className="title-dot">.</span>
           </h1>
           <p className="muted">
-            Bring in your source records. Trade reconstruction follows in Day 4.
+            Import matched portions and reported gross P&L into your journal.
           </p>
         </div>
         <Button asChild variant="outline">
@@ -148,8 +151,8 @@ export function ImportPage({
       <div className="import-notice">
         <ShieldCheck size={17} />
         <span>
-          Private imports · Orders and Performance stay separate from dashboard
-          trades and fictional demo data.
+          Private imports · Source records stay traceable. Fictional demo data
+          stays separate.
         </span>
       </div>
       {!accounts.length ? (

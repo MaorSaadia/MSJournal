@@ -21,6 +21,8 @@ export function DashboardFilters({
   onChange,
   accounts,
   demo = true,
+  symbols = ["ES", "NQ", "MES", "MNQ"],
+  timezone = "Asia/Jerusalem",
 }: {
   filters: Filters;
   onChange: (f: Filters) => void;
@@ -28,6 +30,8 @@ export function DashboardFilters({
     stage: "Evaluation" | "Funded" | "Personal";
   })[];
   demo?: boolean;
+  symbols?: string[];
+  timezone?: string;
 }) {
   const [dateOpen, setDateOpen] = useState(false);
   const [start, setStart] = useState(filters.start),
@@ -35,11 +39,13 @@ export function DashboardFilters({
   const extraCount =
     Number(filters.symbol !== "all") + Number(filters.direction !== "all");
   const accountLabel =
-    accounts.length === 0 ? "No accounts" : filters.accounts.length === accounts.length
-      ? "All accounts"
-      : filters.accounts.length === 1
-        ? accounts.find((a) => a.id === filters.accounts[0])?.name
-        : `${filters.accounts.length} accounts`;
+    accounts.length === 0
+      ? "No accounts"
+      : filters.accounts.length === accounts.length
+        ? "All accounts"
+        : filters.accounts.length === 1
+          ? accounts.find((a) => a.id === filters.accounts[0])?.name
+          : `${filters.accounts.length} accounts`;
   return (
     <div className="dashboard-controls">
       <Popover>
@@ -65,7 +71,7 @@ export function DashboardFilters({
               onChange={(e) => onChange({ ...filters, symbol: e.target.value })}
             >
               <option value="all">All symbols</option>
-              {["ES", "NQ", "MES", "MNQ"].map((s) => (
+              {symbols.map((s) => (
                 <option key={s}>{s}</option>
               ))}
             </select>
@@ -124,7 +130,9 @@ export function DashboardFilters({
         </PopoverTrigger>
         <PopoverContent className="date-popover" align="end">
           <strong>Date range</strong>
-          <p className="small muted">Close dates · Asia/Jerusalem</p>
+          <p className="small muted">
+            {demo ? "Close dates" : "Portion realized exit dates"} · {timezone}
+          </p>
           {demo && (
             <div className="date-presets">
               <Button
@@ -186,14 +194,16 @@ export function DashboardFilters({
           >
             Apply range
           </Button>
-          <p className="small muted">
-            Range limited to 2 years per selection.
-          </p>
+          <p className="small muted">Range limited to 2 years per selection.</p>
         </PopoverContent>
       </Popover>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="account-trigger" disabled={accounts.length === 0}>
+          <Button
+            variant="outline"
+            className="account-trigger"
+            disabled={accounts.length === 0}
+          >
             <WalletCards size={15} />
             {accountLabel}
             <ChevronDown size={13} />

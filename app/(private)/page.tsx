@@ -5,6 +5,7 @@ import { getPreferences } from "@/lib/preferences";
 import { RealDashboard } from "@/components/dashboard/real-dashboard";
 import { redirect } from "next/navigation";
 import { currentMonth } from "@/lib/dates";
+import { getJournal } from "@/lib/journal/service";
 export const metadata = { title: "Dashboard" };
 export default async function Home({
   searchParams,
@@ -28,9 +29,10 @@ export default async function Home({
       />
     );
   }
-  const [accounts, preferences] = await Promise.all([
+  const [accounts, preferences, data] = await Promise.all([
     listTradingAccounts(undefined, true),
     getPreferences(),
+    getJournal(),
   ]);
   const selectedIds = authorizedSelection(accounts, params.accounts);
   if (
@@ -44,6 +46,7 @@ export default async function Home({
       selectedIds={selectedIds}
       displayTimezone={preferences.displayTimezone}
       initialMonth={currentMonth()}
+      data={data}
     />
   );
 }
