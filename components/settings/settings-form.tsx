@@ -30,6 +30,7 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
       displayName: preferences.displayName,
       displayTimezone: preferences.displayTimezone,
       currency: "USD",
+      weekStartsOn: preferences.weekStartsOn,
     },
   });
   async function save(values: z.infer<typeof preferencesSchema>) {
@@ -106,7 +107,7 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
             <small>
               Changes timestamp presentation in import previews and history.
               Stored UTC timestamps and CSV source timezones remain unchanged.
-              Future calendar grouping and analytics come later.
+              Calendar dates and daily realized results use this timezone.
             </small>
             {errors.displayTimezone && (
               <span className="form-error">
@@ -114,6 +115,13 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
               </span>
             )}
           </div>
+          <label className="form-field">
+            Calendar week starts on
+            <select {...register("weekStartsOn", { valueAsNumber: true })}>
+              <option value={0}>Sunday</option>
+              <option value={1}>Monday</option>
+            </select>
+          </label>
           <label className="form-field">
             Display currency
             <input {...register("currency")} readOnly aria-readonly="true" />

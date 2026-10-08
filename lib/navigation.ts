@@ -17,6 +17,12 @@ export const navigation = [
     description: "Your trading performance, in one place.",
   },
   {
+    title: "Calendar",
+    href: "/calendar",
+    icon: CalendarDays,
+    description: "Monthly realized activity and daily contributions.",
+  },
+  {
     title: "Day View",
     href: "/day-view",
     icon: CalendarDays,

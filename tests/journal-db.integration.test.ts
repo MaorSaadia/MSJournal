@@ -25,6 +25,9 @@ import {
 } from "@/lib/journal/service";
 import { realizedPerformance } from "@/lib/journal/calculations";
 import { D, sum } from "@/lib/journal/processing";
+import { calendarData } from "@/lib/calendar/service";
+import type { CalendarMonth, CalendarDetails } from "@/lib/calendar/model";
+import { archiveTradingAccount } from "@/lib/accounts/service";
 describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
   "disposable journal processing, fees and isolation",
   () => {
@@ -283,12 +286,64 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
         applyExisting: true,
       });
       expect(new D((await getJournal()).records[0].fees!).eq("6")).toBe(true);
+      const month = (await calendarData({
+        month: "2026-10",
+        accounts: accounts[0],
+        basis: "net",
+      })) as CalendarMonth;
+      expect(month.summary.total).toBe("32");
+      expect(month.summary.count).toBe(2);
+      expect(month.estimated).toBe(true);
+      const day = (await calendarData({
+        month: "2026-09",
+        day: "2026-09-30",
+        accounts: accounts[0],
+      })) as CalendarDetails;
+      expect(day.day?.gross).toBe("40");
+      expect(day.records).toHaveLength(1);
+      expect(day.records[0].partial).toBe(true);
+      expect(new D(day.records[0].quantity!).eq("2")).toBe(true);
+      await archiveTradingAccount(accounts[0], true);
+      try {
+        expect(
+          ((await calendarData({ month: "2026-10" })) as CalendarMonth).summary
+            .count,
+        ).toBe(0);
+        await expect(
+          calendarData({ month: "2026-10", accounts: accounts[0] }),
+        ).rejects.toThrow("not found");
+        expect(
+          (
+            (await calendarData({
+              month: "2026-10",
+              accounts: accounts[0],
+              archived: "1",
+            })) as CalendarMonth
+          ).summary.count,
+        ).toBe(2);
+      } finally {
+        await archiveTradingAccount(accounts[0], false);
+      }
     }, 60000);
     it("rejects forged account and record IDs for processing, details and all fee mutations", async () => {
       const data = await getJournal();
       state.actor = users[1];
       try {
         expect((await getJournal()).records).toHaveLength(0);
+        expect(
+          ((await calendarData({ month: "2026-10" })) as CalendarMonth).summary
+            .count,
+        ).toBe(0);
+        await expect(
+          calendarData({ month: "2026-10", accounts: accounts[0] }),
+        ).rejects.toThrow("not found");
+        await expect(
+          calendarData({
+            month: "2026-10",
+            day: "2026-10-01",
+            accounts: accounts[0],
+          }),
+        ).rejects.toThrow("not found");
         await expect(processAccount(accounts[0])).rejects.toThrow("not found");
         await expect(journalDetails(data.records[0].id)).rejects.toThrow(
           "not found",
@@ -312,6 +367,9 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
         ).rejects.toThrow("not found");
         state.actor = "";
         await expect(getJournal()).rejects.toThrow("Unauthenticated");
+        await expect(
+          calendarData({ month: "2026-10", mode: "demo" }),
+        ).rejects.toThrow("Unauthenticated");
       } finally {
         state.actor = users[0];
       }
@@ -331,6 +389,14 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
       expect(after.fees).toEqual(before.fees);
       expect(after.portions).toEqual(before.portions);
       expect(after.states[0].status).toBe("Failed");
+      expect(
+        (
+          (await calendarData({
+            month: "2026-10",
+            accounts: accounts[0],
+          })) as CalendarMonth
+        ).processing.failed,
+      ).toBe(true);
       await processAccount(accounts[0]);
       expect((await getJournal()).states[0].status).toBe("Ready");
     }, 30000);

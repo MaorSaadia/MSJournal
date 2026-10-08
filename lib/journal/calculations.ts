@@ -44,18 +44,32 @@ export function realizedPerformance(
   timezone: string,
 ) {
   const selected = selectedPortions(rows, filter, timezone),
-    daily = new Map<string, string[]>();
+    daily = new Map<string, Portion[]>();
   selected.forEach((p) => {
     const day = localDay(portionExit(p), timezone);
-    daily.set(day, [...(daily.get(day) ?? []), p.grossPnl]);
+    daily.set(day, [...(daily.get(day) ?? []), p]);
   });
   let running = new D(0);
   const days = [...daily]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, values]) => {
-      const gross = sum(values);
+      const gross = sum(values.map((p) => p.grossPnl));
+      const known = values.filter((p) => fees[p.id]?.amount != null);
+      const feeAmount =
+        known.length === values.length
+          ? sum(known.map((p) => fees[p.id].amount!))
+          : null;
       running = running.plus(gross);
-      return { date, gross, cumulative: running.toFixed() };
+      return {
+        date,
+        gross,
+        feeAmount,
+        net:
+          feeAmount === null ? null : new D(gross).minus(feeAmount).toFixed(),
+        estimated: known.some((p) => fees[p.id].kind === "Estimated"),
+        count: values.length,
+        cumulative: running.toFixed(),
+      };
     });
   const covered = selected.filter((p) => fees[p.id]?.amount != null);
   const feeAmount =

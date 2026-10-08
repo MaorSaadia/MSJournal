@@ -497,6 +497,11 @@ export const tradovatePerformance = pgTable(
       t.ownerId,
       t.tradingAccountId,
     ),
+    index("performance_calendar_exit_idx").on(
+      t.ownerId,
+      t.tradingAccountId,
+      sql`greatest(${t.boughtAt}, ${t.soldAt})`,
+    ),
     check(
       "tradovate_performance_quantity",
       sql`${t.quantity} > 0 and ${t.occurrence} > 0`,
@@ -556,11 +561,16 @@ export const userPreferences = pgTable(
       .default("Asia/Jerusalem")
       .notNull(),
     currency: text("currency").default("USD").notNull(),
+    weekStartsOn: integer("week_starts_on").default(0).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
   (table) => [
     check("user_preferences_currency_check", sql`${table.currency} = 'USD'`),
+    check(
+      "user_preferences_week_start_check",
+      sql`${table.weekStartsOn} in (0, 1)`,
+    ),
   ],
 );

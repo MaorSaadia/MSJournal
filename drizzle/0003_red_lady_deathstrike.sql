@@ -1,0 +1,3 @@
+ALTER TABLE "user_preferences" ADD COLUMN "week_starts_on" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+CREATE INDEX "performance_calendar_exit_idx" ON "tradovate_performance_records" USING btree ("owner_id","trading_account_id",greatest("bought_at", "sold_at"));--> statement-breakpoint
+ALTER TABLE "user_preferences" ADD CONSTRAINT "user_preferences_week_start_check" CHECK ("user_preferences"."week_starts_on" in (0, 1));

@@ -132,5 +132,6 @@ export const preferencesSchema = z
     displayName: z.string().trim().min(1, "Display name is required.").max(100),
     displayTimezone: timezoneSchema,
     currency: z.literal("USD"),
+    weekStartsOn: z.union([z.literal(0), z.literal(1)]).optional(),
   })
   .strict();

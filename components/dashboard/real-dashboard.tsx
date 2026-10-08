@@ -21,6 +21,7 @@ import { DashboardFilters } from "./filters";
 import { ModeControl } from "./mode-control";
 import { Panel, Empty, Help } from "./panel";
 import { FinancialChart } from "./charts";
+import { TradingCalendar } from "@/components/calendar/trading-calendar";
 export function RealDashboard({
   accounts,
   selectedIds,
@@ -54,6 +55,7 @@ export function RealDashboard({
     accounts: authorizedSelection(
       accounts,
       search.has("accounts") ? search.get("accounts")! : undefined,
+      search.get("archived") === "1",
     ),
   };
   const result = realizedPerformance(
@@ -95,7 +97,12 @@ export function RealDashboard({
     setFilters(next);
     if (next.accounts.join(",") !== filters.accounts.join(",")) {
       router.replace(
-        `/?${new URLSearchParams({ accounts: next.accounts.join(",") })}`,
+        `/?${(() => {
+          const query = new URLSearchParams(search.toString());
+          query.set("accounts", next.accounts.join(","));
+          query.delete("calDay");
+          return query;
+        })()}`,
         { scroll: false },
       );
     }
@@ -118,12 +125,14 @@ export function RealDashboard({
         <DashboardFilters
           filters={filters}
           onChange={updateFilters}
-          accounts={accounts.map((a) => ({
-            id: a.id,
-            name: a.displayName,
-            firm: a.firm ?? "Personal",
-            stage: a.stage,
-          }))}
+          accounts={accounts
+            .filter((a) => search.get("archived") === "1" || !a.archivedAt)
+            .map((a) => ({
+              id: a.id,
+              name: a.displayName,
+              firm: a.firm ?? "Personal",
+              stage: a.stage,
+            }))}
           demo={false}
           symbols={[
             ...new Set(
@@ -334,14 +343,36 @@ export function RealDashboard({
         <span>THE DAILY PICTURE</span>
       </div>
       <div className="lower-grid">
-        <Panel
-          title="Monthly trading calendar"
-          help="The full real-data calendar is reserved for Day 5."
-        >
-          <div className="real-calendar-placeholder">
-            <Empty text="Real-data calendar arrives in Day 5. Daily realized results are available above and in Trade View." />
-          </div>
-        </Panel>
+        <TradingCalendar
+          compact
+          accounts={accounts.map((a) => ({
+            id: a.id,
+            name: a.displayName,
+            archived: !!a.archivedAt,
+          }))}
+          filters={filters}
+          initialMonth={initialMonth}
+          timezone={displayTimezone}
+          includeArchived={search.get("archived") === "1"}
+          onAccountsChange={(ids) =>
+            updateFilters({ ...filters, accounts: ids })
+          }
+          onArchivedChange={(include) => {
+            const query = new URLSearchParams(search.toString());
+            if (include) query.set("archived", "1");
+            else query.delete("archived");
+            query.set(
+              "accounts",
+              authorizedSelection(
+                accounts,
+                filters.accounts.join(","),
+                include,
+              ).join(","),
+            );
+            query.delete("calDay");
+            router.push(`/?${query}`, { scroll: false });
+          }}
+        />
         <div className="lower-stack">
           <Panel
             title="Closed-trade drawdown"

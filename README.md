@@ -1,6 +1,6 @@
-# MSJournal — Day 4, matched-portion journal and real gross P&L
+# MSJournal — Day 5, full trading calendar
 
-One Next.js application with Better Auth, Neon PostgreSQL and Drizzle. Each authenticated user sees only their own accounts, settings, imports and journal. Day 4 processes Performance matched portions, supports explicit fees, and supplies supported real dashboard results. The Day 1 design, themes, emerald/violet palette, responsive behavior and Motion animations remain intact; fictional Demo mode stays separate. Orders remains optional. The full real calendar is reserved for Day 5.
+One Next.js application with Better Auth, Neon PostgreSQL and Drizzle. Each authenticated user sees only their own accounts, settings, imports and journal. Day 5 adds a shared real/demo calendar to the dashboard and a dedicated Calendar page. Day 4 processing and fees remain the source of real results. The Day 1 design, themes, emerald/violet palette, responsive behavior and Motion animations remain intact; fictional Demo mode stays separate. Orders remains optional.
 
 ## Run locally
 
@@ -129,9 +129,9 @@ Record details allow an explicit manual total, including zero. That total is all
 
 Daily realized gross uses each portion's actual closing instant (later of buy/sell), converted to **Journal display timezone** through IANA rules. Earlier partial-exit profits stay on their own dates, even if a later portion closes next month. Dashboard and list share the same selection/calculation layer. Date ranges include local exit dates, including DST boundaries. The basic paginated list includes groups with at least one selected portion, orders them by their final matched exit, and shows **selected** gross, fees and closed quantity. Details show the complete group for reconciliation. Group final-exit ordering is distinct from daily realized allocation.
 
-**Real dashboard:** gross P&L, daily realized gross, cumulative realized gross (opening zero), gross profitable-day percentage, recent records, imported realized range and processing/fee coverage use private real sources. Account/date/exact-contract/direction filters apply together. Breakeven realized days remain in the day-win denominator. Trade-level ratios, performance scoring, balance without complete baseline/cash history, complete-trade activity, trade-time performance and drawdown remain honest empty states. The existing layout and separate Demo mode are preserved. The full interactive real calendar remains Day 5.
+**Real dashboard:** gross P&L, daily realized gross, cumulative realized gross (opening zero), gross profitable-day percentage, recent records, imported realized range and processing/fee coverage use private real sources. Account/date/exact-contract/direction filters apply together. Breakeven realized days remain in the day-win denominator. Trade-level ratios, performance scoring, balance without complete baseline/cash history, complete-trade activity, trade-time performance and drawdown remain honest empty states. The existing layout and separate Demo mode are preserved. The shared interactive calendar is now implemented in Day 5.
 
-**Scope/limitations:** no broker API, notes, screenshots, strategy tags, MFE/MAE, risk multiples, fee schedules, prop rules, public deployment or Day 5 calendar. The list paginates 25 records in the UI; this initial implementation loads the user's normalized projection to share exact calculations. Large-history database-side pagination/aggregation is future optimization.
+**Scope/limitations:** no broker API, notes, screenshots, strategy tags, MFE/MAE, risk multiples, fee schedules, prop rules or public deployment. The Day 4 list and non-calendar dashboard charts still load the user's normalized projection. The Day 5 calendar uses bounded month/day server queries; optimizing the other views remains future work.
 
 Focused Day 4 checks:
 
@@ -195,4 +195,44 @@ Day 4 verification passed the production build, strict type-check, ESLint, all *
 
 ## References and scope
 
-Configuration follows installed Next.js guides, [Better Auth email/password authentication](https://better-auth.com/docs/authentication/email-password), [email verification](https://better-auth.com/docs/concepts/email), [Drizzle adapter](https://better-auth.com/docs/adapters/drizzle) and [Resend Node.js delivery](https://resend.com/docs/send-with-nodejs). Source/derived processing follows [Papa Parse](https://www.papaparse.com/docs), [date-fns timezone utilities](https://github.com/date-fns/tz), [decimal.js](https://mikemcl.github.io/decimal.js/), [Drizzle transactions](https://orm.drizzle.team/docs/transactions) and [PostgreSQL upserts](https://orm.drizzle.team/docs/guides/upsert). Work stops at Day 4; no broker connections or public deployment.
+Configuration follows installed Next.js guides, [Better Auth email/password authentication](https://better-auth.com/docs/authentication/email-password), [email verification](https://better-auth.com/docs/concepts/email), [Drizzle adapter](https://better-auth.com/docs/adapters/drizzle) and [Resend Node.js delivery](https://resend.com/docs/send-with-nodejs). Source/derived processing follows [Papa Parse](https://www.papaparse.com/docs), [date-fns timezone utilities](https://github.com/date-fns/tz), [decimal.js](https://mikemcl.github.io/decimal.js/), [Drizzle transactions](https://orm.drizzle.team/docs/transactions) and [PostgreSQL upserts](https://orm.drizzle.team/docs/guides/upsert). Work stops at Day 5; no broker connections or public deployment.
+
+## Full trading calendar (Day 5)
+
+Open **Calendar** (`/calendar`) for the full month view, or use the compact calendar in the dashboard's existing lower section. Both use the same component and Day 4 realized calculation layer. The compact calendar inherits dashboard account/date/contract/direction filters; its month and basis are independent URL parameters. The full page persists month, accounts, archived scope, gross/net basis and selected day in its URL. Browser back/forward and refresh preserve those choices. Calendar navigation uses Next.js's supported native history integration, so month/day changes do not reload the dashboard's entire trading history.
+
+**Setup:** no additional environment variables or dependencies. Review additive migration `drizzle/0003_red_lady_deathstrike.sql`, then apply it:
+
+```powershell
+npm.cmd run db:migrate -- --reviewed
+npm.cmd run dev
+```
+
+This migration adds a default-Sunday `week_starts_on` preference with a Sunday/Monday constraint, plus an owner/account/actual-exit index. It does not delete or rewrite imported data. Choose Sunday or Monday and any valid IANA **Journal display timezone** in Settings; both are persisted in Neon. Source timezone and UTC timestamps remain unchanged.
+
+**Daily allocation and counts:** each Performance matched portion contributes its gross amount on the local date of its actual exit (`max(bought_at, sold_at)`). A grouped record's partial exits stay on their individual dates. Real activity is labeled **Matched portions**, never falsely labeled complete trades. Day drawers aggregate only portions exiting that day, show closed quantity for that day, the last relevant exit time, direction/status, partial-contribution labels, account/contract, gross/fees/net, and a link to the existing full record. Current Performance evidence does not verify complete flat-to-flat trades. Demo's existing complete closed trades are separately labeled **Trades closed**; its model does not describe partial exits and no invented partial example is added.
+
+**Fees:** gross is the default. A complete net selection requires known fees for every included portion; unknown amounts remain unavailable. Any estimates make the label **Estimated net P&L**. If coverage becomes incomplete, an explicitly requested net view falls back to gross with an explanation. Manual group totals reuse Day 4's stored allocation: proportional to closed quantity, truncated to eight decimal places, with the exact remainder assigned to the last source ID in sorted order. Fees are subtracted once on each source portion's exit day, never repeatedly as a full group total.
+
+**Summaries:** each displayed row includes only dates in that month and active filters; exact decimal weekly totals reconcile to the monthly total. Monthly summaries distinguish profitable, losing, breakeven and empty days, and rank best/worst only among active dates. Empty months have no fabricated best/worst days or success percentage. Empty days mean no published realized records in scope, not proof that no trading occurred or that CSV coverage is complete. Use Today, previous/next, or the accessible month/year input. Mobile defaults to an agenda with full readable results and offers a compact grid; desktop has weekly columns. Day details use an accessible, keyboard-trapped drawer with Escape and previous/next day controls.
+
+**Account scope and performance:** all selectors contain only the signed-in user's own accounts. All accounts means unarchived unless **Include archived accounts** is explicitly enabled. Archived historical accounts remain available without being eligible for new imports. USD is the only supported currency; there is no FX conversion. Month and lazy day queries validate scope on the server, apply owner conditions to sources/links/fees, use IANA civil-midnight UTC boundaries (including 23/25-hour DST days), and return `private, no-store` responses. No per-day query loop or whole-history calendar query is used. Repeatable-read snapshots keep fees and published sources consistent. Pending/failed processing, request failures, and empty results are distinct. Calendar data refreshes on focus/visibility, successful in-page private mutations, navigation and manual refresh; reopened calendar pages fetch fresh data.
+
+**Demo:** open `/calendar?mode=demo&month=2026-03` or the existing dashboard Demo switch. Both use the original fictional January–March dataset without writing demo records to Neon. Calendar grouping follows the saved journal timezone; legacy Day 1 demo charts retain their documented Asia/Jerusalem grouping. Select net to compare those existing net charts with the calendar. Single-account/filter selections also expose the fixture's breakeven closed trades.
+
+Focused verification commands:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run build
+$env:MSJOURNAL_TEST_DISPOSABLE='true'
+npm.cmd test
+# With a loopback preview running on 127.0.0.1:3100 and matching BETTER_AUTH_URL:
+npm.cmd run test:browser -- browser-tests/day-five.spec.ts
+npm.cmd run db:check:journal
+```
+
+Tests use randomly identified disposable users and synthetic CSV data, with guarded cleanup. No private CSV files or credentials are committed. Day 6 trade-list expansion, notes, screenshots, advanced analytics and prop firm rules remain outside this milestone.
+
+Day 5 verification passed **53 automated checks**, including disposable Neon reconciliation/isolation tests, plus the production build, strict type-check and ESLint. The focused browser scenario passed partial exits across months, zero versus empty days, unknown/estimated fees, saved Sunday/Monday and timezone regrouping, URL refresh/back navigation, drawer keyboard behavior, account selection and archived inclusion, a simulated availability failure/retry, compact dashboard data, explicit demo separation, cross-user 404 and unauthenticated 401, both themes and mobile containment, with no unexpected console/page errors. Synthetic-only screenshots are in `artifacts/day-five-calendar-*.png`. The additive migration was reviewed and applied to the configured development database; a read-only integrity check confirmed the existing 43 Performance sources remain unchanged. Existing private imports were not processed or modified for these checks. Real complete-trade reconstruction, actual broker fee reconciliation, large-history load benchmarking, and email delivery remain unverified; the calendar does not claim verified complete-trade coverage.

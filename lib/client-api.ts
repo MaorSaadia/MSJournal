@@ -28,5 +28,7 @@ export async function requestJson<T>(
       response.status,
     );
   }
+  if (options?.method && options.method !== "GET")
+    window.dispatchEvent(new Event("msjournal:data-updated"));
   return data;
 }

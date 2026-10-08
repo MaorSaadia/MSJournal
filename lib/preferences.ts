@@ -18,6 +18,7 @@ export async function getPreferences(headers?: Headers): Promise<Preferences> {
       email: owner.email,
       displayTimezone: preferences?.displayTimezone ?? "Asia/Jerusalem",
       currency: "USD",
+      weekStartsOn: preferences?.weekStartsOn === 1 ? 1 : 0,
     };
   } catch {
     throw new WorkspaceUnavailableError();
@@ -38,11 +39,15 @@ export async function savePreferences(input: unknown, headers?: Headers) {
           userId: owner.id,
           displayTimezone: values.displayTimezone,
           currency: "USD",
+          weekStartsOn: values.weekStartsOn ?? 0,
         })
         .onConflictDoUpdate({
           target: userPreferences.userId,
           set: {
             displayTimezone: values.displayTimezone,
+            ...(values.weekStartsOn !== undefined
+              ? { weekStartsOn: values.weekStartsOn }
+              : {}),
             updatedAt: new Date(),
           },
         });

@@ -9,12 +9,16 @@ export type Preferences = {
   email: string;
   displayTimezone: string;
   currency: "USD";
+  weekStartsOn: 0 | 1;
 };
 export function authorizedSelection(
   accounts: Pick<TradingAccount, "id" | "archivedAt">[],
   requested: string | undefined,
+  includeArchived = false,
 ) {
-  const available = accounts.filter((a) => !a.archivedAt).map((a) => a.id);
+  const available = accounts
+    .filter((a) => includeArchived || !a.archivedAt)
+    .map((a) => a.id);
   return requested === undefined
     ? available
     : [...new Set(requested.split(","))].filter((id) => available.includes(id));

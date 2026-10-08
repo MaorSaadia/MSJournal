@@ -20,7 +20,7 @@ import { MetricCards } from "./metrics";
 import { FinancialChart, ProfileChart, TimeChart, TimeData } from "./charts";
 import { Panel, Empty } from "./panel";
 import { Heatmap } from "./heatmap";
-import { TradingCalendar } from "./calendar";
+import { TradingCalendar } from "@/components/calendar/trading-calendar";
 import { ModeControl } from "./mode-control";
 function RecentTrades({ trades }: { trades: Trade[] }) {
   if (!trades.length) return <Empty />;
@@ -192,9 +192,17 @@ export function Dashboard({
       </div>
       <div className="lower-grid">
         <TradingCalendar
-          trades={selected}
+          compact
+          mode="demo"
+          initialMonth="2026-03"
+          timezone={displayTimezone}
           filters={filters}
-          accounts={accounts}
+          accounts={accounts.map((a) => ({
+            id: a.id,
+            name: a.name,
+            archived: false,
+          }))}
+          onAccountsChange={(ids) => setFilters({ ...filters, accounts: ids })}
         />
         <div className="lower-stack">
           <Panel

@@ -10,7 +10,13 @@ export const metadata = { title: "Dashboard" };
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; accounts?: string }>;
+  searchParams: Promise<{
+    mode?: string;
+    accounts?: string;
+    archived?: string;
+    calMonth?: string;
+    calBasis?: string;
+  }>;
 }) {
   await requirePageUser();
   const params = await searchParams;
@@ -30,16 +36,22 @@ export default async function Home({
     );
   }
   const [accounts, preferences, data] = await Promise.all([
-    listTradingAccounts(undefined, true),
+    listTradingAccounts(),
     getPreferences(),
     getJournal(),
   ]);
-  const selectedIds = authorizedSelection(accounts, params.accounts);
+  const selectedIds = authorizedSelection(
+    accounts,
+    params.accounts,
+    params.archived === "1",
+  );
   if (
     params.accounts !== undefined &&
     params.accounts !== selectedIds.join(",")
   )
-    redirect(`/?${new URLSearchParams({ accounts: selectedIds.join(",") })}`);
+    redirect(
+      `/?${new URLSearchParams({ ...params, accounts: selectedIds.join(",") })}`,
+    );
   return (
     <RealDashboard
       accounts={accounts}

@@ -5,6 +5,7 @@ import "./globals.css";
 import "./day-two.css";
 import "./day-three.css";
 import "./day-four.css";
+import "./day-five.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {

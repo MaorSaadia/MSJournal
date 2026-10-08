@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { FlaskConical, ShieldCheck } from "lucide-react";
-export function ModeControl({ mode }: { mode: "real" | "demo" }) {
+export function ModeControl({
+  mode,
+  base = "/",
+}: {
+  mode: "real" | "demo";
+  base?: string;
+}) {
   return (
     <nav className="dashboard-mode" aria-label="Dashboard data mode">
       <Link
-        href="/"
+        href={base}
         aria-current={mode === "real" ? "page" : undefined}
         className={mode === "real" ? "selected" : ""}
       >
@@ -12,7 +18,7 @@ export function ModeControl({ mode }: { mode: "real" | "demo" }) {
         My Accounts
       </Link>
       <Link
-        href="/?mode=demo"
+        href={`${base}?mode=demo`}
         aria-current={mode === "demo" ? "page" : undefined}
         className={mode === "demo" ? "selected" : ""}
       >
