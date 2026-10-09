@@ -4,7 +4,9 @@ import { ArrowLeft, Sprout } from "lucide-react";
 import { navigation } from "@/lib/navigation";
 export function generateStaticParams() {
   return navigation
-    .filter((n) => !["/", "/prop-accounts", "/settings"].includes(n.href))
+    .filter(
+      (n) => !["/", "/prop-accounts", "/settings", "/reports"].includes(n.href),
+    )
     .map((n) => ({ section: n.href.slice(1) }));
 }
 export async function generateMetadata({

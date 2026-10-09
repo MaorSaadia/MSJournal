@@ -20,6 +20,8 @@ const Context = createContext<{
   remember: (href: string) => void;
   tradesHref: string;
   rememberTrades: (href: string) => void;
+  reportsHref: string;
+  rememberReports: (href: string) => void;
   scrollPositions: Map<string, number>;
 } | null>(null);
 export function CalendarCacheProvider({
@@ -41,6 +43,7 @@ export function CalendarCacheProvider({
   );
   const [returnHref, remember] = useState("/calendar");
   const [tradesHref, rememberTrades] = useState("/trade-view");
+  const [reportsHref, rememberReports] = useState("/reports");
   const scrollPositions = useMemo(() => {
     void identity;
     return new Map<string, number>();
@@ -53,7 +56,12 @@ export function CalendarCacheProvider({
       cache.invalidate(
         reviews
           ? (key) =>
-              key.includes("|/api/journal|") || key.includes("|/api/reviews/")
+              key.includes("|/api/journal|") ||
+              key.includes("|/api/reviews/") ||
+              (key.includes("|/api/reports|") &&
+                new URLSearchParams(key.split("|/api/reports|")[1]).get(
+                  "tab",
+                ) === "behavior")
           : undefined,
       );
       window.dispatchEvent(
@@ -98,6 +106,8 @@ export function CalendarCacheProvider({
         remember,
         tradesHref,
         rememberTrades,
+        reportsHref,
+        rememberReports,
         scrollPositions,
       }}
     >
@@ -167,7 +177,9 @@ export function usePrivateRequest<
     if (!key || query === null) return;
     const handler = (event: Event) => {
       if (
-        endpoint === "/api/calendar" &&
+        (endpoint === "/api/calendar" ||
+          (endpoint === "/api/reports" &&
+            new URLSearchParams(query).get("tab") !== "behavior")) &&
         (event as CustomEvent<{ reviews?: boolean }>).detail?.reviews
       )
         return;

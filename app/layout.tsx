@@ -8,6 +8,7 @@ import "./day-four.css";
 import "./day-five.css";
 import "./day-six.css";
 import "./day-seven.css";
+import "./day-eight.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {

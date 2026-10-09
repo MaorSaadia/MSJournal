@@ -7,6 +7,12 @@ import {
 import { z } from "zod";
 import { daySchema, dayBounds } from "@/lib/calendar/model";
 import { D, sum } from "./processing";
+import {
+  durationBuckets,
+  durationBucket,
+  entryHour,
+  localWeekday,
+} from "./analysis-filters";
 
 const amount = z.string().regex(/^-?\d{1,20}(?:\.\d{1,8})?$/);
 export const viewSchema = z
@@ -36,6 +42,19 @@ export const viewSchema = z
       .enum(["all", "unreviewed", "draft", "reviewed", "notes", "screenshots"])
       .default("all"),
     mistake: z.string().max(100).optional(),
+    mistakes: z.string().max(2000).optional(),
+    weekday: z.coerce.number().int().min(0).max(6).optional(),
+    hour: z.coerce.number().int().min(0).max(23).optional(),
+    holding: z.enum(durationBuckets).optional(),
+    reviewMissing: z.enum(["mistake", "emotion", "adherence"]).optional(),
+    reportFrom: z
+      .string()
+      .max(16000)
+      .refine(
+        (v) => v.startsWith("/reports?") && !v.includes("\\"),
+        "Invalid Reports return link",
+      )
+      .optional(),
     emotion: z.enum(emotions).optional(),
     emotionStage: z.enum(stages).default("before"),
     adherence: z.enum(["followed", "partly", "not-followed"]).optional(),
@@ -176,6 +195,20 @@ export function filterDemo(rows: ViewRecord[], q: ViewQuery, timezone: string) {
             ? (r.imageCount ?? 0) > 0
             : (r.reviewStatus ?? "unreviewed") === q.review)) &&
       (!q.mistake || r.reviewFields?.mistakes.includes(q.mistake)) &&
+      (!q.mistakes ||
+        q.mistakes
+          .split(",")
+          .some((id) => r.reviewFields?.mistakes.includes(id))) &&
+      (q.weekday === undefined ||
+        localWeekday(r.exit, timezone) === q.weekday) &&
+      (q.hour === undefined || entryHour(r.entry, timezone) === q.hour) &&
+      (!q.holding || durationBucket(r.duration) === q.holding) &&
+      (!q.reviewMissing ||
+        (q.reviewMissing === "mistake"
+          ? !r.reviewFields?.mistakes.length
+          : q.reviewMissing === "emotion"
+            ? !r.reviewFields?.emotions[q.emotionStage].length
+            : !r.reviewFields?.adherence)) &&
       (!q.emotion ||
         r.reviewFields?.emotions[q.emotionStage].includes(q.emotion)) &&
       (!q.adherence || r.reviewFields?.adherence === q.adherence) &&

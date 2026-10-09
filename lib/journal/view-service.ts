@@ -9,6 +9,7 @@ import { NotFoundError } from "@/lib/accounts/service";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
 import { accounts as demoAccounts, trades } from "@/data/demo";
 import { D } from "./processing";
+import { durationBounds } from "./analysis-filters";
 import {
   viewSchema,
   rangeBounds,
@@ -130,14 +131,20 @@ export async function tradeView(
             .where(eq(reviewTags.ownerId, user.id))
         ).map(({ id, name, archived }) => ({ id, name, archived }));
         if (
-          q.mistake &&
-          !mistakes.some(([id]) => id === q.mistake) &&
-          !tags.some((t) => t.id === q.mistake)
+          [q.mistake, ...(q.mistakes?.split(",") ?? [])]
+            .filter(Boolean)
+            .some(
+              (id) =>
+                !mistakes.some(([key]) => key === id) &&
+                !tags.some((t) => t.id === id),
+            )
         )
           throw new NotFoundError();
         const bounds = rangeBounds(q, timezone);
         const within = sql`(${bounds.start}::timestamptz is null or greatest(p.bought_at,p.sold_at) >= ${bounds.start}::timestamptz)
-        and (${bounds.end}::timestamptz is null or greatest(p.bought_at,p.sold_at) < ${bounds.end}::timestamptz)`;
+        and (${bounds.end}::timestamptz is null or greatest(p.bought_at,p.sold_at) < ${bounds.end}::timestamptz)
+        and (${q.weekday ?? null}::int is null or extract(dow from greatest(p.bought_at,p.sold_at) at time zone ${timezone})=${q.weekday ?? null}::int)`;
+        const holding = q.holding ? durationBounds[q.holding] : null;
         const idScope = ids.length
           ? sql`r.trading_account_id in (${sql.join(
               ids.map((id) => sql`${id}::uuid`),
@@ -147,7 +154,7 @@ export async function tradeView(
         // One row per published parent. Portions only supply the selected-period contribution.
         const cte = sql`with projected as (
         select r.id::text, r.trading_account_id::text as "accountId", a.display_name as account, r.symbol,
-          substring(r.symbol from '^([A-Z0-9]+?)[FGHJKMNQUVXZ][0-9]{1,4}$') as root,
+          coalesce(substring(r.symbol from '^([A-Z0-9]+?)[FGHJKMNQUVXZ][0-9]{1,4}$'),r.symbol) as root,
           case when rv.status='reviewed' then 'reviewed' when rv.has_content or coalesce(images.n,0)>0 then 'draft' else 'unreviewed' end as "reviewStatus",
           coalesce(rv.has_notes,false) as "hasNotes", coalesce(images.n,0)::int as "imageCount", rv.fields as "reviewFields",
           r.direction, r.status, 'portion'::text as type, r.entry_at as entry, r.exit_at as exit,
@@ -182,6 +189,11 @@ export async function tradeView(
       ), filtered as (select * from projected where
         (${q.review}='all' or (${q.review}='notes' and "hasNotes") or (${q.review}='screenshots' and "imageCount">0) or "reviewStatus"=${q.review})
         and (${q.mistake ?? null}::text is null or ("reviewFields"->'mistakes') ? ${q.mistake ?? null})
+        and (${q.mistakes ?? null}::text is null or exists(select 1 from unnest(string_to_array(${q.mistakes ?? null},',')) tag where ("reviewFields"->'mistakes') ? tag))
+        and (${q.reviewMissing ?? null}::text is null or case ${q.reviewMissing ?? null} when 'mistake' then coalesce(jsonb_array_length("reviewFields"->'mistakes'),0)=0 when 'emotion' then coalesce(jsonb_array_length("reviewFields"->'emotions'->${q.emotionStage}),0)=0 else "reviewFields"->>'adherence' is null end)
+        and (${q.dateBasis}='activity' or ${q.weekday ?? null}::int is null or extract(dow from exit at time zone ${timezone})=${q.weekday ?? null}::int)
+        and (${q.hour ?? null}::int is null or extract(hour from entry at time zone ${timezone})=${q.hour ?? null}::int)
+        and (${q.holding ?? null}::text is null or (duration::numeric >= ${holding?.[0] ?? null}::numeric and (${holding?.[1] ?? null}::numeric is null or duration::numeric < ${holding?.[1] ?? null}::numeric)))
         and (${q.emotion ?? null}::text is null or ("reviewFields"->'emotions'->${q.emotionStage}) ? ${q.emotion ?? null})
         and (${q.adherence ?? null}::text is null or "reviewFields"->>'adherence'=${q.adherence ?? null})
         and (${q.symbol ?? null}::text is null or symbol=${q.symbol ?? null})

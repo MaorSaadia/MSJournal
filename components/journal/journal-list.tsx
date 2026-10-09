@@ -40,6 +40,11 @@ const columns = [
 ] as const;
 const defaults = columns.slice(0, 11).map((c) => c[0]) as string[];
 const chipLabels: Record<string, string> = {
+  weekday: "Local exit weekday",
+  hour: "Local entry hour",
+  holding: "Holding duration",
+  mistakes: "Any selected mistake",
+  reviewMissing: "Not recorded",
   review: "Review",
   mistake: "Mistake",
   emotion: "Emotion",
@@ -241,6 +246,11 @@ export function JournalList() {
     <div
       className={`accounts-page journal-page trade-view tv-${prefs.density}`}
     >
+      {q.reportFrom && (
+        <Link href={q.reportFrom} prefetch={false} className="back-link">
+          ← Back to Reports
+        </Link>
+      )}
       <header className="page-header">
         <div>
           <div className="breadcrumb">Workspace / Trade View</div>

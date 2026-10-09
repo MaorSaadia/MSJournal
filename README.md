@@ -331,3 +331,41 @@ Database and browser checks use guarded disposable synthetic users. Image servic
 Day 7 verification passed **33 automated checks** (28 focused unit/regression checks and 5 disposable database cases), both Day 6/7 Chrome scenarios, strict type checking, ESLint and the production build. Coverage includes paragraph reload, serialized rapid saves, delayed-read protection, failure retention, two-tab conflicts, reviewed/draft semantics, private/archived tags, real decoded-image validation, mocked storage publication/failure/cleanup and cross-user denial, source-set preservation and explicit recovery, selective cache invalidation, calendar return state, read-only demo reviews, desktop/mobile containment and both themes. Synthetic-only captures are `artifacts/day-seven-{1440,390}-{light,dark}.png`. The configured development database received the reviewed additive migration. Live S3/R2 uploads remain unverified because storage credentials are absent.
 
 The final read-only integrity check confirmed all **43 existing Performance sources** still match their preserved raw timestamps, quantities, prices, fill IDs and gross P&L. Verification did not reprocess private imports. The earlier uncommitted Day 5 calendar refinements remain preserved separately in the working tree.
+
+## Day 8 — Reports
+
+`/reports` provides Overview, Breakdowns and Trading behavior within the existing private shell. Shared URL filters include inclusive local date ranges and presets, one/multiple/all owned accounts, archived-account inclusion, product/root and exact contract, gross/net P&L and explicit fictional Demo mode. Dates use the saved journal display timezone; change it in Settings. Reports require a single USD currency and never convert or combine currencies. Custom ranges are limited to 3,660 days.
+
+Overview defaults to **realized activity**: exit portions realized within the selected local dates, with only their gross P&L and allocated fees. Daily results reconcile with the calendar on equivalent filters. Active days are days with imported realized activity, including zero-result days. The average divides total P&L by those days; best/worst use every active day, including all-positive or all-negative ranges. Missing dates indicate no imported activity, not confirmed absence of trading.
+
+Cumulative realized P&L begins at zero at the selected range's start. End-of-day drawdown is cumulative daily P&L minus its running peak, including that initial zero. Maximum drawdown is the absolute monetary magnitude of the lowest drawdown. It resets with the range and describes end-of-day realized results, without intraday, unrealized-equity or prop-firm-rule calculations.
+
+**Complete trades** use full results for verified complete trades whose final close falls within the range. Win rate divides winning trades by all included trades, including breakevens. Profit factor divides positive P&L by the absolute negative P&L; absent losses or empty selections have descriptive results instead of Infinity/NaN. Averages use their stated trade denominator. Unknown fees keep eligible net totals, averages, classifications and curves unavailable rather than treating fees as zero or dropping records. Estimated net is labeled.
+
+The current real-import processor publishes closed portions and shared-fill groups, **not verified complete trades**. Realized reports remain usable; complete-trade charts show a coverage panel. Demo uses the existing deterministic complete-trade fixture. Reporting does not change grouping rules, source data, fees or saved reviews.
+
+Breakdowns compare accounts, product/root (keeping micro and standard instruments separate), exact contracts, local exit/final-close weekdays and supported direction, including unknown direction. Entry hour and holding duration require complete trades. Holding buckets are **[0, 60), [60, 300), [300, 900), [900, 3600), [3600, ∞) seconds**. Unknown entry/duration values are excluded from those groups with explicit counts. Tables show USD totals, sample sizes and the average's active-day or complete-trade denominator.
+
+Trading behavior defaults to reviewed complete trades and offers a separate **closed-portion record** comparison without complete-trade win-rate claims. Plan adherence, mistakes and Before/During/After emotions keep unset values in “Not recorded.” Multi-tag filters use OR; each record contributes once within each group. Overlapping groups are not additive. Reviewed/draft/unreviewed coverage is measured before review-specific filters. Unresolved associations across the selected accounts/instruments are counted separately and excluded from outcomes. Archived tags retain their historical names. Results describe associations, with a small-sample note; no causal or coaching claims are generated.
+
+Daily bars and group/table links open Trade View with the same account/instrument, date basis, monetary basis and review filters. Narrow weekday, entry-hour, holding-duration, multi-mistake and missing-review-choice filters extend the existing server contract. Realized activity drills show the selected portions' contribution inside their published parent records; parent close dates can fall outside the selected activity range. **Back to Reports** restores tab, filters, comparison selection and scroll position.
+
+One private report request supplies the server-calculated charts and tables for a selection. The response contains aggregates and owned metadata, never note bodies, screenshot URLs or the complete record history. Structured review projections load only for Trading behavior. The existing memory-only cache is scoped by session, timezone, USD and URL selection: 24 entries, 30-second freshness and 10-minute retention, with request abort/stale-response protection. Financial/account/timezone mutations invalidate reports; review/tag mutations invalidate behavior reports while preserving financial reports. Returning uses cached data and quietly revalidates when appropriate.
+
+No new dependencies, environment variables or database migrations are required beyond the existing Day 7 setup. Day 8 does not require screenshot storage credentials.
+
+Focused verification commands:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run build
+npm.cmd test -- tests/reports.test.ts tests/trade-view.test.ts tests/calendar-cache.test.ts tests/imports.test.ts
+$env:MSJOURNAL_TEST_DISPOSABLE='true'
+npm.cmd test -- tests/reports-db.integration.test.ts
+$env:MSJOURNAL_BROWSER_ORIGIN='http://127.0.0.1:3100'
+npm.cmd run test:browser -- browser-tests/day-eight.spec.ts
+npm.cmd run db:check:journal
+```
+
+Day 8 verification passed 27 focused unit/regression checks, one disposable database scenario, strict type checking, ESLint and the production build. Checks cover local partial exits, calendar and Trade View reconciliation, missing/estimated fees, breakevens and zero denominators, initial-zero drawdown, all-positive/all-negative active days, exact duration boundaries, overlapping tags, missing review fields, archived tags, unresolved associations and cross-user account/tag denial. Chrome verified real/demo selections, daily-bar and duration drills, private behavior payloads, selective review cache invalidation, cached return with requests blocked, tab/filter/scroll restoration, reduced motion and desktop/mobile containment in both themes. Synthetic captures are in `test-results/day-eight-Reports-real-dem-1af05-r-privacy-themes-and-mobile/reports-{1440,390}-{light,dark}.png` (ignored by Git). The read-only integrity check confirmed all 75 existing Performance sources match preserved raw timestamps, quantities, prices, fill IDs and gross P&L; private imports were not reprocessed. Production-sized history performance and real verified-complete-trade reporting remain unverified. Work stops after Day 8.

@@ -97,7 +97,7 @@ export function Shell({
   displayName: string;
 }) {
   const pathname = usePathname();
-  const { returnHref, tradesHref } = useCalendarCache();
+  const { returnHref, tradesHref, reportsHref } = useCalendarCache();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const links = (compact: boolean) => (
@@ -120,7 +120,15 @@ export function Shell({
         {navigation.map((item, index) => (
           <Link
             key={item.href}
-            href={item.href === "/calendar" ? returnHref : item.href === "/trade-view" ? tradesHref : item.href}
+            href={
+              item.href === "/calendar"
+                ? returnHref
+                : item.href === "/trade-view"
+                  ? tradesHref
+                  : item.href === "/reports"
+                    ? reportsHref
+                    : item.href
+            }
             title={compact ? item.title : undefined}
             aria-current={pathname === item.href ? "page" : undefined}
             onClick={() => setMobileOpen(false)}
@@ -139,7 +147,7 @@ export function Shell({
           <div className="demo-avatar">MS</div>
           <div>
             <strong title={displayName}>{displayName}</strong>
-            <span>Private workspace · Day 7</span>
+            <span>Private workspace · Day 8</span>
           </div>
         </div>
       )}
@@ -207,7 +215,7 @@ export function Shell({
           <span>
             <Sprout size={13} /> A little reflection. A better next trade.
           </span>
-          <span>MSJournal · Day 7</span>
+          <span>MSJournal · Day 8</span>
         </footer>
       </div>
     </div>
