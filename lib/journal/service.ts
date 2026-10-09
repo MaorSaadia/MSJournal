@@ -340,10 +340,70 @@ export type JournalData = Awaited<ReturnType<typeof getJournal>>;
 export async function journalDetails(id: string, headers?: Headers) {
   const user = await requireUser(headers);
   z.uuid().parse(id);
-  const data = await getJournal(headers),
-    record = data.records.find((r) => r.id === id);
-  if (!record) throw new NotFoundError();
-  const parts = data.portions.filter((p) => record.sourceIds.includes(p.id));
+  const details = await safeDatabase(() =>
+    getDb().transaction(
+      async (tx) => {
+        const [row] = await tx
+          .select()
+          .from(journalRecords)
+          .where(
+            and(
+              eq(journalRecords.id, id),
+              eq(journalRecords.ownerId, user.id),
+              eq(journalRecords.current, true),
+            ),
+          );
+        if (!row) throw new NotFoundError();
+        const joined = await tx
+          .select({ source: tradovatePerformance, fee: journalPortionFees })
+          .from(journalSources)
+          .innerJoin(
+            tradovatePerformance,
+            and(
+              eq(tradovatePerformance.id, journalSources.sourceId),
+              eq(tradovatePerformance.ownerId, user.id),
+              eq(tradovatePerformance.tradingAccountId, row.tradingAccountId),
+            ),
+          )
+          .leftJoin(
+            journalPortionFees,
+            and(
+              eq(journalPortionFees.sourceId, journalSources.sourceId),
+              eq(journalPortionFees.ownerId, user.id),
+            ),
+          )
+          .where(
+            and(
+              eq(journalSources.recordId, id),
+              eq(journalSources.ownerId, user.id),
+            ),
+          );
+        return {
+          record: {
+            ...row,
+            entryAt: row.entryAt?.toISOString() ?? null,
+            exitAt: row.exitAt.toISOString(),
+            updatedAt: row.updatedAt.toISOString(),
+            sourceIds: joined.map((j) => j.source.id),
+          },
+          parts: joined.map((j) => portion(j.source)),
+          fees: Object.fromEntries(
+            joined.map((j) => [
+              j.source.id,
+              {
+                amount: j.fee?.amount ?? null,
+                kind: j.fee?.kind ?? "Unknown",
+                perSide: j.fee?.perSide ?? null,
+                settingRevision: j.fee?.settingRevision ?? null,
+              },
+            ]),
+          ),
+        };
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    ),
+  );
+  const { record, parts, fees } = details;
   const references = await safeDatabase(() =>
     getDb()
       .select({
@@ -368,7 +428,7 @@ export async function journalDetails(id: string, headers?: Headers) {
         ),
       ),
   );
-  return { record, parts, fees: data.fees, references };
+  return { record, parts, fees, references };
 }
 const exactFee = z
   .string()

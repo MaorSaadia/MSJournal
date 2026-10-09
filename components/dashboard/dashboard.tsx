@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
 import { FlaskConical, WalletCards } from "lucide-react";
 import type { Account, CashMovement, Trade, Filters } from "@/lib/types";
@@ -44,7 +45,7 @@ function RecentTrades({ trades }: { trades: Trade[] }) {
             <tr key={t.id}>
               <td>{timestampLabel(t.closeAt)}</td>
               <td>
-                <span className="symbol-badge">{t.symbol}</span>
+                <Link className="symbol-badge" href={`/trade-view/${t.id}?mode=demo&from=${encodeURIComponent("/?mode=demo")}`}>{t.symbol}</Link>
                 <span className="trade-direction">{t.direction}</span>
               </td>
               <td

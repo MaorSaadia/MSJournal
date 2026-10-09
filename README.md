@@ -1,4 +1,4 @@
-# MSJournal — Day 5, full trading calendar
+# MSJournal — Day 6, Trade View
 
 One Next.js application with Better Auth, Neon PostgreSQL and Drizzle. Each authenticated user sees only their own accounts, settings, imports and journal. Day 5 adds a shared real/demo calendar to the dashboard and a dedicated Calendar page. Day 4 processing and fees remain the source of real results. The Day 1 design, themes, emerald/violet palette, responsive behavior and Motion animations remain intact; fictional Demo mode stays separate. Orders remains optional.
 
@@ -236,3 +236,36 @@ npm.cmd run db:check:journal
 Tests use randomly identified disposable users and synthetic CSV data, with guarded cleanup. No private CSV files or credentials are committed. Day 6 trade-list expansion, notes, screenshots, advanced analytics and prop firm rules remain outside this milestone.
 
 Day 5 verification passed **53 automated checks**, including disposable Neon reconciliation/isolation tests, plus the production build, strict type-check and ESLint. The focused browser scenario passed partial exits across months, zero versus empty days, unknown/estimated fees, saved Sunday/Monday and timezone regrouping, URL refresh/back navigation, drawer keyboard behavior, account selection and archived inclusion, a simulated availability failure/retry, compact dashboard data, explicit demo separation, cross-user 404 and unauthenticated 401, both themes and mobile containment, with no unexpected console/page errors. Synthetic-only screenshots are in `artifacts/day-five-calendar-*.png`. The additive migration was reviewed and applied to the configured development database; a read-only integrity check confirmed the existing 43 Performance sources remain unchanged. Existing private imports were not processed or modified for these checks. Real complete-trade reconstruction, actual broker fee reconciliation, large-history load benchmarking, and email delivery remain unverified; the calendar does not claim verified complete-trade coverage.
+
+## Trade View (Day 6)
+
+Open **Trade View** (`/trade-view`) from the existing sidebar. The existing journal list and detail route are extended; there is no duplicate journal system. Desktop uses a compact sortable table, mobile uses readable record links, and both themes share the original MSJournal shell. Click a row or its **Open** link to inspect a record. Detail URLs work directly; previous/next navigation follows the entire filtered order across page boundaries. Back to Trade View restores the query, page, cached results and remembered scroll position. The sidebar remembers the last Trade View selection during the authenticated session.
+
+**Filters:** multiple accounts, explicit archived inclusion, start/end dates, exact contract, reliably parsed futures product/root, long/short/unknown direction, profitable/losing/breakeven outcome, record type, grouping/review status, gross/net basis and optional minimum/maximum P&L. Search is debounced and only searches contracts and account display names. Active chips are removable; **Clear all** resets the selection. Supported sorts include close/entry timestamps, duration, closed quantity, gross/fees/net, account and contract. Sorts have an ID tie-breaker and unknown values sort last. Pages are bounded to 10/25/50/100 records. Columns and density persist in browser storage under the authenticated user ID; **Reset to defaults** restores the standard table. Preferences are specific to that browser, not synchronized across devices.
+
+**Date behavior:** the default **Closed in range** selects by final close and includes the selected record's full result. **Realized activity in range** selects portions by their actual exit and shows only their selected-period gross/fee/net contributions. Its amount is labeled **P&L in range**. Day boundaries use the saved IANA journal timezone, including DST; UTC sources are unchanged. Open a calendar day drawer and choose **Open this day in Trade View** to preserve the day, accounts and displayed P&L basis in realized-activity mode. The drawer's full-record link also carries this scope and returns to its original month/day. Detail summaries distinguish the full record result from the selected-period amount, show daily realized contributions and expand source import references.
+
+**Financial integrity:** each published parent appears once; its constituent sources never appear as extra top-level rows. Current real processing verifies matched portions and shared-fill groups, not complete flat-to-flat trades. These remain closed-portion records with local explanations; complete-trade count is zero and trade win rate is omitted for real records. Complete fictional Demo trades use the same deterministic dashboard/calendar fixture and have stable detail URLs (`?mode=demo`); unknown demo quantities/prices remain unavailable. No candles, risk ratios or execution feed are invented. Duration is a supported reported interval, not verified full-position duration. Quantity means total closed quantity, never maximum position size.
+
+Unknown fees keep net unavailable; explicit zero is retained. Any estimated allocation marks the net summary as estimated. Incomplete fee coverage is shown alongside the available gross total. Existing manual-fee controls and quantity allocation are reused. USD is the only supported currency; no currency conversion is performed.
+
+**Query/cache behavior:** filtering, numeric sorting, pagination, full-selection summaries and neighbor selection run on the server in one repeatable-read snapshot. The browser receives only a bounded page and aggregate metadata; details load only their own contributing sources. List/account/detail access uses the server session and ownership conditions. The persistent layout reuses the calendar's bounded memory cache with endpoint/user/timezone/scope keys, identity checks, immediate cached returns, quiet background refresh and protection against out-of-order responses. New uncached selections show table skeletons, never the previous selection's totals. Import/processing/fee/account/preference changes invalidate results; logout/user changes clear private data and scroll memory. Empty imports, no matches, pending processing and fetch failures have distinct actions. No private journal results persist in browser storage.
+
+**Setup:** no dependency, schema migration, environment-variable change, regrouping or source-data edit is required. Existing Day 4/5 migrations still apply. No public deployment, notes, screenshots, tags, strategies or Day 7 features are included.
+
+Focused verification commands:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run build
+$env:MSJOURNAL_TEST_DISPOSABLE='true'
+npm.cmd test -- tests/trade-view.test.ts tests/journal-db.integration.test.ts tests/calendar.test.ts tests/calendar-cache.test.ts tests/journal.test.ts
+# Match the loopback preview's origin:
+$env:MSJOURNAL_BROWSER_ORIGIN='http://127.0.0.1:3100'
+npm.cmd run test:browser -- browser-tests/day-six.spec.ts
+```
+
+The browser scenario and database regression use disposable synthetic users with guarded cleanup. Existing private imports are not reprocessed for verification. Large-history load benchmarking and real complete-trade reconstruction remain outside the verified coverage. Work stops after Day 6.
+
+Day 6 verification passed 23 focused regressions plus the synthetic Chrome scenario, strict type checking, ESLint and the production build. Coverage includes combined server filters and numeric sorting across pages, full-result summaries, parent/portion reconciliation, closed-date versus selected-day activity, DST boundaries, unknown/zero/estimated fees, cross-user denial, record navigation across page boundaries, cached return while the API is unavailable, saved columns/density, explicit Demo separation, and desktop/mobile containment in both themes. Reviewed synthetic-only captures are `artifacts/day-six-1440-{light,dark}.png` and `artifacts/day-six-390-{light,dark}.png`. The read-only integrity check confirmed the existing 43 Performance sources still match their preserved raw values. No migration was applied and no private import was reprocessed.

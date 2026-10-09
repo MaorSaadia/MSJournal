@@ -20,7 +20,10 @@ export async function requestJson<T>(
   });
   const data = await response.json();
   if (!response.ok) {
-    if (response.status === 401) window.location.replace("/login");
+    if (response.status === 401) {
+      window.dispatchEvent(new Event("msjournal:clear-private-cache"));
+      window.location.replace("/login");
+    }
     throw new RequestError(
       data.message ?? "Unable to save. Please try again.",
       data.field,
@@ -29,6 +32,8 @@ export async function requestJson<T>(
     );
   }
   if (options?.method && options.method !== "GET")
-    window.dispatchEvent(new Event("msjournal:data-updated"));
+    window.dispatchEvent(
+      new CustomEvent("msjournal:data-updated", { detail: { url } }),
+    );
   return data;
 }

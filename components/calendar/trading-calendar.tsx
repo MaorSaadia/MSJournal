@@ -689,6 +689,12 @@ export function TradingCalendar({
                   <strong>{details.data.day?.count ?? 0}</strong>
                 </div>
               </div>
+              <Link
+                className="back-link"
+                href={`/trade-view?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}) })}`}
+              >
+                Open this day in Trade View →
+              </Link>
               {mode === "real" && (
                 <p className="calendar-scope-note">
                   Complete trades are not verified. Counts reflect matched
@@ -732,7 +738,13 @@ export function TradingCalendar({
                         {r.estimated ? "estimated " : ""}net{" "}
                         {journalMoney(r.net, true)}
                       </p>
-                      {r.href && <Link href={r.href}>View full record →</Link>}
+                      {r.href && (
+                        <Link
+                          href={`/trade-view/${r.id}?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}), from: `${pathname}?${search}` })}`}
+                        >
+                          View full record →
+                        </Link>
+                      )}
                     </article>
                   ))}
                 </div>

@@ -158,7 +158,7 @@ export async function calendarData(
               estimated: false,
               status: "Trades closed",
               partial: false,
-              href: null,
+              href: `/trade-view/${r.id}?mode=demo`,
             }));
         } else if (ids.length) {
           const bounds = params.day
@@ -294,6 +294,7 @@ export async function calendarData(
           );
           // Date-range exclusions apply to both summary and records.
           return {
+            userId: owner.id,
             date: params.day,
             timezone,
             accounts,
@@ -305,6 +306,7 @@ export async function calendarData(
           };
         }
         return {
+          userId: owner.id,
           ...aggregateCalendar(
             rows,
             fees,

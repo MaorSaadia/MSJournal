@@ -15,6 +15,7 @@ import {
   Sprout,
 } from "lucide-react";
 import { navigation } from "@/lib/navigation";
+import { useCalendarCache } from "@/components/calendar/cache-provider";
 import { LogoutButton } from "@/components/auth/logout";
 import { Button } from "@/components/ui/button";
 import {
@@ -96,6 +97,7 @@ export function Shell({
   displayName: string;
 }) {
   const pathname = usePathname();
+  const { returnHref, tradesHref } = useCalendarCache();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const links = (compact: boolean) => (
@@ -118,7 +120,7 @@ export function Shell({
         {navigation.map((item, index) => (
           <Link
             key={item.href}
-            href={item.href}
+            href={item.href === "/calendar" ? returnHref : item.href === "/trade-view" ? tradesHref : item.href}
             title={compact ? item.title : undefined}
             aria-current={pathname === item.href ? "page" : undefined}
             onClick={() => setMobileOpen(false)}

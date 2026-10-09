@@ -12,6 +12,12 @@ export function LogoutButton({ compact = false }: { compact?: boolean }) {
     try {
       const result = await authClient.signOut();
       if (result.error) throw new Error();
+      window.dispatchEvent(new Event("msjournal:clear-private-cache"));
+      try {
+        localStorage.setItem("msjournal:auth-change", String(Date.now()));
+      } catch {
+        /* Memory is already cleared on this device. */
+      }
       window.location.replace("/login");
     } catch {
       setError("Sign out failed. Please try again.");

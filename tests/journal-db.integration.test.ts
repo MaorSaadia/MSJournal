@@ -26,6 +26,7 @@ import {
 import { realizedPerformance } from "@/lib/journal/calculations";
 import { D, sum } from "@/lib/journal/processing";
 import { calendarData } from "@/lib/calendar/service";
+import { tradeView } from "@/lib/journal/view-service";
 import type { CalendarMonth, CalendarDetails } from "@/lib/calendar/model";
 import { archiveTradingAccount } from "@/lib/accounts/service";
 describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
@@ -196,6 +197,7 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
       expect(data.records).toHaveLength(1);
       expect(new D(data.records[0].grossPnl).eq("40")).toBe(true);
       expect(data.records[0].fees).toBeNull();
+      expect((await tradeView({})).summary.net).toBeNull();
       await setManualFees({ recordId: stable, total: "0" });
       expect(new D((await getJournal()).records[0].fees!).eq(0)).toBe(true);
       await importRows([rowB, rowC]);
@@ -303,6 +305,41 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
       expect(day.records).toHaveLength(1);
       expect(day.records[0].partial).toBe(true);
       expect(new D(day.records[0].quantity!).eq("2")).toBe(true);
+      const closed = await tradeView({
+        start: "2026-09-30",
+        end: "2026-09-30",
+      });
+      expect(closed.summary.count).toBe(0);
+      const activity = await tradeView({
+        start: "2026-09-30",
+        end: "2026-09-30",
+        dateBasis: "activity",
+        basis: "net",
+      });
+      expect(activity.summary.count).toBe(1);
+      expect(activity.summary.gross).toBe("40.00000000");
+      expect(new D(activity.summary.net!).eq("37")).toBe(true);
+      expect(activity.summary.estimated).toBe(true);
+      expect(activity.summary.winRate).toBeNull();
+      expect(activity.rows[0].partial).toBe(true);
+      expect(new D(activity.rows[0].fullGross).eq("75")).toBe(true);
+      const full = await tradeView({ start: "2026-10-01", end: "2026-10-01" });
+      expect(full.summary.count).toBe(1);
+      expect(new D(full.summary.gross).eq("75")).toBe(true);
+      expect(full.summary.trades).toBe(0);
+      expect(full.summary.portions).toBe(1);
+      expect(
+        (
+          await tradeView({
+            root: "MNQ",
+            search: "synthetic",
+            direction: "long",
+            min: "50",
+            outcome: "profit",
+          })
+        ).summary.count,
+      ).toBe(1);
+      expect((await tradeView({ root: "ES" })).summary.count).toBe(0);
       await archiveTradingAccount(accounts[0], true);
       try {
         expect(
@@ -329,6 +366,13 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
       const data = await getJournal();
       state.actor = users[1];
       try {
+        expect((await tradeView({})).summary.count).toBe(0);
+        await expect(tradeView({ accounts: accounts[0] })).rejects.toThrow(
+          "not found",
+        );
+        expect(
+          (await tradeView({ record: data.records[0].id })).navigation,
+        ).toBeNull();
         expect((await getJournal()).records).toHaveLength(0);
         expect(
           ((await calendarData({ month: "2026-10" })) as CalendarMonth).summary
@@ -374,6 +418,42 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
         state.actor = users[0];
       }
     }, 30000);
+    it("queries combined filters and neighbors across server pages with full totals", async () => {
+      await importRows(
+        Array.from({ length: 22 }, (_, i) =>
+          performance({
+            buyFillId: `page-entry-${i}`,
+            sellFillId: `page-exit-${i}`,
+            pnl: String(i),
+            boughtTimestamp: "10/03/2026 16:00:00",
+            soldTimestamp: "10/03/2026 16:01:00",
+          }),
+        ),
+      );
+      await processAccount(accounts[0]);
+      const query = {
+        search: "synthetic",
+        root: "MNQ",
+        direction: "long",
+        outcome: "profit",
+        min: "10",
+        sort: "gross",
+        order: "desc",
+        size: 10,
+      };
+      const first = await tradeView(query),
+        second = await tradeView({ ...query, page: 2 });
+      expect(first.summary.count).toBe(13);
+      expect(new D(first.summary.gross).eq("261")).toBe(true);
+      expect(first.rows).toHaveLength(10);
+      expect(second.rows).toHaveLength(3);
+      expect(second.summary).toEqual(first.summary);
+      const nav = await tradeView({ ...query, record: first.rows[9].id });
+      expect(nav.navigation?.next).toBe(second.rows[0].id);
+      expect(
+        new Set([...first.rows, ...second.rows].map((r) => r.id)).size,
+      ).toBe(13);
+    }, 30000);
     it("rolls failed publication back while retaining sources and prior published totals, with a working retry", async () => {
       const before = await getJournal();
       state.fail = true;
@@ -385,9 +465,13 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
         state.fail = false;
       }
       const after = await getJournal();
-      expect(after.records).toEqual(before.records);
+      expect(after.records.sort((a, b) => a.id.localeCompare(b.id))).toEqual(
+        before.records.sort((a, b) => a.id.localeCompare(b.id)),
+      );
       expect(after.fees).toEqual(before.fees);
-      expect(after.portions).toEqual(before.portions);
+      expect(after.portions.sort((a, b) => a.id.localeCompare(b.id))).toEqual(
+        before.portions.sort((a, b) => a.id.localeCompare(b.id)),
+      );
       expect(after.states[0].status).toBe("Failed");
       expect(
         (

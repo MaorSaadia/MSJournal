@@ -302,7 +302,7 @@ export function RealDashboard({
                       <td>
                         <Link
                           className="journal-record-link"
-                          href={`/trade-view/${r.id}`}
+                          href={`/trade-view/${r.id}?from=${encodeURIComponent("/?"+search.toString())}`}
                         >
                           {r.symbol}
                         </Link>

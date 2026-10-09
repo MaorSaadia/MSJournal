@@ -106,14 +106,23 @@ export function ImportPage({
       });
       const data = await response.json();
       if (!response.ok) {
-        if (response.status === 401) router.replace("/login");
+        if (response.status === 401) {
+          window.dispatchEvent(new Event("msjournal:clear-private-cache"));
+          router.replace("/login");
+        }
         throw new Error(data.message ?? "Import could not be completed.");
       }
       if (action === "preview") setPreview(data);
-      else
+      else {
+        window.dispatchEvent(
+          new CustomEvent("msjournal:data-updated", {
+            detail: { url: "/api/imports/confirm" },
+          }),
+        );
         router.push(
           `/imports/${data.id}?saved=1&processing=${data.processing?.status === "Failed" ? "failed" : "ready"}`,
         );
+      }
     } catch (e) {
       setError(
         e instanceof Error

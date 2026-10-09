@@ -14,13 +14,86 @@ import {
   sum,
 } from "@/lib/journal/processing";
 import { ManualFeeForm } from "@/components/journal/actions";
+import { DetailNavigation } from "@/components/journal/detail-navigation";
+import { demoRecords } from "@/lib/journal/view-service";
+import { viewSchema } from "@/lib/journal/view-model";
+import { realizedPerformance } from "@/lib/journal/calculations";
 export const metadata = { title: "Journal record" };
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  const search = await searchParams;
+  const selection = viewSchema.safeParse(
+    Object.fromEntries(
+      Object.entries(search).filter(
+        ([k, v]) => k !== "from" && typeof v === "string",
+      ),
+    ),
+  );
+  if (search.mode === "demo") {
+    const record = demoRecords().find((r) => r.id === id);
+    if (!record) notFound();
+    const prefs = await getPreferences();
+    return (
+      <div className="accounts-page journal-page">
+        <DetailNavigation id={id} />
+        <header className="page-header">
+          <div>
+            <div className="breadcrumb">Demo data / Trade View</div>
+            <h1>
+              {record.symbol}
+              <span className="title-dot">.</span>
+            </h1>
+            <p>
+              {record.account} · {record.direction} · Complete demo trade
+            </p>
+          </div>
+        </header>
+        <section className="import-card">
+          <div className="journal-summary">
+            <div>
+              <small>Gross P&L · USD</small>
+              <strong>{journalMoney(record.gross, true)}</strong>
+            </div>
+            <div>
+              <small>Fictional fees</small>
+              <strong>{journalMoney(record.fees)}</strong>
+            </div>
+            <div>
+              <small>Net P&L</small>
+              <strong>{journalMoney(record.net, true)}</strong>
+            </div>
+            <div>
+              <small>Entry · {prefs.displayTimezone}</small>
+              <strong>
+                {journalTimestamp(record.entry, prefs.displayTimezone)}
+              </strong>
+            </div>
+            <div>
+              <small>Close</small>
+              <strong>
+                {journalTimestamp(record.exit, prefs.displayTimezone)}
+              </strong>
+            </div>
+            <div>
+              <small>Duration</small>
+              <strong>{record.duration}s</strong>
+            </div>
+          </div>
+          <p className="small muted">
+            The deterministic demo fixture models complete trades and fictional
+            fees. Quantity, entry/exit prices, execution portions and source
+            imports are not modeled.
+          </p>
+        </section>
+      </div>
+    );
+  }
   if (!z.uuid().safeParse(id).success) notFound();
   let details;
   try {
@@ -39,8 +112,34 @@ export default async function Page({
       record.fees === null
         ? null
         : new D(record.grossPnl).minus(record.fees).toFixed();
+  const realized = realizedPerformance(
+    parts,
+    fees,
+    {
+      accounts: [record.tradingAccountId],
+      start: "0000-01-01",
+      end: "9999-12-31",
+    },
+    timezone,
+  );
+  const contribution =
+    selection.success && selection.data.dateBasis === "activity"
+      ? realizedPerformance(
+          parts,
+          fees,
+          {
+            accounts: [record.tradingAccountId],
+            start: selection.data.start ?? "0000-01-01",
+            end: selection.data.end ?? "9999-12-31",
+            direction: selection.data.direction,
+            symbol: selection.data.symbol,
+          },
+          timezone,
+        )
+      : null;
   return (
     <div className="accounts-page journal-page">
+      <DetailNavigation id={id} />
       <header className="page-header">
         <div>
           <div className="breadcrumb">Workspace / Trade View</div>
@@ -56,12 +155,9 @@ export default async function Page({
             · {record.status}
           </p>
         </div>
-        <Link className="back-link" href="/trade-view">
-          Back to journal
-        </Link>
       </header>
       <section className="import-card">
-        <h2>Matched record summary</h2>
+        <h2>Closed-portion record · full result</h2>
         <p className="muted">{record.explanation}</p>
         <div className="journal-summary">
           <div>
@@ -117,6 +213,52 @@ export default async function Page({
           each portion’s exit date; this group’s final exit is only for list
           order. Fees are never added twice.
         </p>
+      </section>
+      {contribution && (
+        <section className="import-card">
+          <h2>P&L in range · selected contribution</h2>
+          <p>
+            {selection.success
+              ? `${selection.data.start ?? "All dates"} through ${selection.data.end ?? "All dates"}`
+              : ""}{" "}
+            · {timezone}
+          </p>
+          <div className="journal-summary">
+            <div>
+              <small>Gross P&L in range</small>
+              <strong>{journalMoney(contribution.gross, true)}</strong>
+            </div>
+            <div>
+              <small>Fees in range</small>
+              <strong>{journalMoney(contribution.feeAmount)}</strong>
+            </div>
+            <div>
+              <small>
+                {contribution.estimated ? "Estimated net" : "Net"} P&L in range
+              </small>
+              <strong>{journalMoney(contribution.net, true)}</strong>
+            </div>
+          </div>
+          <p className="small muted">
+            {contribution.selected.length} of {parts.length} closed portions
+            selected. The full record result is shown above.
+          </p>
+        </section>
+      )}
+      <section className="import-card">
+        <h2>Daily realized contributions</h2>
+        <div className="tv-daily">
+          {realized.days.map((day) => (
+            <div key={day.date}>
+              <small>{day.date}</small>
+              <p>
+                Gross {journalMoney(day.gross, true)} ·{" "}
+                {day.estimated ? "Estimated net" : "Net"}{" "}
+                {journalMoney(day.net, true)}
+              </p>
+            </div>
+          ))}
+        </div>
       </section>
       <section className="import-card">
         <h2>Contributing source portions</h2>
@@ -175,18 +317,21 @@ export default async function Page({
                     </small>
                   </td>
                   <td>
-                    {references
-                      .filter((r) => r.sourceId === p.id)
-                      .map((r, i) => (
-                        <small key={i}>
-                          <Link
-                            className="back-link"
-                            href={`/imports/${r.batchId}`}
-                          >
-                            {r.name} · row {r.row}
-                          </Link>
-                        </small>
-                      ))}
+                    <details>
+                      <summary>Source imports</summary>
+                      {references
+                        .filter((r) => r.sourceId === p.id)
+                        .map((r, i) => (
+                          <small key={i}>
+                            <Link
+                              className="back-link"
+                              href={`/imports/${r.batchId}`}
+                            >
+                              {r.name} · row {r.row}
+                            </Link>
+                          </small>
+                        ))}
+                    </details>
                   </td>
                 </tr>
               ))}

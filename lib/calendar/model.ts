@@ -130,6 +130,7 @@ export function aggregateCalendar(
   };
 }
 export type CalendarMonth = ReturnType<typeof aggregateCalendar> & {
+  userId: string;
   accounts: CalendarAccount[];
   mode: "real" | "demo";
   processing: { unpublished: number; failed: boolean; outdated: boolean };
@@ -151,6 +152,7 @@ export type DayContribution = {
   href: string | null;
 };
 export type CalendarDetails = {
+  userId: string;
   date: string;
   timezone: string;
   accounts: CalendarAccount[];
