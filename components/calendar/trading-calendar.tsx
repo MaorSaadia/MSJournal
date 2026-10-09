@@ -4,7 +4,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
-  CalendarDays,
+  SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
@@ -16,9 +16,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Panel, Help } from "@/components/dashboard/panel";
-import { usePrivateRequest } from "./cache-provider";
-import { requestJson } from "@/lib/client-api";
+import { Help } from "@/components/dashboard/panel";
+import { useCalendarCache, useCalendarRequest, usePrivateRequest } from "./cache-provider";
+import { CalendarGrid, CalendarSkeleton } from "./calendar-grid";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { journalMoney } from "@/lib/journal/calculations";
 import { journalTimestamp } from "@/lib/timezones";
 import { D } from "@/lib/journal/processing";
@@ -56,29 +61,6 @@ function monthLabel(month: string) {
     timeZone: "UTC",
   }).format(new Date(month + "-01T12:00:00Z"));
 }
-function useCalendarRequest<T>(query: string | null, revision: number) {
-  const [state, setState] = useState<{ key: string; data?: T; error?: string }>(
-    { key: "" },
-  );
-  useEffect(() => {
-    if (!query) return;
-    const abort = new AbortController();
-    requestJson<T>(`/api/calendar?${query}`, { signal: abort.signal })
-      .then((data) => setState({ key: query + revision, data }))
-      .catch((error) => {
-        if (!abort.signal.aborted)
-          setState({
-            key: query + revision,
-            error:
-              error instanceof Error
-                ? error.message
-                : "Unable to load calendar.",
-          });
-      });
-    return () => abort.abort();
-  }, [query, revision]);
-  return state.key === (query ?? "") + revision ? state : { key: "" };
-}
 export function TradingCalendar({
   accounts,
   mode = "real",
@@ -86,7 +68,6 @@ export function TradingCalendar({
   timezone,
   compact = false,
   filters,
-  onAccountsChange,
   onArchivedChange,
   includeArchived = false,
 }: {
@@ -120,15 +101,25 @@ export function TradingCalendar({
       daySchema.safeParse(dayValue).success && dayValue!.startsWith(month)
         ? dayValue
         : null;
-  const [revision, refresh] = useState(0),
-    [monthDirection, setMonthDirection] = useState(1),
-    [view, setView] = useState<"auto" | "grid" | "agenda">("auto");
+  const [monthDirection, setMonthDirection] = useState(1);
+  const [pickerYear, setPickerYear] = useState(month.slice(0, 4));
+  const { remember, weekStartsOn } = useCalendarCache();
+  const view: "auto" | "grid" | "agenda" = compact
+    ? "grid"
+    : search.get("view") === "agenda"
+      ? "agenda"
+      : search.get("view") === "grid"
+        ? "grid"
+        : "auto";
+  useEffect(() => {
+    if (!compact) remember(`${pathname}?${search}`);
+  }, [compact, pathname, search, remember]);
   const focusReturn = useRef<HTMLButtonElement | null>(null),
     lastScope = useRef("");
   const query = new URLSearchParams({
     month,
     mode,
-    accounts: ids.join(","),
+    accounts: [...ids].sort().join(","),
     archived: archived ? "1" : "0",
     basis: requestedBasis,
     ...(filters
@@ -140,12 +131,12 @@ export function TradingCalendar({
         }
       : {}),
   }).toString();
-  const state = useCalendarRequest<CalendarMonth>(query, revision),
+  const state = useCalendarRequest<CalendarMonth>(query),
     data = state.data;
   const reviewIndicators = usePrivateRequest<import("@/lib/reviews/indicators").ReviewIndicators>(query,"/api/reviews/indicators");
+  const refresh = state.refresh;
   const details = useCalendarRequest<CalendarDetails>(
     selectedDay ? query + `&day=${selectedDay}` : null,
-    revision,
   );
   function update(values: Record<string, string | null>, push = true) {
     if (values[monthKey] && values[monthKey] !== month)
@@ -158,23 +149,6 @@ export function TradingCalendar({
     if (push) window.history.pushState(null, "", url);
     else window.history.replaceState(null, "", url);
   }
-  useEffect(() => {
-    const handler = (event?: Event) => {
-      if ((event as CustomEvent<{url?:string}> | undefined)?.detail?.url?.startsWith("/api/reviews")) return;
-      refresh((n) => n + 1);
-    };
-    const visible = () => {
-      if (document.visibilityState === "visible") handler();
-    };
-    window.addEventListener("focus", handler);
-    window.addEventListener("msjournal:data-updated", handler);
-    document.addEventListener("visibilitychange", visible);
-    return () => {
-      window.removeEventListener("focus", handler);
-      window.removeEventListener("msjournal:data-updated", handler);
-      document.removeEventListener("visibilitychange", visible);
-    };
-  }, []);
   // A new account/filter scope deliberately closes details; month/day navigation keeps its own URL.
   const scope = JSON.stringify({ ids, archived, filters, mode });
   useEffect(() => {
@@ -185,7 +159,7 @@ export function TradingCalendar({
     }
     lastScope.current = scope;
   }, [scope, selectedDay, search, dayKey, pathname]);
-  const countLabel = mode === "demo" ? "Trades closed" : "Matched portions";
+  const countLabel = mode === "demo" ? "Trades closed" : "Closed portions";
   const basis = data?.basis ?? requestedBasis;
   const basisLabel =
     basis === "gross"
@@ -193,6 +167,12 @@ export function TradingCalendar({
       : data?.estimated
         ? "Estimated net P&L"
         : "Net P&L";
+  const scopeLabel =
+    ids.length === available.length
+      ? `All ${archived ? "active and archived" : "unarchived"} accounts`
+      : ids.length === 1
+        ? (available.find((a) => a.id === ids[0])?.name ?? "1 account")
+        : `${ids.length} accounts selected`;
   const byDate = new Map(data?.days.map((d) => [d.date, d]));
   const chooseDay = (
     day: string,
@@ -206,6 +186,11 @@ export function TradingCalendar({
       inMonth = date.startsWith(month),
       inRange = !filters || (date >= filters.start && date <= filters.end);
     const value = d ? (basis === "gross" ? d.gross : d.net) : null,
+      wins = d ? (basis === "gross" ? d.grossWins : d.netWins) : null,
+      winPercent =
+        d && d.count > 0 && wins != null
+          ? `${new D(wins).div(d.count).times(100).toFixed(1)}%`
+          : null,
       outcome = d
         ? value === null
           ? "Net unavailable"
@@ -227,37 +212,43 @@ export function TradingCalendar({
       >
         <span className="day-number">
           {agenda ? dateLabel(date) : Number(date.slice(-2))}
-          {date === data?.today && <small>Today</small>}
+          {date === data?.today && (
+            <i className="calendar-today-dot" aria-label="Today" />
+          )}
           {inMonth && !!reviewIndicators.data?.days[date] && <span className="calendar-review-dot" title="Trade reviews saved" aria-label="Trade reviews saved">✎</span>}
         </span>
-        {inMonth && (
+        {inMonth && d && (
           <>
-            <strong>{d ? journalMoney(value, true) : "—"}</strong>
-            <span>
-              {d
-                ? `${d.count} ${countLabel.toLowerCase()}`
-                : !inRange
-                  ? "Outside range"
-                  : "No activity imported"}
+            <strong>{journalMoney(value, true)}</strong>
+            <span className="calendar-day-count">
+              <span
+                title={
+                  mode === "demo"
+                    ? "Complete closed demo trades."
+                    : "Counted from closed Tradovate report portions. A trade closed in parts may produce more than one portion; complete-trade coverage is not yet verified."
+                }
+              >
+                {d.count} {d.count === 1 ? "trade" : "trades"}
+              </span>
             </span>
-            {d && <span className="calendar-outcome">{outcome}</span>}
+            <span
+              className="calendar-day-win-rate"
+              aria-label={`${mode === "demo" ? "Trade" : "Closed-portion"} win percentage: ${winPercent ?? "unavailable"}, ${basis === "gross" ? "before fees" : "after fees"}. Breakeven results are included in the total.`}
+              title={`Winning ${mode === "demo" ? "closed trades" : "closed portions"} / all ${mode === "demo" ? "closed trades" : "closed portions"}, ${basis === "gross" ? "before" : "after"} fees. Breakeven results count in the total.`}
+            >
+              {winPercent ?? "—"}
+            </span>
           </>
         )}
       </button>
     );
   };
   return (
-    <Panel
-      title="Trading calendar"
-      className={`calendar-panel trading-calendar ${compact ? "calendar-compact" : "calendar-full"}`}
-      help="Realized P&L follows each portion’s actual exit date in the journal display timezone. Empty days do not establish complete CSV coverage."
-      action={
-        <span className="calendar-timezone">
-          {data?.timezone ?? timezone} · USD
-        </span>
-      }
+    <section
+      className={`panel calendar-panel trading-calendar calendar-refined ${compact ? "calendar-compact" : "calendar-full"}`}
+      aria-label="Trading calendar"
     >
-      <div className="calendar-toolbar">
+      <header className="calendar-toolbar">
         <div className="month-controls">
           <Button
             variant="ghost"
@@ -268,9 +259,67 @@ export function TradingCalendar({
               update({ [monthKey]: shiftMonth(month, -1), [dayKey]: null })
             }
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={14} />
           </Button>
-          <h3>{monthLabel(month)}</h3>
+          <Popover
+            onOpenChange={(open) => {
+              if (open) setPickerYear(month.slice(0, 4));
+            }}
+          >
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                className="calendar-month-title"
+                aria-label="Choose month and year"
+              >
+                <h3>{monthLabel(month)}</h3>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="calendar-month-picker" align="start">
+              <strong>Choose month and year</strong>
+              <label>
+                Month
+                <select
+                  aria-label="Calendar month"
+                  value={month.slice(5)}
+                  onChange={(e) =>
+                    update({
+                      [monthKey]: month.slice(0, 4) + "-" + e.target.value,
+                      [dayKey]: null,
+                    })
+                  }
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i} value={String(i + 1).padStart(2, "0")}>
+                      {new Intl.DateTimeFormat("en", {
+                        month: "long",
+                        timeZone: "UTC",
+                      }).format(new Date(Date.UTC(2026, i, 1)))}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Year
+                <input
+                  type="number"
+                  aria-label="Calendar year"
+                  min={1900}
+                  max={9998}
+                  value={pickerYear}
+                  onChange={(e) => {
+                    setPickerYear(e.target.value);
+                    const year = Number(e.target.value);
+                    if (Number.isInteger(year) && year >= 1900 && year <= 9998)
+                      update({
+                        [monthKey]: `${year}-${month.slice(5)}`,
+                        [dayKey]: null,
+                      });
+                  }}
+                />
+              </label>
+            </PopoverContent>
+          </Popover>
           <Button
             variant="ghost"
             size="icon"
@@ -280,10 +329,11 @@ export function TradingCalendar({
               update({ [monthKey]: shiftMonth(month, 1), [dayKey]: null })
             }
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={14} />
           </Button>
           <Button
             variant="outline"
+            className="this-month"
             onClick={() =>
               update({
                 [monthKey]: todayIn(data?.timezone ?? timezone).slice(0, 7),
@@ -291,282 +341,237 @@ export function TradingCalendar({
               })
             }
           >
-            Today
+            This month
           </Button>
-          <label className="calendar-month-input">
-            <span className="sr-only">Choose month and year</span>
-            <input
-              type="month"
-              aria-label="Choose month and year"
-              min="1900-01"
-              max="9998-12"
-              value={month}
-              onChange={(e) => {
-                if (monthSchema.safeParse(e.target.value).success)
-                  update({ [monthKey]: e.target.value, [dayKey]: null });
-              }}
-            />
-          </label>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Refresh calendar"
-          onClick={() => refresh((n) => n + 1)}
-        >
-          <RefreshCw size={14} />
-        </Button>
-      </div>
-      <div className="calendar-controls">
-        <details className="calendar-account-filter">
-          <summary>
-            {ids.length === available.length
-              ? `All ${archived ? "active and archived" : "unarchived"} accounts`
-              : `${ids.length} accounts selected`}
-          </summary>
-          <div className="calendar-account-options">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                onAccountsChange
-                  ? onAccountsChange(available.map((a) => a.id))
-                  : update({ accounts: null, [dayKey]: null })
-              }
+        <div className="calendar-header-right">
+          <div className="calendar-monthly-stats" aria-label="Monthly summary">
+            <span>Monthly stats</span>
+            <strong
+              className={`calendar-pnl-badge ${data ? tone(data.summary.total) : ""}`}
             >
-              Select all {archived ? "including archived" : "unarchived"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                onAccountsChange
-                  ? onAccountsChange([])
-                  : update({ accounts: "", [dayKey]: null })
-              }
-            >
-              Clear selection
-            </Button>
-            {available.length ? (
-              available.map((a) => (
-                <label key={a.id}>
+              {data ? journalMoney(data.summary.total, true) : "—"}
+            </strong>
+            <span className="calendar-days-badge">
+              {data ? data.summary.activeDays : "—"} days
+            </span>
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Calendar settings"
+              >
+                <SlidersHorizontal size={15} />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="calendar-settings" align="end">
+              <strong>Filters & display</strong>
+              {!compact ? (
+                <fieldset className="calendar-account-options">
+                  <legend>Accounts</legend>
+                  <div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => update({ accounts: null, [dayKey]: null })}
+                    >
+                      Select all
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => update({ accounts: "", [dayKey]: null })}
+                    >
+                      Clear selection
+                    </Button>
+                  </div>
+                  {available.length ? (
+                    available.map((a) => (
+                      <label key={a.id}>
+                        <input
+                          type="checkbox"
+                          checked={ids.includes(a.id)}
+                          onChange={(e) =>
+                            update({
+                              accounts: (e.target.checked
+                                ? [...ids, a.id]
+                                : ids.filter((id) => id !== a.id)
+                              ).join(","),
+                              [dayKey]: null,
+                            })
+                          }
+                        />
+                        {a.name}
+                        {a.archived ? " (archived)" : ""}
+                      </label>
+                    ))
+                  ) : (
+                    <p>
+                      No accounts.{" "}
+                      <Link href="/prop-accounts">Add your first account</Link>.
+                    </p>
+                  )}
+                </fieldset>
+              ) : (
+                <p className="calendar-settings-note">
+                  Account, date, symbol and direction follow the dashboard
+                  filters.
+                </p>
+              )}
+              {mode === "real" && (
+                <label className="calendar-archived">
                   <input
                     type="checkbox"
-                    checked={ids.includes(a.id)}
-                    onChange={(e) => {
-                      const next = e.target.checked
-                        ? [...ids, a.id]
-                        : ids.filter((id) => id !== a.id);
-                      if (onAccountsChange) onAccountsChange(next);
-                      else update({ accounts: next.join(","), [dayKey]: null });
-                    }}
+                    checked={archived}
+                    onChange={(e) =>
+                      onArchivedChange
+                        ? onArchivedChange(e.target.checked)
+                        : update({
+                            archived: e.target.checked ? "1" : null,
+                            accounts: null,
+                            [dayKey]: null,
+                          })
+                    }
                   />
-                  {a.name}
-                  {a.archived ? " (archived)" : ""}
+                  Include archived accounts
                 </label>
-              ))
-            ) : (
-              <p>
-                No accounts.{" "}
-                <Link href="/prop-accounts">Add your first account</Link>.
-              </p>
-            )}
-          </div>
-        </details>
-        {mode === "real" && (
-          <label className="calendar-archived">
-            <input
-              type="checkbox"
-              checked={archived}
-              onChange={(e) => {
-                if (onArchivedChange) onArchivedChange(e.target.checked);
-                else
-                  update({
-                    archived: e.target.checked ? "1" : null,
-                    accounts: null,
-                    [dayKey]: null,
-                  });
-              }}
+              )}
+              <label className="calendar-basis-label">
+                P&L basis
+                <select
+                  aria-label="Calendar P&L basis"
+                  value={basis}
+                  onChange={(e) =>
+                    update({ [basisKey]: e.target.value, [dayKey]: null })
+                  }
+                >
+                  <option value="gross">Gross P&L</option>
+                  <option value="net" disabled={!data?.netAvailable}>
+                    {data?.estimated ? "Estimated net P&L" : "Net P&L"}
+                  </option>
+                </select>
+              </label>
+              {!data?.netAvailable && (
+                <p className="calendar-settings-note">
+                  A complete net result requires known fees for every record in
+                  this month and selection. Gross remains available; unknown
+                  fees are not zero.
+                </p>
+              )}
+              <Link href="/settings">
+                Journal timezone · {data?.timezone ?? timezone}
+              </Link>
+              <Link href="/settings">
+                Week starts · {weekStartsOn === 1 ? "Monday" : "Sunday"}
+              </Link>
+            </PopoverContent>
+          </Popover>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Refresh calendar"
+            onClick={() => refresh()}
+          >
+            <RefreshCw
+              size={14}
+              className={state.pending && data ? "calendar-refreshing" : ""}
             />
-            Include archived accounts
-          </label>
-        )}
-        <label className="calendar-basis-label">
-          P&L basis
-          <select
-            aria-label="Calendar P&L basis"
-            value={basis}
-            onChange={(e) =>
-              update({ [basisKey]: e.target.value, [dayKey]: null })
-            }
-          >
-            <option value="gross">Gross P&L</option>
-            <option value="net" disabled={!data?.netAvailable}>
-              {data?.estimated ? "Estimated net P&L" : "Net P&L"}
-            </option>
-          </select>
-        </label>
-        <div
-          className="calendar-view-switch"
-          role="group"
-          aria-label="Calendar layout"
-        >
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-pressed={view !== "agenda"}
-            onClick={() => setView("grid")}
-          >
-            Grid
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-pressed={view === "agenda"}
-            onClick={() => setView("agenda")}
-          >
-            Agenda
           </Button>
         </div>
+      </header>
+      <div className="calendar-context">
+        <span className="calendar-account-scope">{scopeLabel}</span>
+        <span className="calendar-basis-badge">
+          {basisLabel}
+          <Help
+            label="Calendar P&L basis"
+            text={
+              !data?.netAvailable
+                ? "Fees are incomplete or there is no activity for this selection. Gross P&L is available; net requires every included record’s fees. Missing fees are never treated as zero."
+                : data.estimated
+                  ? "Net P&L subtracts known fees. Some fees are configured estimates."
+                  : "Net P&L subtracts known fees; gross P&L excludes fees."
+            }
+          />
+        </span>
+        <span className="calendar-timezone">
+          {data?.timezone ?? timezone} · USD
+        </span>
+        {state.pending && data && (
+          <span className="calendar-background-status" role="status">
+            Updating…
+          </span>
+        )}
+        {!compact && (
+          <div
+            className="calendar-view-switch"
+            role="group"
+            aria-label="Calendar layout"
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-pressed={view !== "agenda"}
+              onClick={() => update({ view: "grid" })}
+            >
+              Grid
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-pressed={view === "agenda"}
+              onClick={() => update({ view: "agenda" })}
+            >
+              Agenda
+            </Button>
+          </div>
+        )}
       </div>
+      {state.error && (
+        <div
+          className={data ? "calendar-stale-notice" : "calendar-request-error"}
+          role="alert"
+        >
+          <strong>
+            {data
+              ? "Showing saved results; they may be stale."
+              : "Calendar could not be loaded."}
+          </strong>
+          <span>{state.error}</span>
+          <Button variant="ghost" size="sm" onClick={() => refresh()}>
+            {data ? "Retry" : "Try again"}
+          </Button>
+        </div>
+      )}
       <motion.div
         key={month}
         initial={{ opacity: 0, x: monthDirection * 6 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.16 }}
       >
-        {state.error ? (
-          <div className="calendar-request-error" role="alert">
-            <strong>Calendar could not be loaded.</strong>
-            <p>{state.error}</p>
-            <Button variant="outline" onClick={() => refresh((n) => n + 1)}>
-              Try again
-            </Button>
-          </div>
-        ) : !data ? (
-          <div className="calendar-loading" role="status">
-            Loading {monthLabel(month)}…
-          </div>
-        ) : (
+        {data ? (
           <>
             {(data.processing.unpublished > 0 ||
               data.processing.failed ||
               data.processing.outdated) && (
               <p className="calendar-status" role="status">
                 {data.processing.failed
-                  ? "Processing failed for a selected account. Published results may be incomplete."
+                  ? "Processing failed for a selected account. Results may be incomplete."
                   : data.processing.outdated
-                    ? "Reprocessing is required for a selected account."
-                    : `${data.processing.unpublished} imported portions in this month are not processed yet.`}{" "}
+                    ? "Some imported results need reprocessing."
+                    : "Some imported results have not been processed yet."}{" "}
                 <Link href="/trade-view">Review processing</Link>.
               </p>
             )}
-            {!data.netAvailable && (
-              <p className="calendar-scope-note">
-                Gross view ·{" "}
-                {data.summary.count
-                  ? "Fees are incomplete for this month and filters. A complete net view is unavailable."
-                  : "Net view becomes available when every realized record in the selection has known fees."}
-                {requestedBasis === "net"
-                  ? " Your requested net view cannot currently be shown."
-                  : ""}
-              </p>
-            )}
-            <div
-              className="calendar-month-summary"
-              aria-label="Monthly summary"
-            >
-              <div>
-                <span>{basisLabel}</span>
-                <strong className={tone(data.summary.total)}>
-                  {journalMoney(data.summary.total, true)}
-                </strong>
-              </div>
-              <div>
-                <span>Days with activity</span>
-                <strong>{data.summary.activeDays}</strong>
-              </div>
-              <div>
-                <span>Profitable / losing / breakeven</span>
-                <strong>
-                  {data.summary.positive} / {data.summary.negative} /{" "}
-                  {data.summary.zero}
-                </strong>
-              </div>
-              <div>
-                <span>{countLabel}</span>
-                <strong>{data.summary.count}</strong>
-              </div>
-              <div>
-                <span>Best active day</span>
-                <strong>
-                  {data.summary.best
-                    ? `${data.summary.best.date.slice(5)} · ${journalMoney(basis === "gross" ? data.summary.best.gross : data.summary.best.net, true)}`
-                    : "Unavailable"}
-                </strong>
-              </div>
-              <div>
-                <span>Worst active day</span>
-                <strong>
-                  {data.summary.worst
-                    ? `${data.summary.worst.date.slice(5)} · ${journalMoney(basis === "gross" ? data.summary.worst.gross : data.summary.worst.net, true)}`
-                    : "Unavailable"}
-                </strong>
-              </div>
-            </div>
-            <div className={`calendar-body calendar-view-${view}`}>
-              <div className="calendar-grid-view">
-                <div className="calendar-week-head">
-                  {Array.from({ length: 7 }, (_, i) => (
-                    <span key={i}>
-                      {
-                        ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-                          (i + data.weekStartsOn) % 7
-                        ]
-                      }
-                    </span>
-                  ))}
-                  <span className="calendar-week-total-label">
-                    Weekly total{" "}
-                    <Help
-                      label="Weekly scope"
-                      text="Only dates belonging to the displayed month and active filters are included in each row. Weekly totals sum to the monthly result."
-                    />
-                  </span>
-                </div>
-                <div className="calendar-weeks">
-                  {data.weeks.map((week, i) => (
-                    <div className="calendar-week" key={week.dates[0]}>
-                      {week.dates.map((date) => dayButton(date))}
-                      <div className="weekly-summary">
-                        <span>Week {i + 1}</span>
-                        <strong className={tone(week.summary.total)}>
-                          {journalMoney(week.summary.total, true)}
-                        </strong>
-                        <span>{week.summary.activeDays} active days</span>
-                        <span>
-                          {week.summary.count} {countLabel.toLowerCase()}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="calendar-agenda-view">
-                {data.weeks
-                  .flatMap((w) => w.dates)
-                  .filter((d) => d.startsWith(month))
-                  .map((date) => dayButton(date, true))}
-                <div className="calendar-agenda-weeks">
-                  {data.weeks.map((week, i) => (
-                    <p key={i}>
-                      Week {i + 1} · {journalMoney(week.summary.total, true)} ·{" "}
-                      {week.summary.activeDays} active days
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <CalendarGrid
+              data={data}
+              view={view}
+              dayButton={dayButton}
+              compact={compact}
+              fullHref={`/calendar?${new URLSearchParams({ month, mode, accounts: ids.join(","), basis, archived: archived ? "1" : "0" })}`}
+            />
             {!data.summary.activeDays && (
               <p className="calendar-empty-note">
                 {!ids.length
@@ -576,31 +581,12 @@ export function TradingCalendar({
                     : "No imported realized records for this month and account selection. CSV coverage may be incomplete."}
               </p>
             )}
-            <div className="calendar-footer">
-              <span>
-                <i className="positive-dot" />
-                Profit
-              </span>
-              <span>
-                <i className="negative-dot" />
-                Loss
-              </span>
-              <span>Zero with activity = breakeven</span>
-              <span>
-                <CalendarDays size={12} />
-                Select any day for details
-              </span>
-              {compact && (
-                <Link
-                  href={`/calendar?${new URLSearchParams({ month, mode, accounts: ids.join(","), basis, archived: archived ? "1" : "0" })}`}
-                >
-                  Full calendar →
-                </Link>
-              )}
-            </div>
           </>
-        )}
+        ) : !state.error ? (
+          <CalendarSkeleton month={month} weekStartsOn={weekStartsOn} />
+        ) : null}
       </motion.div>
+
       <Dialog
         open={!!selectedDay}
         onOpenChange={(open) => {
@@ -653,9 +639,7 @@ export function TradingCalendar({
           {details.error ? (
             <div role="alert">
               <p>{details.error}</p>
-              <Button onClick={() => refresh((n) => n + 1)}>
-                Retry day details
-              </Button>
+              <Button onClick={() => refresh()}>Retry day details</Button>
             </div>
           ) : !details.data ? (
             <p role="status">Loading day details…</p>
@@ -695,6 +679,9 @@ export function TradingCalendar({
                   <strong>{details.data.day?.count ?? 0}</strong>
                 </div>
               </div>
+              {mode === "real" && (
+                <h3 className="calendar-closed-heading">Closed portions</h3>
+              )}
               <Link
                 className="back-link"
                 href={`/trade-view?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}) })}`}
@@ -703,8 +690,8 @@ export function TradingCalendar({
               </Link>
               {mode === "real" && (
                 <p className="calendar-scope-note">
-                  Complete trades are not verified. Counts reflect matched
-                  portions, including partial realized activity.
+                  A trade closed in several parts can produce multiple records
+                  in your Tradovate report.
                 </p>
               )}
               {details.data.records.length ? (
@@ -736,7 +723,9 @@ export function TradingCalendar({
                       </p>
                       <p>
                         {r.partial ? "Partial daily contribution · " : ""}
-                        {r.status}
+                        {r.status === "Matched portions"
+                          ? "Closed portions"
+                          : r.status}
                       </p>
                       <p>
                         Daily gross {journalMoney(r.gross, true)} · fees{" "}
@@ -777,6 +766,6 @@ export function TradingCalendar({
           )}
         </DialogContent>
       </Dialog>
-    </Panel>
+    </section>
   );
 }

@@ -68,6 +68,13 @@ export function realizedPerformance(
           feeAmount === null ? null : new D(gross).minus(feeAmount).toFixed(),
         estimated: known.some((p) => fees[p.id].kind === "Estimated"),
         count: values.length,
+        grossWins: values.filter((p) => new D(p.grossPnl).gt(0)).length,
+        netWins:
+          feeAmount === null
+            ? null
+            : values.filter((p) =>
+                new D(p.grossPnl).minus(fees[p.id].amount!).gt(0),
+              ).length,
         cumulative: running.toFixed(),
       };
     });

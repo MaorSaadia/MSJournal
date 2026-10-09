@@ -87,7 +87,11 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
       soldTimestamp: "10/03/2026 16:01:00",
     }),
   ];
-  await page.goto("/imports");
+  await page.goto("/calendar?month=2026-10");
+  await expect(page.locator(".calendar-empty-note")).toContainText(
+    "No imported realized records",
+  );
+  await page.getByRole("link", { name: "Import Trades", exact: true }).click();
   await page.getByLabel("Performance CSV", { exact: true }).setInputFiles({
     name: "synthetic-calendar.csv",
     mimeType: "text/csv",
@@ -103,16 +107,22 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
     .getByRole("button", { name: "Confirm import", exact: true })
     .click();
   await page.waitForURL(/\/imports\/[0-9a-f-]+\?/);
-  await page.goto("/calendar?month=2026-10");
-  await expect(page.locator(".calendar-month-summary")).toContainText(
+  await page.getByRole("link", { name: "Calendar", exact: true }).click();
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
     "+$25.00",
   );
   await expect(page.locator(".calendar-month-summary")).toContainText(
     "1 / 1 / 1",
   );
+  await page
+    .getByRole("button", { name: "Calendar settings", exact: true })
+    .click();
   await expect(
-    page.getByLabel("Calendar P&L basis").locator('option[value="net"]'),
+    page
+      .getByLabel("Calendar P&L basis", { exact: true })
+      .locator('option[value="net"]'),
   ).toHaveJSProperty("disabled", true);
+  await page.keyboard.press("Escape");
   await page
     .locator('.calendar-grid-view button[aria-label^="Thursday, October 1,"]')
     .click();
@@ -124,6 +134,12 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
     "Closed quantity this day: 1",
   );
   await expect(page.getByRole("dialog")).toContainText("Unavailable");
+  await expect(
+    page.getByRole("heading", { name: "Closed portions", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("dialog")).toContainText(
+    "A trade closed in several parts can produce multiple records in your Tradovate report.",
+  );
   const drawerBox = await page.getByRole("dialog").boundingBox();
   expect(drawerBox!.y).toBeGreaterThanOrEqual(0);
   await page.getByRole("button", { name: "Previous day", exact: true }).click();
@@ -133,18 +149,22 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
   await expect(page.getByRole("dialog")).toContainText("+$40.00");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.getByLabel("Choose month and year").fill("2026-10");
-  await expect(page.locator(".calendar-month-summary")).toContainText(
+  await page
+    .getByRole("button", { name: "Choose month and year", exact: true })
+    .click();
+  await page.getByLabel("Calendar month", { exact: true }).selectOption("10");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
     "+$25.00",
   );
   await page.reload();
-  await expect(page.locator(".calendar-month-summary")).toContainText(
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
     "+$25.00",
   );
   await page
     .locator('.calendar-grid-view button[aria-label^="Friday, October 2,"]')
     .click();
-  await expect(page.getByRole("dialog")).toContainText("Matched portions");
+  await expect(page.getByRole("dialog")).toContainText("Closed portions");
   await expect(page.getByRole("dialog")).toContainText("$0.00");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -169,17 +189,29 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
       })
     ).status(),
   ).toBe(200);
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new CustomEvent("msjournal:data-updated", {
+        detail: { url: "/api/journal/fees" },
+      }),
+    ),
+  );
   await page
-    .getByRole("button", { name: "Refresh calendar", exact: true })
+    .getByRole("button", { name: "Calendar settings", exact: true })
     .click();
   await expect(
-    page.getByLabel("Calendar P&L basis").locator('option[value="net"]'),
+    page
+      .getByLabel("Calendar P&L basis", { exact: true })
+      .locator('option[value="net"]'),
   ).toHaveJSProperty("disabled", false);
-  await page.getByLabel("Calendar P&L basis").selectOption("net");
-  await expect(page.locator(".calendar-month-summary")).toContainText(
+  await page
+    .getByLabel("Calendar P&L basis", { exact: true })
+    .selectOption("net");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".calendar-basis-badge")).toContainText(
     "Estimated net P&L",
   );
-  await expect(page.locator(".calendar-month-summary")).toContainText(
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
     "+$22.00",
   );
   // Saved week preference and display zone change grouping without editing sources.
@@ -203,7 +235,7 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
   await expect(page.locator(".calendar-week-head > span").first()).toHaveText(
     "Mon",
   );
-  await expect(page.locator(".calendar-month-summary")).toContainText("−$7.00");
+  await expect(page.locator(".calendar-monthly-stats")).toContainText("−$7.00");
   expect(
     (
       await page.request.patch("/api/preferences", {
@@ -218,7 +250,7 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
     ).status(),
   ).toBe(200);
   await page.reload();
-  await expect(page.locator(".calendar-month-summary")).toContainText(
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
     "+$22.00",
   );
   await page.getByRole("button", { name: "Next month", exact: true }).click();
@@ -226,15 +258,15 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
     "No imported realized records",
   );
   await page.goBack();
-  await expect(page.locator(".calendar-month-summary")).toContainText(
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
     "+$22.00",
   );
-  await page.getByRole("button", { name: "Today", exact: true }).click();
-  await expect(page.getByLabel("Choose month and year")).toHaveValue(
-    new Intl.DateTimeFormat("sv-SE", {
-      timeZone: "Asia/Jerusalem",
+  await page.getByRole("button", { name: "This month", exact: true }).click();
+  await expect(page.locator(".calendar-month-title")).toContainText(
+    new Intl.DateTimeFormat("en", {
+      month: "long",
       year: "numeric",
-      month: "2-digit",
+      timeZone: "Asia/Jerusalem",
     }).format(new Date()),
   );
   await page.setViewportSize({ width: 1920, height: 1080 });
@@ -242,15 +274,84 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
     await page.evaluate((value) => localStorage.setItem("theme", value), theme);
     await page.reload();
     await expect(page.locator("html")).toHaveClass(new RegExp(theme));
-    await expect(page.locator(".calendar-month-summary")).toContainText(
+    await expect(page.locator(".calendar-monthly-stats")).toContainText(
       "+$22.00",
     );
     await page.screenshot({
-      path: `artifacts/day-five-calendar-${theme}.png`,
+      path: `artifacts/day-five-refined-calendar-${theme}.png`,
       fullPage: true,
       animations: "disabled",
     });
   }
+  // A persistent private-layout cache survives route remounts, and view stays in the URL.
+  await page.getByRole("button", { name: "Agenda", exact: true }).click();
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  let releaseReturn!: (value?: unknown) => void;
+  const returnGate = new Promise((resolve) => {
+    releaseReturn = resolve;
+  });
+  await page.route("**/api/calendar?**", async (route) => {
+    await returnGate;
+    await route.continue();
+  });
+  await page.getByRole("link", { name: "Calendar", exact: true }).click();
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
+    "+$22.00",
+  );
+  await expect(page.locator(".calendar-skeleton")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Agenda", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  releaseReturn();
+  await page.unroute("**/api/calendar?**");
+  let releaseOlder!: (value?: unknown) => void;
+  const olderGate = new Promise((resolve) => {
+    releaseOlder = resolve;
+  });
+  await page.route("**/api/calendar?**", async (route) => {
+    if (new URL(route.request().url()).searchParams.get("month") === "2027-01")
+      await olderGate;
+    await route.continue();
+  });
+  await page
+    .getByRole("button", { name: "Choose month and year", exact: true })
+    .click();
+  await page.getByLabel("Calendar year", { exact: true }).fill("");
+  await page
+    .getByLabel("Calendar year", { exact: true })
+    .pressSequentially("2027");
+  await page.getByLabel("Calendar month", { exact: true }).selectOption("01");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".calendar-skeleton")).toBeVisible();
+  await expect(page.locator(".calendar-monthly-stats")).not.toContainText(
+    "+$22.00",
+  );
+  await page.getByRole("button", { name: "Next month", exact: true }).click();
+  await expect(page.locator(".calendar-month-title")).toContainText(
+    "February 2027",
+  );
+  await expect(page.locator(".calendar-empty-note")).toContainText(
+    "No imported realized records",
+  );
+  const olderFinished = page.waitForResponse((response) =>
+    response.url().includes("month=2027-01"),
+  );
+  releaseOlder();
+  await olderFinished;
+  await expect(page.locator(".calendar-month-title")).toContainText(
+    "February 2027",
+  );
+  await page.unroute("**/api/calendar?**");
+  await page
+    .getByRole("button", { name: "Choose month and year", exact: true })
+    .click();
+  await page.getByLabel("Calendar year", { exact: true }).fill("2026");
+  await page.getByLabel("Calendar month", { exact: true }).selectOption("10");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Grid", exact: true }).click();
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
+    "+$22.00",
+  );
   await page
     .locator('.calendar-grid-view button[aria-label^="Thursday, October 1,"]')
     .click();
@@ -258,10 +359,11 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
     "Partial daily contribution",
   );
   await page.screenshot({
-    path: "artifacts/day-five-calendar-drawer.png",
+    path: "artifacts/day-five-refined-calendar-drawer.png",
     animations: "disabled",
   });
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Agenda", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   for (const theme of ["light", "dark"]) {
     await page.evaluate((value) => localStorage.setItem("theme", value), theme);
@@ -273,7 +375,7 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
       ),
     ).toBe(true);
     await page.screenshot({
-      path: `artifacts/day-five-calendar-mobile-${theme}.png`,
+      path: `artifacts/day-five-refined-calendar-mobile-${theme}.png`,
       fullPage: true,
       animations: "disabled",
     });
@@ -290,24 +392,38 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
     ),
   ).toBe(true);
   await page.screenshot({
-    path: "artifacts/day-five-calendar-mobile-drawer.png",
+    path: "artifacts/day-five-refined-calendar-mobile-drawer.png",
     animations: "disabled",
   });
   await page.keyboard.press("Escape");
   await page.goto("/?calMonth=2026-10");
-  await expect(page.locator(".calendar-month-summary")).toContainText(
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
     "+$25.00",
   );
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate((value) => localStorage.setItem("theme", value), theme);
+    await page.reload();
+    await expect(page.locator(".calendar-monthly-stats")).toContainText(
+      "+$25.00",
+    );
+    await page.screenshot({
+      path: `artifacts/day-five-refined-dashboard-${theme}.png`,
+      fullPage: true,
+      animations: "disabled",
+    });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/calendar?mode=demo&month=2026-03");
   await expect(page.locator(".demo-indicator")).toContainText("Demo data");
-  await expect(page.locator(".calendar-month-summary")).toContainText(
-    "Trades closed",
-  );
+  await expect(page.locator(".calendar-agenda-view")).toContainText("trade");
   await page.goto("/calendar?month=2026-10");
-  await expect(page.locator(".calendar-month-summary")).toContainText(
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
     "+$25.00",
   );
-  await page.locator(".calendar-account-filter summary").click();
+  await page
+    .getByRole("button", { name: "Calendar settings", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Clear selection", exact: true })
     .click();
@@ -317,10 +433,12 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
   await page
     .getByRole("checkbox", { name: "Calendar synthetic account", exact: true })
     .check();
-  await expect(page.locator(".calendar-month-summary")).toContainText(
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
     "+$25.00",
   );
-  await page.locator(".calendar-account-filter summary").click();
+  await page
+    .getByRole("button", { name: "Calendar settings", exact: true })
+    .click();
   expect(
     (
       await page.request.patch(`/api/trading-accounts/${accountId}`, {
@@ -329,14 +447,24 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
       })
     ).status(),
   ).toBe(200);
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new CustomEvent("msjournal:data-updated", {
+        detail: { url: "/api/trading-accounts" },
+      }),
+    ),
+  );
   await page.goto("/calendar?month=2026-10");
   await expect(page.locator(".calendar-empty-note")).toContainText(
     "Select an account",
   );
   await page
+    .getByRole("button", { name: "Calendar settings", exact: true })
+    .click();
+  await page
     .getByRole("checkbox", { name: "Include archived accounts", exact: true })
     .check();
-  await expect(page.locator(".calendar-month-summary")).toContainText(
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
     "+$25.00",
   );
   expect(
@@ -347,6 +475,7 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
       })
     ).status(),
   ).toBe(200);
+  await page.keyboard.press("Escape");
   simulatingServiceFailure = true;
   await page.route("**/api/calendar?**", (route) =>
     route.fulfill({
@@ -360,14 +489,14 @@ test("calendar partial exits, honest fees, URL navigation, isolation and respons
   await page
     .getByRole("button", { name: "Refresh calendar", exact: true })
     .click();
-  await expect(page.locator(".calendar-request-error")).toContainText(
-    "Calendar could not be loaded",
+  await expect(page.locator(".calendar-stale-notice")).toContainText(
+    "Showing saved results",
   );
   await expect(page.locator(".calendar-empty-note")).toHaveCount(0);
   await page.unroute("**/api/calendar?**");
   simulatingServiceFailure = false;
-  await page.getByRole("button", { name: "Try again", exact: true }).click();
-  await expect(page.locator(".calendar-month-summary")).toContainText(
+  await page.getByRole("button", { name: "Retry", exact: true }).click();
+  await expect(page.locator(".calendar-monthly-stats")).toContainText(
     "+$25.00",
   );
   const other = await browser.newContext();
