@@ -269,3 +269,57 @@ npm.cmd run test:browser -- browser-tests/day-six.spec.ts
 The browser scenario and database regression use disposable synthetic users with guarded cleanup. Existing private imports are not reprocessed for verification. Large-history load benchmarking and real complete-trade reconstruction remain outside the verified coverage. Work stops after Day 6.
 
 Day 6 verification passed 23 focused regressions plus the synthetic Chrome scenario, strict type checking, ESLint and the production build. Coverage includes combined server filters and numeric sorting across pages, full-result summaries, parent/portion reconciliation, closed-date versus selected-day activity, DST boundaries, unknown/zero/estimated fees, cross-user denial, record navigation across page boundaries, cached return while the API is unavailable, saved columns/density, explicit Demo separation, and desktop/mobile containment in both themes. Reviewed synthetic-only captures are `artifacts/day-six-1440-{light,dark}.png` and `artifacts/day-six-390-{light,dark}.png`. The read-only integrity check confirmed the existing 43 Performance sources still match their preserved raw values. No migration was applied and no private import was reprocessed.
+
+
+## Trade reviews (Day 7)
+
+Open a record from **Trade View**, or choose **Review** in a calendar day drawer. **Overview** retains the existing financial details; **Review** provides five optional plain-text notes, before/during/after emotion chips, built-in and private custom mistake tags, and optional plan adherence. **Screenshots** holds private chart references. The compact financial summary stays visible while writing. The review belongs to the whole parent record; calendar pencil indicators mean that at least one contributing record on that day has review content or was explicitly reviewed. They follow the saved timezone and visible account/filter scope, including records spanning days. Calendar return preserves its month and selected day.
+
+Notes preserve paragraphs, are safely rendered as text, and have a 5,000-character limit per field. Saves are debounced by 900 ms and serialized. **Save now** and retry are available; “Saved” appears only after a server acknowledgement. Edits made while a request is in flight remain current. Revision conflicts keep local input and offer comparison, explicit replacement with the saved version, or an explicitly confirmed save of your version. Failed saves keep input and warn before leaving. Private notes are not copied to localStorage. Opening an empty review does not create a database row.
+
+**Unreviewed** means no meaningful content and no explicit completion; **Draft** means notes, emotion/tag selections, plan assessment or ready images exist; **Reviewed** requires **Mark reviewed**. All fields remain optional. Later edits stay reviewed until **Return to draft**. Plan adherence is independent of profit; empty mistake selections mean unspecified. Custom tags support rename, archive and restore, case-insensitive uniqueness within the user's collection, and preserved historical archived assignments. Archived tags are hidden from new-selection defaults. Trade View has note/image indicators, an optional Review status column, review/content filters and advanced mistake, emotion stage/value and adherence filters across the full server-side selection. Review edits invalidate list/indicator metadata without recalculating calendar financial history. Demo reviews are deterministic and read-only.
+
+**Preservation:** reviews have stable IDs, account/owner-scoped foreign keys, an original immutable source-ID snapshot, and active source links. Unchanged source sets survive reprocessing and identical report uploads. A changed/split/merged group is conservatively detached and flagged; its notes, tags, state and images are kept, even if processing reused a derived record ID. The recovery link in Trade View/details opens `/trade-view/review-recovery`. Inspect the preserved source IDs and a current record, then explicitly attach the review to a record in its original account. A target with an existing review is rejected; no automatic copying or note merging occurs. Reassignment replaces active links while keeping the original snapshot. No manual financial regrouping is added.
+
+### Private screenshots
+
+The additive migration is `drizzle/0004_trade_reviews.sql`. It creates review, tag, source-association and attachment-metadata tables; it does not rewrite imports, fees, preferences or financial sources. After reviewing it, run `npm.cmd run db:migrate -- --reviewed` against the intended database. It was applied to the configured development database for this milestone.
+
+No object storage existed, so Day 7 adds one S3-compatible implementation using the [official AWS JavaScript SDK](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/javascript_s3_code_examples.html) and [Sharp](https://sharp.pixelplumbing.com/api-constructor/) for decoded image validation, metadata stripping and thumbnails. No bucket or paid service is provisioned. Missing credentials show a clear setup state; written reviews and tags still work.
+
+Set these **server-only** values in `.env.local` or your server's secret environment, then restart the application:
+
+| Variable | Value |
+| --- | --- |
+| `SCREENSHOT_S3_BUCKET` | Existing private bucket name |
+| `SCREENSHOT_S3_REGION` | Bucket region for AWS; `auto` for R2 |
+| `SCREENSHOT_S3_ACCESS_KEY_ID` | Dedicated access key scoped to this bucket |
+| `SCREENSHOT_S3_SECRET_ACCESS_KEY` | Its secret; never a `NEXT_PUBLIC_` variable |
+| `SCREENSHOT_S3_ENDPOINT` | Empty for AWS S3; `https://ACCOUNT_ID.r2.cloudflarestorage.com` for R2; HTTPS endpoint for other compatible storage |
+| `SCREENSHOT_S3_FORCE_PATH_STYLE` | `true` only if the endpoint requires path-style addressing; otherwise `false` |
+
+Keep the bucket private, disable public access/public URLs, and give the application's credential `s3:GetObject`, `s3:PutObject`, and `s3:DeleteObject` on `arn:aws:s3:::BUCKET/reviews/*` (or equivalent R2 object read/write permissions restricted to that bucket). Bucket listing is not required. The browser never contacts storage directly, so bucket CORS is not needed. Check encryption and retention settings appropriate to your chosen provider. Do not commit credentials or original chart files.
+
+File selection, drag/drop and focused image paste accept static PNG/JPEG/WebP only. The server validates actual bytes and decoded images, with **10 MiB per file, 10 attachments per record, 16,000 pixels per side and 40 megapixels total**. Original filenames are not used as keys. Images are decoded, rotated and re-encoded at high quality without metadata; 1,200 × 900 inside-fit WebP thumbnails preserve an appropriately detailed full-size view. The viewer supports 50–300% zoom, captions (500 characters), stage, ordering and confirmed removal. Limits are checked before upload and again during finalization; attachments appear only after both object writes and ready metadata succeed.
+
+Every image read/mutation verifies session, owner and parent scope. Authenticated image endpoints use `private, no-store`, vary on cookies, and bypass shared Next image optimization. URLs contain attachment IDs, never storage keys or credentials. Pending uploads and deletion markers form a durable cleanup ledger. **Retry pending removal / clean abandoned uploads** deletes pending uploads older than one hour and retries failed deletions (up to 50 per run), checks that ready attachments do not reference the object, and retries idempotently after partial storage failures. A pending deletion is hidden from the review even if object removal must be retried. Save review edits before changing images to avoid revision collisions.
+
+### Verification
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run build
+npm.cmd test -- tests/reviews.test.ts tests/trade-view.test.ts tests/calendar-cache.test.ts
+$env:MSJOURNAL_TEST_DISPOSABLE='true'
+npm.cmd test -- tests/journal-db.integration.test.ts
+$env:MSJOURNAL_BROWSER_ORIGIN='http://127.0.0.1:3100'
+npm.cmd run test:browser -- browser-tests/day-seven.spec.ts browser-tests/day-six.spec.ts
+npm.cmd run db:check:journal
+```
+
+Database and browser checks use guarded disposable synthetic users. Image service tests use real encoded PNG/JPEG/WebP bytes and mocked object transport; they do not claim a live S3/R2 upload. No storage credentials are configured for end-to-end storage verification. Real provider permissions, network failure behavior and live uploads remain unverified until configured. Work stops after Day 7; analytics are not included.
+
+Day 7 verification passed **33 automated checks** (28 focused unit/regression checks and 5 disposable database cases), both Day 6/7 Chrome scenarios, strict type checking, ESLint and the production build. Coverage includes paragraph reload, serialized rapid saves, delayed-read protection, failure retention, two-tab conflicts, reviewed/draft semantics, private/archived tags, real decoded-image validation, mocked storage publication/failure/cleanup and cross-user denial, source-set preservation and explicit recovery, selective cache invalidation, calendar return state, read-only demo reviews, desktop/mobile containment and both themes. Synthetic-only captures are `artifacts/day-seven-{1440,390}-{light,dark}.png`. The configured development database received the reviewed additive migration. Live S3/R2 uploads remain unverified because storage credentials are absent.
+
+The final read-only integrity check confirmed all **43 existing Performance sources** still match their preserved raw timestamps, quantities, prices, fill IDs and gross P&L. Verification did not reprocess private imports. The earlier uncommitted Day 5 calendar refinements remain preserved separately in the working tree.

@@ -17,6 +17,7 @@ import {
 import { requireUser } from "@/lib/session";
 import { NotFoundError } from "@/lib/accounts/service";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
+import { reconcileReviews } from "@/lib/reviews/service";
 import {
   PROCESSING_VERSION,
   processPortions,
@@ -180,6 +181,7 @@ async function publish(
   ) {
     throw new Error("Derived source reconciliation failed.");
   }
+  const publishedGroups:{id:string;sourceIds:string[]}[]=[];
   for (const group of groups) {
     const id =
       group.sourceIds
@@ -187,6 +189,7 @@ async function publish(
         .filter((id): id is string => !!id && !used.has(id))
         .sort()[0] ?? randomUUID();
     used.add(id);
+    publishedGroups.push({id,sourceIds:group.sourceIds});
     const total = feeTotal(group.sourceIds.map((s) => fees[s]));
     const { sourceIds, ...derived } = group;
     const values = {
@@ -210,6 +213,7 @@ async function publish(
         sourceIds.map((sourceId) => ({ ...scoped, recordId: id, sourceId })),
       );
   }
+  await reconcileReviews(tx,ownerId,accountId,publishedGroups);
   await tx
     .insert(journalProcessing)
     .values({

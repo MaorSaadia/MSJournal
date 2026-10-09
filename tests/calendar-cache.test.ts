@@ -1,6 +1,27 @@
 import { describe, it, expect, vi } from "vitest";
 import { CalendarQueryCache } from "@/lib/calendar/client-cache";
 describe("private calendar cache lifecycle", () => {
+  it("invalidates review metadata without discarding fresh financial calendar results", async () => {
+    const cache = new CalendarQueryCache();
+    await cache.fetch("user|/api/calendar|month", async () => ({
+      gross: "40",
+    }));
+    await cache.fetch("user|/api/journal|filter", async () => ({
+      review: "draft",
+    }));
+    await cache.fetch("user|/api/reviews/indicators|month", async () => ({
+      days: {},
+    }));
+    cache.invalidate(
+      (key) => key.includes("|/api/journal|") || key.includes("|/api/reviews/"),
+    );
+    expect(cache.read("user|/api/calendar|month").invalid).toBe(false);
+    expect(cache.read("user|/api/calendar|month").data).toEqual({
+      gross: "40",
+    });
+    expect(cache.read("user|/api/journal|filter").invalid).toBe(true);
+    expect(cache.read("user|/api/reviews/indicators|month").invalid).toBe(true);
+  });
   it("deduplicates requests, reuses fresh results on return, and revalidates stale selections in place", async () => {
     let now = 1000;
     const cache = new CalendarQueryCache(() => now),

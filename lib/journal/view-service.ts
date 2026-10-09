@@ -1,7 +1,9 @@
 import "server-only";
+import { demoReviews } from "@/data/demo-reviews";
+import { reviewState, hasNotes, mistakes } from "@/lib/reviews/model";
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { tradingAccounts, userPreferences } from "@/db/schema";
+import { tradingAccounts, userPreferences, reviewTags } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { NotFoundError } from "@/lib/accounts/service";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
@@ -21,6 +23,12 @@ export function demoRecords(): ViewRecord[] {
     const gross = new D(t.grossCents).div(100).toFixed(),
       fees = new D(t.commissionCents + t.feesCents).div(100).toFixed();
     return {
+      reviewStatus: demoReviews[t.id]
+        ? reviewState(demoReviews[t.id].fields, demoReviews[t.id].status, 0)
+        : "unreviewed",
+      hasNotes: !!demoReviews[t.id] && hasNotes(demoReviews[t.id].fields),
+      imageCount: 0,
+      reviewFields: demoReviews[t.id]?.fields,
       id: t.id,
       accountId: t.accountId,
       account: demoAccounts.find((a) => a.id === t.accountId)!.name,
@@ -115,6 +123,18 @@ export async function tradeView(
                   },
           };
         }
+        const tags = (
+          await tx
+            .select()
+            .from(reviewTags)
+            .where(eq(reviewTags.ownerId, user.id))
+        ).map(({ id, name, archived }) => ({ id, name, archived }));
+        if (
+          q.mistake &&
+          !mistakes.some(([id]) => id === q.mistake) &&
+          !tags.some((t) => t.id === q.mistake)
+        )
+          throw new NotFoundError();
         const bounds = rangeBounds(q, timezone);
         const within = sql`(${bounds.start}::timestamptz is null or greatest(p.bought_at,p.sold_at) >= ${bounds.start}::timestamptz)
         and (${bounds.end}::timestamptz is null or greatest(p.bought_at,p.sold_at) < ${bounds.end}::timestamptz)`;
@@ -128,6 +148,8 @@ export async function tradeView(
         const cte = sql`with projected as (
         select r.id::text, r.trading_account_id::text as "accountId", a.display_name as account, r.symbol,
           substring(r.symbol from '^([A-Z0-9]+?)[FGHJKMNQUVXZ][0-9]{1,4}$') as root,
+          case when rv.status='reviewed' then 'reviewed' when rv.has_content or coalesce(images.n,0)>0 then 'draft' else 'unreviewed' end as "reviewStatus",
+          coalesce(rv.has_notes,false) as "hasNotes", coalesce(images.n,0)::int as "imageCount", rv.fields as "reviewFields",
           r.direction, r.status, 'portion'::text as type, r.entry_at as entry, r.exit_at as exit,
           extract(epoch from r.exit_at-r.entry_at)::text as duration,
           contribution.quantity::text as quantity, r.entry_price::text as "entryPrice", r.exit_price::text as "exitPrice",
@@ -139,6 +161,8 @@ export async function tradeView(
             join journal_sources ls on ls.source_id=ip.performance_record_id and ls.owner_id=${user.id}
             where ip.owner_id=${user.id} and ls.record_id=r.id) as imported
         from journal_records r join trading_accounts a on a.id=r.trading_account_id and a.owner_id=${user.id}
+        left join journal_reviews rv on rv.record_id=r.id and rv.owner_id=${user.id} and rv.trading_account_id=r.trading_account_id and rv.needs_reassignment=false
+        left join lateral (select count(*)::int n from review_attachments ra where ra.review_id=rv.id and ra.owner_id=${user.id} and ra.state='ready') images on true
         cross join lateral (
           select sum(p.gross_pnl) as gross, sum(p.quantity) as quantity,
             case when count(f.amount)=count(*) then sum(f.amount) else null end as fees,
@@ -156,7 +180,11 @@ export async function tradeView(
             (${bounds.start}::timestamptz is null or r.exit_at>=${bounds.start}::timestamptz)
             and (${bounds.end}::timestamptz is null or r.exit_at<${bounds.end}::timestamptz)))
       ), filtered as (select * from projected where
-        (${q.symbol ?? null}::text is null or symbol=${q.symbol ?? null})
+        (${q.review}='all' or (${q.review}='notes' and "hasNotes") or (${q.review}='screenshots' and "imageCount">0) or "reviewStatus"=${q.review})
+        and (${q.mistake ?? null}::text is null or ("reviewFields"->'mistakes') ? ${q.mistake ?? null})
+        and (${q.emotion ?? null}::text is null or ("reviewFields"->'emotions'->${q.emotionStage}) ? ${q.emotion ?? null})
+        and (${q.adherence ?? null}::text is null or "reviewFields"->>'adherence'=${q.adherence ?? null})
+        and (${q.symbol ?? null}::text is null or symbol=${q.symbol ?? null})
         and (${q.root ?? null}::text is null or root=${q.root ?? null})
         and (${q.dateBasis}='activity' or ${q.direction}='all' or direction=${q.direction})
         and (${q.type} in ('all','portion'))
@@ -205,6 +233,14 @@ export async function tradeView(
         const pages = Math.max(1, Math.ceil(data.summary.count / q.size));
         return {
           ...data,
+          tags,
+          recoveryCount: Number(
+            (
+              await tx.execute(
+                sql`select count(*)::int n from journal_reviews where owner_id=${user.id} and needs_reassignment=true`,
+              )
+            ).rows[0].n,
+          ),
           userId: user.id,
           timezone,
           accounts,

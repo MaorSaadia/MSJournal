@@ -139,7 +139,7 @@ export function Shell({
           <div className="demo-avatar">MS</div>
           <div>
             <strong title={displayName}>{displayName}</strong>
-            <span>Private workspace · Day 5</span>
+            <span>Private workspace · Day 7</span>
           </div>
         </div>
       )}
@@ -207,7 +207,7 @@ export function Shell({
           <span>
             <Sprout size={13} /> A little reflection. A better next trade.
           </span>
-          <span>MSJournal · Day 5</span>
+          <span>MSJournal · Day 7</span>
         </footer>
       </div>
     </div>

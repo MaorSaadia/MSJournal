@@ -31,6 +31,10 @@ export async function cleanupUsers() {
       );
       for (const row of rows) {
         for (const table of [
+          "review_attachments",
+          "review_sources",
+          "journal_reviews",
+          "review_tags",
           "journal_sources",
           "journal_portion_fees",
           "journal_records",

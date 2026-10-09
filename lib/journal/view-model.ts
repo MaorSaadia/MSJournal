@@ -1,3 +1,9 @@
+import {
+  emotions,
+  stages,
+  type ReviewFields,
+  type ReviewTag,
+} from "@/lib/reviews/model";
 import { z } from "zod";
 import { daySchema, dayBounds } from "@/lib/calendar/model";
 import { D, sum } from "./processing";
@@ -26,6 +32,13 @@ export const viewSchema = z
     outcome: z.enum(["all", "profit", "loss", "zero"]).default("all"),
     type: z.enum(["all", "trade", "portion"]).default("all"),
     status: z.enum(["all", "matched", "review"]).default("all"),
+    review: z
+      .enum(["all", "unreviewed", "draft", "reviewed", "notes", "screenshots"])
+      .default("all"),
+    mistake: z.string().max(100).optional(),
+    emotion: z.enum(emotions).optional(),
+    emotionStage: z.enum(stages).default("before"),
+    adherence: z.enum(["followed", "partly", "not-followed"]).optional(),
     min: amount.optional(),
     max: amount.optional(),
     sort: z
@@ -60,6 +73,10 @@ export const viewSchema = z
   );
 export type ViewQuery = z.infer<typeof viewSchema>;
 export type ViewRecord = {
+  reviewStatus?: "unreviewed" | "draft" | "reviewed";
+  hasNotes?: boolean;
+  imageCount?: number;
+  reviewFields?: ReviewFields;
   id: string;
   accountId: string;
   account: string;
@@ -94,6 +111,8 @@ export type ViewSummary = {
   winRate: string | null;
 };
 export type TradeViewData = {
+  tags?: ReviewTag[];
+  recoveryCount?: number;
   userId: string;
   timezone: string;
   rows: ViewRecord[];
@@ -150,6 +169,16 @@ export function filterDemo(rows: ViewRecord[], q: ViewQuery, timezone: string) {
   const selected = rows.filter((r) => {
     const value = q.basis === "gross" ? r.gross : r.net;
     return (
+      (q.review === "all" ||
+        (q.review === "notes"
+          ? r.hasNotes
+          : q.review === "screenshots"
+            ? (r.imageCount ?? 0) > 0
+            : (r.reviewStatus ?? "unreviewed") === q.review)) &&
+      (!q.mistake || r.reviewFields?.mistakes.includes(q.mistake)) &&
+      (!q.emotion ||
+        r.reviewFields?.emotions[q.emotionStage].includes(q.emotion)) &&
+      (!q.adherence || r.reviewFields?.adherence === q.adherence) &&
       (!bounds.start || r.exit >= bounds.start) &&
       (!bounds.end || r.exit < bounds.end) &&
       (!q.symbol || r.symbol === q.symbol) &&

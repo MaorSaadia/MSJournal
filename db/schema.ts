@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import type { ReviewFields } from "@/lib/reviews/model";
 import {
   pgTable,
   text,
@@ -13,8 +14,163 @@ import {
   uniqueIndex,
   check,
   jsonb,
+  primaryKey,
   foreignKey,
 } from "drizzle-orm/pg-core";
+
+export const reviewTags = pgTable(
+  "review_tags",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    archived: boolean("archived").notNull().default(false),
+  },
+  (t) => [
+    uniqueIndex("review_tags_owner_name").on(t.ownerId, sql`lower(${t.name})`),
+    uniqueIndex("review_tags_scope").on(t.id, t.ownerId),
+    check("review_tags_name_length", sql`length(${t.name}) between 1 and 60`),
+  ],
+);
+export const journalReviews = pgTable(
+  "journal_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id").notNull(),
+    tradingAccountId: uuid("trading_account_id").notNull(),
+    recordId: uuid("record_id"),
+    originalRecordId: uuid("original_record_id").notNull(),
+    originalSymbol: text("original_symbol").notNull(),
+    originalSourceIds: uuid("original_source_ids").array().notNull(),
+    fields: jsonb("fields").$type<ReviewFields>().notNull(),
+    status: text("status")
+      .$type<"draft" | "reviewed">()
+      .notNull()
+      .default("draft"),
+    hasContent: boolean("has_content").notNull().default(false),
+    hasNotes: boolean("has_notes").notNull().default(false),
+    needsReassignment: boolean("needs_reassignment").notNull().default(false),
+    revision: integer("revision").notNull().default(1),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.tradingAccountId, t.ownerId],
+      foreignColumns: [tradingAccounts.id, tradingAccounts.ownerId],
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [t.recordId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        journalRecords.id,
+        journalRecords.ownerId,
+        journalRecords.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [t.originalRecordId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        journalRecords.id,
+        journalRecords.ownerId,
+        journalRecords.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+    uniqueIndex("journal_reviews_record").on(t.ownerId, t.recordId),
+    uniqueIndex("journal_reviews_scope").on(
+      t.id,
+      t.ownerId,
+      t.tradingAccountId,
+    ),
+    index("journal_reviews_owner_recovery").on(t.ownerId, t.needsReassignment),
+    check("journal_reviews_status", sql`${t.status} in ('draft','reviewed')`),
+    check("journal_reviews_revision", sql`${t.revision}>0`),
+  ],
+);
+export const reviewSources = pgTable(
+  "review_sources",
+  {
+    reviewId: uuid("review_id").notNull(),
+    sourceId: uuid("source_id").notNull(),
+    ownerId: text("owner_id").notNull(),
+    tradingAccountId: uuid("trading_account_id").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.reviewId, t.sourceId] }),
+    foreignKey({
+      columns: [t.reviewId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        journalReviews.id,
+        journalReviews.ownerId,
+        journalReviews.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [t.sourceId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        tradovatePerformance.id,
+        tradovatePerformance.ownerId,
+        tradovatePerformance.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+  ],
+);
+export const reviewAttachments = pgTable(
+  "review_attachments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reviewId: uuid("review_id").notNull(),
+    ownerId: text("owner_id").notNull(),
+    tradingAccountId: uuid("trading_account_id").notNull(),
+    objectKey: text("object_key").notNull(),
+    thumbnailKey: text("thumbnail_key").notNull(),
+    mime: text("mime").notNull(),
+    bytes: integer("bytes").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    caption: text("caption").notNull().default(""),
+    stage: text("stage").$type<"before" | "during" | "after" | null>(),
+    position: integer("position").notNull().default(0),
+    revision: integer("revision").notNull().default(1),
+    state: text("state")
+      .$type<"pending" | "ready" | "deleting">()
+      .notNull()
+      .default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.reviewId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        journalReviews.id,
+        journalReviews.ownerId,
+        journalReviews.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+    uniqueIndex("review_attachments_object").on(t.objectKey),
+    uniqueIndex("review_attachments_thumbnail").on(t.thumbnailKey),
+    index("review_attachments_review").on(t.ownerId, t.reviewId),
+    check(
+      "review_attachments_limits",
+      sql`${t.bytes}>0 and ${t.bytes}<=10485760 and ${t.width} between 1 and 16000 and ${t.height} between 1 and 16000 and ${t.width}::bigint*${t.height}<=40000000`,
+    ),
+    check(
+      "review_attachments_state",
+      sql`${t.state} in ('pending','ready','deleting')`,
+    ),
+    check(
+      "review_attachments_stage",
+      sql`${t.stage} is null or ${t.stage} in ('before','during','after')`,
+    ),
+  ],
+);
 
 export const user = pgTable("auth_users", {
   id: text("id").primaryKey(),

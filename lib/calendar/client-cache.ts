@@ -95,11 +95,15 @@ export class CalendarQueryCache {
     this.emit();
     return promise;
   }
-  invalidate() {
-    for (const r of this.requests.values()) r.controller.abort();
-    this.requests.clear();
+  invalidate(matches: (key: string) => boolean = () => true) {
+    for (const [key, r] of this.requests)
+      if (matches(key)) {
+        r.controller.abort();
+        this.requests.delete(key);
+      }
     for (const [key, value] of this.entries)
-      this.entries.set(key, { ...value, pending: false, invalid: true });
+      if (matches(key))
+        this.entries.set(key, { ...value, pending: false, invalid: true });
     this.emit();
   }
   clear() {

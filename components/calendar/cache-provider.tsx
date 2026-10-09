@@ -47,8 +47,18 @@ export function CalendarCacheProvider({
   }, [identity]);
   useEffect(() => {
     const mutate = (event: Event) => {
-      cache.invalidate();
-      window.dispatchEvent(new Event("msjournal:calendar-refresh"));
+      const reviews = (
+        event as CustomEvent<{ url?: string }>
+      ).detail?.url?.startsWith("/api/reviews");
+      cache.invalidate(
+        reviews
+          ? (key) =>
+              key.includes("|/api/journal|") || key.includes("|/api/reviews/")
+          : undefined,
+      );
+      window.dispatchEvent(
+        new CustomEvent("msjournal:calendar-refresh", { detail: { reviews } }),
+      );
       if (
         (event as CustomEvent<{ url?: string }>).detail?.url ===
         "/api/preferences"
@@ -155,7 +165,12 @@ export function usePrivateRequest<
   };
   useEffect(() => {
     if (!key || query === null) return;
-    const handler = () =>
+    const handler = (event: Event) => {
+      if (
+        endpoint === "/api/calendar" &&
+        (event as CustomEvent<{ reviews?: boolean }>).detail?.reviews
+      )
+        return;
       void cache.fetch(
         key,
         async (signal) => {
@@ -177,6 +192,7 @@ export function usePrivateRequest<
         },
         true,
       );
+    };
     window.addEventListener("msjournal:calendar-refresh", handler);
     return () =>
       window.removeEventListener("msjournal:calendar-refresh", handler);

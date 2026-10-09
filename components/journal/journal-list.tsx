@@ -18,6 +18,7 @@ import { D } from "@/lib/journal/processing";
 import { journalMoney } from "@/lib/journal/calculations";
 import { journalTimestamp } from "@/lib/timezones";
 
+import { emotions, stages, mistakes } from "@/lib/reviews/model";
 const columns = [
   ["exit", "Close time"],
   ["account", "Account"],
@@ -35,9 +36,15 @@ const columns = [
   ["status", "Grouping status"],
   ["feeKind", "Fee source"],
   ["imported", "Imported"],
+  ["reviewStatus", "Review status"],
 ] as const;
 const defaults = columns.slice(0, 11).map((c) => c[0]) as string[];
 const chipLabels: Record<string, string> = {
+  review: "Review",
+  mistake: "Mistake",
+  emotion: "Emotion",
+  emotionStage: "Emotion stage",
+  adherence: "Plan adherence",
   accounts: "Accounts",
   archived: "Archived accounts",
   start: "From",
@@ -432,10 +439,44 @@ export function JournalList() {
               ["trade", "Complete trades"],
               ["portion", "Closed portions"],
             ])}
-            {control("status", "Grouping / review", [
+            {control("status", "Grouping status", [
               ["all", "All statuses"],
               ["matched", "Matched portions"],
               ["review", "Needs review"],
+            ])}
+            {control("review", "Review status", [
+              ["all", "All reviews"],
+              ["unreviewed", "Unreviewed"],
+              ["draft", "Draft"],
+              ["reviewed", "Reviewed"],
+              ["notes", "Has notes"],
+              ["screenshots", "Has screenshots"],
+            ])}
+            {control("mistake", "Mistake tag", [
+              ["", "Any mistake"],
+              ...mistakes.map(([id, name]) => [id, name] as [string, string]),
+              ...(data?.tags ?? []).map(
+                (t) =>
+                  [t.id, t.name + (t.archived ? " · Archived" : "")] as [
+                    string,
+                    string,
+                  ],
+              ),
+            ])}
+            {control(
+              "emotionStage",
+              "Emotion stage",
+              stages.map((s) => [s, s]),
+            )}
+            {control("emotion", "Emotion", [
+              ["", "Any emotion"],
+              ...emotions.map((e) => [e, e] as [string, string]),
+            ])}
+            {control("adherence", "Plan adherence", [
+              ["", "Any plan adherence"],
+              ["followed", "Followed my plan"],
+              ["partly", "Partly followed my plan"],
+              ["not-followed", "Did not follow my plan"],
             ])}
             <label className="field-label">
               Minimum P&L
@@ -494,6 +535,13 @@ export function JournalList() {
           </div>
         </details>
       </div>
+      {!!data?.recoveryCount && (
+        <p className="review-setup">
+          <Link href="/trade-view/review-recovery">
+            {data.recoveryCount} review(s) need reassignment after processing →
+          </Link>
+        </p>
+      )}
       <div className="tv-chips">
         {[...search.entries()]
           .filter(
@@ -510,6 +558,11 @@ export function JournalList() {
                 "outcome",
                 "type",
                 "status",
+                "review",
+                "mistake",
+                "emotion",
+                "emotionStage",
+                "adherence",
                 "min",
                 "max",
                 "dateBasis",
@@ -537,7 +590,11 @@ export function JournalList() {
                     .join(", ") || "None"
                 : key === "archived"
                   ? "Included"
-                  : (chipValues[value] ?? value)}{" "}
+                  : key === "mistake"
+                    ? (mistakes.find(([id]) => id === value)?.[1] ??
+                      data?.tags?.find((t) => t.id === value)?.name ??
+                      "Mistake tag")
+                    : (chipValues[value] ?? value)}{" "}
               ×
             </button>
           ))}
@@ -681,7 +738,16 @@ export function JournalList() {
                                 : undefined
                           }
                         >
-                          {cell(r, key)}
+                          {key === "reviewStatus" ? (
+                            <span
+                              className={`review-status ${r.reviewStatus ?? "unreviewed"}`}
+                            >
+                              {r.reviewStatus ?? "unreviewed"}
+                            </span>
+                          ) : (
+                            cell(r, key)
+                          )}
+                          {key === "symbol" && <ReviewMarks record={r} />}
                           {key === "symbol" && (
                             <small className="tv-outcome">
                               {(q.basis === "gross" ? r.gross : r.net) === null
@@ -741,6 +807,7 @@ export function JournalList() {
           >
             <div>
               <strong>{r.symbol}</strong>
+              <ReviewMarks record={r} />
               <span>
                 {journalMoney(q.basis === "gross" ? r.gross : r.net, true)}
               </span>
@@ -831,5 +898,25 @@ export function JournalList() {
         </details>
       )}
     </div>
+  );
+}
+
+function ReviewMarks({ record }: { record: ViewRecord }) {
+  return (
+    <span className="review-marks">
+      {record.hasNotes && (
+        <span title="Has trade notes" aria-label="Has trade notes">
+          ✎
+        </span>
+      )}
+      {!!record.imageCount && (
+        <span
+          title={`${record.imageCount} screenshot(s)`}
+          aria-label="Has screenshots"
+        >
+          ▧
+        </span>
+      )}
+    </span>
   );
 }

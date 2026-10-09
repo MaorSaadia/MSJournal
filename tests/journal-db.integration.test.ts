@@ -25,6 +25,45 @@ import {
 } from "@/lib/journal/service";
 import { realizedPerformance } from "@/lib/journal/calculations";
 import { D, sum } from "@/lib/journal/processing";
+import {
+  getReview,
+  saveReview,
+  saveReviewTag,
+  listReviewTags,
+  recoveryReviews,
+  reassignReview,
+  uploadScreenshot,
+  screenshotContent,
+  editScreenshot,
+  reorderScreenshots,
+  removeScreenshot,
+  cleanupMyScreenshots,
+} from "@/lib/reviews/service";
+import { emptyFields } from "@/lib/reviews/model";
+import { reviewIndicators } from "@/lib/reviews/indicators";
+import sharp from "sharp";
+const objects = vi.hoisted(() => ({
+  bytes: new Map<string, Buffer>(),
+  fail: false,
+}));
+vi.mock("@/lib/reviews/storage", () => ({
+  storageEnabled: () => true,
+  objectStorage: async () => ({
+    put: async (key: string, bytes: Buffer) => {
+      if (objects.fail) throw new Error("Injected storage failure");
+      objects.bytes.set(key, bytes);
+    },
+    get: async (key: string) => {
+      const bytes = objects.bytes.get(key);
+      if (!bytes) throw new Error("Missing object");
+      return bytes;
+    },
+    remove: async (key: string) => {
+      if (objects.fail) throw new Error("Injected removal failure");
+      objects.bytes.delete(key);
+    },
+  }),
+}));
 import { calendarData } from "@/lib/calendar/service";
 import { tradeView } from "@/lib/journal/view-service";
 import type { CalendarMonth, CalendarDetails } from "@/lib/calendar/model";
@@ -37,8 +76,8 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
       emails = users.map((id) => `msjournal-test-${id}@example.invalid`);
     let db: ReturnType<(typeof import("@/db/client"))["getDb"]>,
       close: () => Promise<void>;
-    const options = () => ({
-      accountId: accounts[0],
+    const options = (accountId = accounts[0]) => ({
+      accountId,
       timezone: "Asia/Jerusalem",
       confirmOrders: true,
       confirmPerformance: true,
@@ -76,6 +115,7 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
     async function importRows(
       rows: Record<string, string>[],
       type: "performance" | "orders" = "performance",
+      accountId = accounts[0],
     ) {
       const files = () => [
         parseReport(
@@ -85,9 +125,9 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
           "Asia/Jerusalem",
         ),
       ];
-      const preview = await previewImport(options(), files());
+      const preview = await previewImport(options(accountId), files());
       expect(preview.canConfirm).toBe(true);
-      return confirmImport(options(), files(), preview.token!);
+      return confirmImport(options(accountId), files(), preview.token!);
     }
     beforeAll(async () => {
       const environment = process.env.NODE_ENV;
@@ -163,6 +203,10 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
           const safe = verified.map((u) => u.id);
           if (!safe.length) return;
           for (const table of [
+            schema.reviewAttachments,
+            schema.reviewSources,
+            schema.journalReviews,
+            schema.reviewTags,
             schema.journalSources,
             schema.journalPortionFees,
             schema.journalRecords,
@@ -361,7 +405,7 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
       } finally {
         await archiveTradingAccount(accounts[0], false);
       }
-    }, 60000);
+    }, 120000);
     it("rejects forged account and record IDs for processing, details and all fee mutations", async () => {
       const data = await getJournal();
       state.actor = users[1];
@@ -484,5 +528,214 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
       await processAccount(accounts[0]);
       expect((await getJournal()).states[0].status).toBe("Ready");
     }, 30000);
+    it("saves private reviews, handles versions and tags, authorizes images, and recovers changed source groups", async () => {
+      state.actor = users[0];
+      const reviewAccount = randomUUID();
+      await db
+        .insert(schema.tradingAccounts)
+        .values({
+          id: reviewAccount,
+          ownerId: users[0],
+          displayName: "Synthetic review account",
+          stage: "Personal",
+          nominalSize: "50000",
+          brokerIdentifier: "SYNTHETIC-REVIEW",
+        });
+      const importReviewRows = (rows: Record<string, string>[]) =>
+        importRows(rows, "performance", reviewAccount);
+      const original = performance({
+        buyFillId: "review-entry",
+        sellFillId: "review-exit",
+        pnl: "-12",
+        boughtTimestamp: "10/06/2026 14:00:00",
+        soldTimestamp: "10/06/2026 14:01:00",
+      });
+      await importReviewRows([original]);
+      await processAccount(reviewAccount);
+      let row = (
+        await tradeView({
+          accounts: reviewAccount,
+          archived: "1",
+          start: "2026-10-06",
+          end: "2026-10-06",
+        })
+      ).rows[0];
+      expect((await getReview(row.id)).id).toBeNull();
+      const tag = await saveReviewTag({ name: "Wait for confirmation" });
+      await expect(
+        saveReviewTag({ name: "WAIT FOR CONFIRMATION" }),
+      ).rejects.toThrow("already exists");
+      const fields = {
+        ...emptyFields(),
+        lesson: "Wait patiently.\n\nAccept a planned loss.",
+        adherence: "followed" as const,
+        mistakes: [tag.id],
+        emotions: { before: ["Calm" as const], during: [], after: [] },
+      };
+      let saved = await saveReview({
+        recordId: row.id,
+        revision: 0,
+        status: "draft",
+        fields,
+      });
+      expect(saved.revision).toBe(1);
+      expect((await getReview(row.id)).fields.lesson).toBe(fields.lesson);
+      await expect(
+        saveReview({ recordId: row.id, revision: 0, status: "draft", fields }),
+      ).rejects.toThrow("changed");
+      expect(
+        (
+          await tradeView({
+            accounts: reviewAccount,
+            archived: "1",
+            review: "draft",
+            mistake: tag.id,
+            emotion: "Calm",
+            emotionStage: "before",
+            adherence: "followed",
+          })
+        ).rows.map((r) => r.id),
+      ).toContain(row.id);
+      await saveReviewTag({
+        id: tag.id,
+        name: "Wait for confirmation renamed",
+        archived: true,
+      });
+      saved = await saveReview({
+        recordId: row.id,
+        revision: saved.revision,
+        status: "reviewed",
+        fields,
+      });
+      expect(
+        (
+          await tradeView({
+            accounts: reviewAccount,
+            archived: "1",
+            review: "reviewed",
+          })
+        ).rows.map((r) => r.id),
+      ).toContain(row.id);
+      expect(
+        (
+          await reviewIndicators({
+            month: "2026-10",
+            accounts: reviewAccount,
+            archived: "1",
+          })
+        ).days["2026-10-06"],
+      ).toBe(1);
+      const png = await sharp({
+        create: {
+          width: 1400,
+          height: 800,
+          channels: 3,
+          background: "#059669",
+        },
+      })
+        .png()
+        .toBuffer();
+      let images = await uploadScreenshot(row.id, png);
+      const image = images.images[0];
+      expect(images.images).toHaveLength(1);
+      expect(objects.bytes.size).toBe(2);
+      expect(
+        (await screenshotContent(image.id, false)).bytes.length,
+      ).toBeGreaterThan(0);
+      await editScreenshot({
+        id: image.id,
+        revision: image.revision,
+        caption: "Entry chart",
+        stage: "before",
+      });
+      images = await uploadScreenshot(row.id, png);
+      images = await reorderScreenshots({
+        reviewId: images.id,
+        revision: images.revision,
+        ids: images.images.map((i) => i.id).reverse(),
+      });
+      expect(images.images[1].caption).toBe("Entry chart");
+      state.actor = users[1];
+      expect(await listReviewTags()).toEqual([]);
+      await expect(getReview(row.id)).rejects.toThrow("not found");
+      await expect(
+        saveReview({ recordId: row.id, revision: 0, status: "draft", fields }),
+      ).rejects.toThrow("not found");
+      await expect(screenshotContent(image.id, false)).rejects.toThrow(
+        "not found",
+      );
+      await expect(removeScreenshot(image.id)).rejects.toThrow("not found");
+      await expect(
+        editScreenshot({
+          id: image.id,
+          revision: 2,
+          caption: "stolen",
+          stage: null,
+        }),
+      ).rejects.toThrow("not found");
+      await expect(uploadScreenshot(row.id, png)).rejects.toThrow("not found");
+      await expect(
+        saveReviewTag({ id: tag.id, name: "stolen" }),
+      ).rejects.toThrow("not found");
+      state.actor = users[0];
+      const snapshot = await getReview(row.id);
+      await processAccount(reviewAccount);
+      expect(await getReview(row.id)).toEqual(snapshot);
+      await importReviewRows([original]);
+      await processAccount(reviewAccount);
+      expect((await getReview(row.id)).id).toBe(snapshot.id);
+      await importReviewRows([
+        performance({
+          buyFillId: "review-entry",
+          sellFillId: "review-new-exit",
+          pnl: "8",
+          boughtTimestamp: "10/06/2026 14:00:00",
+          soldTimestamp: "10/06/2026 14:02:00",
+        }),
+      ]);
+      await processAccount(reviewAccount);
+      const recovery = (await recoveryReviews()).find(
+        (r) => r.id === snapshot.id,
+      )!;
+      expect(recovery.needsReassignment).toBe(true);
+      expect(recovery.fields).toEqual(snapshot.fields);
+      expect(recovery.images).toHaveLength(2);
+      expect(recovery.originalSourceIds).toHaveLength(1);
+      row = (
+        await tradeView({
+          accounts: reviewAccount,
+          archived: "1",
+          start: "2026-10-06",
+          end: "2026-10-06",
+        })
+      ).rows[0];
+      expect((await getReview(row.id)).id).toBeNull();
+      const reassigned = await reassignReview({
+        reviewId: recovery.id,
+        recordId: row.id,
+        revision: recovery.revision,
+      });
+      expect(reassigned.fields).toEqual(fields);
+      expect(reassigned.images).toHaveLength(2);
+      await processAccount(reviewAccount);
+      expect((await getReview(row.id)).id).toBe(reassigned.id);
+      objects.fail = true;
+      await expect(uploadScreenshot(row.id, png)).rejects.toThrow(
+        "Upload failed",
+      );
+      expect((await getReview(row.id)).images).toHaveLength(2);
+      await expect(removeScreenshot(image.id)).rejects.toThrow();
+      expect((await getReview(row.id)).images).toHaveLength(1);
+      objects.fail = false;
+      await cleanupMyScreenshots();
+      expect(objects.bytes.size).toBe(2);
+      await expect(screenshotContent(image.id, false)).rejects.toThrow(
+        "not found",
+      );
+      await removeScreenshot(
+        reassigned.images.find((i) => i.id !== image.id)!.id,
+      );
+      expect(objects.bytes.size).toBe(0);
+    }, 120000);
   },
 );

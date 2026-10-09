@@ -41,7 +41,7 @@ import {
 } from "./model";
 import { accounts as demoAccounts, trades as demoTrades } from "@/data/demo";
 
-const requestSchema = z
+export const requestSchema = z
   .object({
     month: monthSchema,
     mode: z.enum(["real", "demo"]).default("real"),

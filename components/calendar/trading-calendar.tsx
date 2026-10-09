@@ -17,6 +17,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Panel, Help } from "@/components/dashboard/panel";
+import { usePrivateRequest } from "./cache-provider";
 import { requestJson } from "@/lib/client-api";
 import { journalMoney } from "@/lib/journal/calculations";
 import { journalTimestamp } from "@/lib/timezones";
@@ -141,6 +142,7 @@ export function TradingCalendar({
   }).toString();
   const state = useCalendarRequest<CalendarMonth>(query, revision),
     data = state.data;
+  const reviewIndicators = usePrivateRequest<import("@/lib/reviews/indicators").ReviewIndicators>(query,"/api/reviews/indicators");
   const details = useCalendarRequest<CalendarDetails>(
     selectedDay ? query + `&day=${selectedDay}` : null,
     revision,
@@ -157,7 +159,10 @@ export function TradingCalendar({
     else window.history.replaceState(null, "", url);
   }
   useEffect(() => {
-    const handler = () => refresh((n) => n + 1);
+    const handler = (event?: Event) => {
+      if ((event as CustomEvent<{url?:string}> | undefined)?.detail?.url?.startsWith("/api/reviews")) return;
+      refresh((n) => n + 1);
+    };
     const visible = () => {
       if (document.visibilityState === "visible") handler();
     };
@@ -223,6 +228,7 @@ export function TradingCalendar({
         <span className="day-number">
           {agenda ? dateLabel(date) : Number(date.slice(-2))}
           {date === data?.today && <small>Today</small>}
+          {inMonth && !!reviewIndicators.data?.days[date] && <span className="calendar-review-dot" title="Trade reviews saved" aria-label="Trade reviews saved">✎</span>}
         </span>
         {inMonth && (
           <>
@@ -739,11 +745,19 @@ export function TradingCalendar({
                         {journalMoney(r.net, true)}
                       </p>
                       {r.href && (
+                        <>
                         <Link
                           href={`/trade-view/${r.id}?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}), from: `${pathname}?${search}` })}`}
                         >
                           View full record →
                         </Link>
+                        <Link
+                          href={`/trade-view/${r.id}?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, tab: "review", dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}), from: `${pathname}?${search}` })}`}
+                        >
+                          Review →
+                        </Link>
+                        <p className="small muted">This review belongs to the whole record, including contributions on other days.</p>
+                        </>
                       )}
                     </article>
                   ))}

@@ -13,6 +13,7 @@ export function DetailNavigation({ id }: { id: string }) {
       : "/trade-view";
   const params = new URLSearchParams(search);
   params.delete("from");
+  params.delete("tab");
   params.set("record", id);
   const valid = viewSchema.safeParse(Object.fromEntries(params)).success;
   const tableOrigin = safeFrom.startsWith("/trade-view");
