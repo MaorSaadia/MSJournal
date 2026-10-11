@@ -7,6 +7,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Cell,
+  ZAxis,
+  ReferenceDot,
   ScatterChart,
   Scatter,
   ReferenceLine,
@@ -14,7 +17,7 @@ import {
 import { useReducedMotion } from "motion/react";
 import { journalMoney } from "@/lib/journal/calculations";
 import { journalTimestamp } from "@/lib/timezones";
-import type { BalancePoint } from "@/lib/balances/model";
+import type { CashAdjustment, BalancePoint } from "@/lib/balances/model";
 import type { DashboardData } from "@/lib/dashboard/service";
 const axis = {
   tick: { fill: "var(--muted-foreground)", fontSize: 10 },
@@ -32,10 +35,14 @@ export function BalanceChart({
   points,
   entering,
   start,
+  adjustments,
+  timezone,
 }: {
   points: BalancePoint[];
   entering: string;
   start: string;
+  adjustments: CashAdjustment[];
+  timezone: string;
 }) {
   const reduced = useReducedMotion(),
     rows = [
@@ -46,6 +53,16 @@ export function BalanceChart({
         value: Number(p.value),
       })),
     ];
+  const cashDates = new Set(
+    adjustments.map((a) =>
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date(a.effectiveAt)),
+    ),
+  );
   return (
     <div
       className="chart-container"
@@ -55,7 +72,18 @@ export function BalanceChart({
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={rows}>
           <CartesianGrid vertical={false} stroke="var(--border)" />
-          <XAxis dataKey="date" {...axis} minTickGap={35} />
+          <XAxis
+            dataKey="date"
+            {...axis}
+            minTickGap={35}
+            tickFormatter={(date) =>
+              new Intl.DateTimeFormat("en-US", {
+                timeZone: "UTC",
+                month: "short",
+                day: "numeric",
+              }).format(new Date(date.slice(0, 10) + "T12:00:00Z"))
+            }
+          />
           <YAxis
             {...axis}
             width={65}
@@ -74,10 +102,22 @@ export function BalanceChart({
               ) : null;
             }}
           />
+          {rows
+            .filter((p) => cashDates.has(p.date))
+            .map((p) => (
+              <ReferenceDot
+                key={p.date}
+                x={p.date}
+                y={p.value}
+                r={3}
+                fill="var(--violet)"
+                stroke="var(--card)"
+              />
+            ))}
           <Line
             dataKey="value"
             type="linear"
-            stroke="var(--primary)"
+            stroke="var(--violet)"
             dot={false}
             isAnimationActive={!reduced}
             animationDuration={250}
@@ -109,12 +149,24 @@ export function PortionTimeChart({
             {...axis}
             type="number"
             dataKey="minutes"
-            domain={[0, 1440]}
-            ticks={[0, 360, 720, 1080, 1440]}
+            domain={[
+              Math.max(
+                0,
+                Math.floor(Math.min(...rows.map((p) => p.minutes)) / 60) * 60 -
+                  30,
+              ),
+              Math.min(
+                1440,
+                Math.ceil(Math.max(...rows.map((p) => p.minutes)) / 60) * 60 +
+                  30,
+              ),
+            ]}
             tickFormatter={(v) =>
               `${Math.floor(v / 60)
                 .toString()
-                .padStart(2, "0")}:00`
+                .padStart(2, "0")}:${Math.round(v % 60)
+                .toString()
+                .padStart(2, "0")}`
             }
           />
           <YAxis
@@ -128,6 +180,7 @@ export function PortionTimeChart({
               (max: number) => Math.max(0, max),
             ]}
           />
+          <ZAxis range={[24, 24]} />
           <ReferenceLine y={0} stroke="var(--muted-foreground)" />
           <Tooltip
             content={({ active, payload }) => {
@@ -151,9 +204,23 @@ export function PortionTimeChart({
           <Scatter
             data={rows}
             fill="var(--violet)"
+            fillOpacity={0.7}
             isAnimationActive={!reduced}
             onClick={(_, index) => onInspect(rows[index].recordId)}
-          />
+          >
+            {rows.map((p) => (
+              <Cell
+                key={p.id}
+                fill={
+                  p.result > 0
+                    ? "var(--positive)"
+                    : p.result < 0
+                      ? "var(--negative)"
+                      : "var(--violet)"
+                }
+              />
+            ))}
+          </Scatter>
         </ScatterChart>
       </ResponsiveContainer>
     </div>

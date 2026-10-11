@@ -258,3 +258,534 @@
     transition: none !important;
   }
 }
+
+/* Reference proportions are local to the dashboard, including its surrounding shell. */
+.app-shell:has(.dashboard) {
+  --shadow: 0 3px 10px #00000006;
+}
+.dark .app-shell:has(.dashboard) {
+  --background: #101112;
+  --card: #191a1c;
+  --rail: #191a1c;
+  --foreground: #f4f4f5;
+  --card-foreground: #f4f4f5;
+  --border: #292c30;
+  --input: #393c42;
+  --muted: #232527;
+  --muted-foreground: #9ca3af;
+  --track: #303236;
+  --popover: #202123;
+  --popover-foreground: #f4f4f5;
+  --secondary: #232527;
+  --secondary-foreground: #f4f4f5;
+  --positive: #36b995;
+  --negative: #ed7883;
+  --violet: #a78bfa;
+  --shadow: 0 3px 12px #00000016;
+  background: var(--background);
+  color: var(--foreground);
+}
+.dashboard {
+  padding: 0 18px 24px;
+}
+.dashboard .page-header {
+  min-height: 58px;
+  margin: 0 -18px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+.dashboard h1 {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+.dashboard .dashboard-controls > button {
+  box-shadow: none;
+  font-size: 12px;
+  background: transparent;
+}
+.dashboard .dashboard-intro {
+  justify-content: flex-start;
+  gap: 12px;
+  margin: 14px 0 8px;
+  font-size: 12px;
+}
+.dashboard-basis-label {
+  font-size: 12px;
+  gap: 6px;
+}
+.dashboard-basis-label select {
+  padding: 5px 7px;
+  font-size: 12px;
+}
+.dashboard-settings {
+  margin-left: auto;
+  position: relative;
+  font-size: 12px;
+}
+.dashboard-settings > summary {
+  cursor: pointer;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.dashboard-settings > div {
+  position: absolute;
+  right: 0;
+  top: 38px;
+  z-index: 20;
+  width: 265px;
+  padding: 16px;
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px #0002;
+  display: grid;
+  gap: 14px;
+}
+.dashboard-scope-note {
+  margin: 0 0 14px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.dashboard-coverage summary {
+  cursor: pointer;
+}
+.dashboard-coverage > span {
+  display: block;
+  padding: 8px 0;
+  max-width: 620px;
+}
+.dashboard .metric-grid {
+  gap: 14px;
+}
+.dashboard .metric-card {
+  height: 116px;
+  min-height: 116px;
+  padding: 16px;
+  display: block;
+  border-radius: 7px;
+}
+.dashboard .metric-label {
+  font-size: 12px;
+  gap: 4px;
+}
+.dashboard .metric-body {
+  min-height: 54px;
+  gap: 10px;
+}
+.dashboard .metric-value {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.7px;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.dashboard .metric-foot {
+  font-size: 11px;
+  margin: 0;
+}
+.outcome-gauge {
+  width: 84px;
+  flex: 0 0 84px;
+  margin-top: -15px;
+}
+.outcome-gauge svg {
+  width: 84px;
+  display: block;
+}
+.outcome-counts {
+  display: flex;
+  justify-content: space-between;
+  margin: -4px 4px 0;
+  font-size: 11px;
+}
+.violet-text {
+  color: var(--violet);
+}
+.dashboard .profit-ring {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  margin-top: -12px;
+  padding: 5px;
+}
+.dashboard .profit-ring span {
+  background: var(--card);
+}
+.average-visual {
+  flex: 1;
+  min-width: 0;
+  margin-left: 8px;
+}
+.dashboard .comparison-bar {
+  height: 7px;
+  background: var(--track);
+  margin: 0;
+}
+.dashboard .comparison-bar span {
+  min-width: 0;
+  border-radius: 0;
+}
+.dashboard .comparison-values {
+  justify-content: space-between;
+  padding: 7px 0 0;
+  gap: 6px;
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+.dashboard .analysis-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(320px, auto);
+  gap: 14px;
+  align-items: start;
+}
+.dashboard .analysis-grid > .panel {
+  min-height: 320px;
+}
+.dashboard .panel {
+  border-radius: 7px;
+}
+.dashboard .panel-header {
+  height: 47px;
+  padding: 0 14px;
+}
+.dashboard .panel-header h2 {
+  font-size: 13px;
+  font-weight: 550;
+  white-space: normal;
+}
+.dashboard .panel-action a {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.dashboard .report-chart,
+.dashboard .chart-container {
+  height: 258px;
+  padding: 8px 8px 0 0;
+  margin: 0;
+}
+.real-profile-chart {
+  height: 230px;
+  min-width: 0;
+}
+.profile-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 16px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  border-top: 1px solid var(--border);
+}
+.profile-omissions {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin: 4px 16px 10px;
+}
+.dashboard .heatmap-content {
+  padding: 14px 16px 0;
+}
+.dashboard .heatmap-summary {
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.dashboard .heatmap-grid {
+  grid-template-columns: 30px repeat(13, minmax(14px, 1fr));
+  gap: 4px;
+  min-width: 295px;
+  align-items: start;
+}
+.dashboard .heatmap-week {
+  display: grid;
+  grid-template-rows: 18px repeat(7, auto);
+  gap: 4px;
+}
+.dashboard .heatmap-weekdays {
+  display: grid;
+  grid-template-rows: 18px repeat(7, auto);
+  gap: 4px;
+  font-size: 11px;
+}
+.dashboard .heatmap-weekdays > span:not(:first-child) {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+}
+.dashboard .heatmap-month {
+  font-size: 11px;
+}
+.dashboard .heat-cell {
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: var(--track);
+}
+.dashboard .heat-outside {
+  visibility: visible;
+  opacity: 0.3;
+  pointer-events: none;
+}
+.dashboard .intensity-1 {
+  background: color-mix(in srgb, var(--violet) 28%, var(--card));
+}
+.dashboard .intensity-2 {
+  background: color-mix(in srgb, var(--violet) 48%, var(--card));
+}
+.dashboard .intensity-3 {
+  background: color-mix(in srgb, var(--violet) 72%, var(--card));
+}
+.dashboard .intensity-4 {
+  background: var(--violet);
+}
+.dashboard .heatmap-legend {
+  font-size: 11px;
+  margin: 12px 0;
+}
+.dashboard .panel-note {
+  font-size: 11px;
+  padding: 6px 14px 10px;
+  line-height: 1.5;
+}
+.dashboard .recent-table-scroll {
+  height: 265px;
+}
+.dashboard .recent-table {
+  font-size: 12px;
+}
+.dashboard .recent-table th {
+  height: 38px;
+  font-size: 11px;
+  font-weight: 550;
+}
+.dashboard .recent-table td {
+  padding: 12px 14px;
+}
+.record-kind {
+  color: var(--muted-foreground);
+  margin-left: 6px;
+}
+.dashboard-balance-panel > .panel-note {
+  display: block;
+  padding: 8px 14px 0;
+  font-size: 11px;
+}
+.dashboard-balance-panel .chart-container {
+  height: 216px;
+}
+.balance-management {
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+.balance-management > summary {
+  padding: 10px 14px;
+  cursor: pointer;
+  color: var(--violet);
+}
+.dashboard .balance-account {
+  padding: 14px;
+}
+.dashboard .lower-grid {
+  margin-top: 14px;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 14px;
+}
+.dashboard .lower-stack {
+  gap: 14px;
+}
+.dashboard .lower-stack > .panel {
+  min-height: 320px;
+}
+.dashboard .time-points-table {
+  font-size: 11px;
+  padding: 6px 14px 10px;
+}
+.dashboard .calendar-refined .calendar-toolbar {
+  min-height: 58px;
+  padding: 10px 14px;
+}
+.dashboard .calendar-refined .calendar-day {
+  text-align: right;
+  border-radius: 3px;
+}
+.dashboard .calendar-refined .weekly-summary {
+  padding: 10px;
+}
+.dashboard .calendar-refined .weekly-summary strong {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  font-size: 15px;
+  letter-spacing: -0.4px;
+}
+.dashboard .calendar-days-badge {
+  color: var(--violet);
+  background: color-mix(in srgb, var(--violet) 12%, var(--card));
+}
+@media (min-width: 1750px) {
+  .dashboard .heatmap-grid {
+    gap: 5px;
+  }
+  .dashboard .heatmap-week {
+    gap: 5px;
+  }
+  .dashboard .heatmap-weekdays {
+    grid-template-rows: 18px repeat(7, 22px);
+    gap: 5px;
+  }
+  .dashboard .heat-cell {
+    max-height: 22px;
+  }
+}
+@media (max-width: 1450px) {
+  .dashboard .metric-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dashboard .metric-card {
+    height: 116px;
+  }
+  .dashboard .heatmap-grid {
+    gap: 3px;
+  }
+  .dashboard .heatmap-week,
+  .dashboard .heatmap-weekdays {
+    gap: 3px;
+  }
+}
+@media (max-width: 1200px) {
+  .dashboard .analysis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard .lower-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dashboard .lower-stack {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard .heatmap-weekdays {
+    grid-template-rows: 18px repeat(7, 23px);
+  }
+  .dashboard .heat-cell {
+    max-height: 23px;
+  }
+}
+@media (max-width: 700px) {
+  .dashboard {
+    padding: 0 12px 20px;
+  }
+  .dashboard .page-header {
+    margin: 0 -12px;
+    padding: 12px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .dashboard .dashboard-controls {
+    width: 100%;
+  }
+  .dashboard .dashboard-intro {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dashboard-connected .dashboard-basis-label {
+    flex-basis: auto;
+  }
+  .dashboard .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .dashboard .metric-card {
+    padding: 12px;
+    min-height: 125px;
+    height: auto;
+  }
+  .dashboard .metric-value {
+    font-size: 25px;
+  }
+  .dashboard .metric-body {
+    flex-wrap: wrap;
+  }
+  .dashboard .metric-average {
+    grid-column: span 2;
+  }
+  .outcome-gauge {
+    width: 64px;
+    flex-basis: 64px;
+    margin: 0 0 0 auto;
+  }
+  .outcome-gauge svg {
+    width: 64px;
+  }
+  .dashboard .profit-ring {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+    margin: 0;
+  }
+  .dashboard .analysis-grid,
+  .dashboard .lower-stack {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dashboard .heatmap-weekdays {
+    grid-template-rows: 18px repeat(7, 18px);
+  }
+  .dashboard .heat-cell {
+    max-height: 18px;
+  }
+  .dashboard .heatmap-grid {
+    min-width: 295px;
+  }
+  .dashboard .heatmap-legend {
+    flex-wrap: wrap;
+  }
+  .dashboard .calendar-refined .weekly-summary strong {
+    font-size: 13px;
+  }
+}
+
+/* Fixed square cells preserve calendar positions; columns share spare horizontal space. */
+.dashboard .heatmap-content {
+  --activity-cell: 18px;
+}
+.dashboard .heatmap-week,
+.dashboard .heatmap-weekdays {
+  grid-template-rows: 18px repeat(7, var(--activity-cell));
+  gap: 4px;
+}
+.dashboard .heat-cell {
+  width: var(--activity-cell);
+  height: var(--activity-cell);
+  max-height: none;
+  max-width: 100%;
+  aspect-ratio: 1;
+  justify-self: center;
+}
+.dashboard .heatmap-weekdays > span:not(:first-child) {
+  aspect-ratio: auto;
+}
+@media (min-width: 1201px) and (max-width: 1450px) {
+  .dashboard .heatmap-content {
+    --activity-cell: 16px;
+  }
+}
+@media (max-width: 700px) {
+  .dashboard .heatmap-content {
+    --activity-cell: 18px;
+  }
+}
+
+.dashboard .analysis-grid {
+  align-items: stretch;
+}
+.dashboard .calendar-refined .outside-range {
+  background: var(--muted);
+  border-style: solid;
+  opacity: 0.5;
+}
+@media (min-width: 1201px) {
+  .dashboard .calendar-refined .calendar-day-count,
+  .dashboard .calendar-refined .calendar-day-win-rate {
+    font-size: 11px;
+  }
+}

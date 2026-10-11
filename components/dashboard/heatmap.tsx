@@ -40,7 +40,12 @@ export function Heatmap({
         <span>Jan — Mar 2026</span>
       </div>
       <div className="heatmap-scroll">
-        <div className="heatmap-grid">
+        <div
+          className="heatmap-grid"
+          style={{
+            gridTemplateColumns: `30px repeat(${weeks.length}, minmax(14px, 1fr))`,
+          }}
+        >
           <div className="heatmap-weekdays">
             <span />
             <span>Sun</span>

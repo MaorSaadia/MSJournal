@@ -1,6 +1,9 @@
 "use client";
+import { useId } from "react";
 import { useReducedMotion } from "motion/react";
 import {
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   LineChart,
@@ -22,19 +25,25 @@ export function ReportChart({
   field = "total",
   line = false,
   onInspect,
+  dashboard = false,
 }: {
   rows: (Group & { cumulative?: string | null; drawdown?: string | null })[];
   basis: string;
+  dashboard?: boolean;
   field?: "total" | "cumulative" | "drawdown";
   line?: boolean;
   onInspect: (href: string) => void;
 }) {
-  const reduced = useReducedMotion(),
+  const gradient = useId().replaceAll(":", ""),
+    reduced = useReducedMotion(),
     points: Point[] = rows.map((r) => ({
       ...r,
       exact: r[field] ?? null,
       value: r[field] == null ? null : Number(r[field]),
     }));
+  const high = Math.max(0, ...points.map((p) => p.value ?? 0)),
+    low = Math.min(0, ...points.map((p) => p.value ?? 0));
+  const split = high === low ? 0 : high / (high - low);
   const axes = (
     <>
       <CartesianGrid vertical={false} stroke="var(--border)" />
@@ -44,6 +53,15 @@ export function ReportChart({
         tickLine={false}
         axisLine={false}
         minTickGap={30}
+        tickFormatter={(v) =>
+          dashboard && /^\d{4}-\d{2}-\d{2}/.test(v)
+            ? new Intl.DateTimeFormat("en-US", {
+                month: "short",
+                day: "numeric",
+                timeZone: "UTC",
+              }).format(new Date(v.slice(0, 10) + "T12:00:00Z"))
+            : v
+        }
       />
       <YAxis
         domain={[
@@ -95,7 +113,37 @@ export function ReportChart({
       aria-label={`${field} in USD, ${basis}. Exact values and record links in the table below.`}
     >
       <ResponsiveContainer width="100%" height="100%">
-        {line ? (
+        {line && dashboard ? (
+          <AreaChart
+            data={points}
+            margin={{ top: 16, right: 18, bottom: 10, left: 0 }}
+          >
+            <defs>
+              <linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">
+                <stop offset={`${split * 100}%`} stopColor="var(--positive)" />
+                <stop offset={`${split * 100}%`} stopColor="var(--negative)" />
+              </linearGradient>
+            </defs>
+            {axes}
+            <Area
+              type="linear"
+              baseValue={0}
+              dataKey="value"
+              stroke={
+                field === "drawdown" ? "var(--violet)" : `url(#${gradient})`
+              }
+              fill={
+                field === "drawdown" ? "var(--violet)" : `url(#${gradient})`
+              }
+              fillOpacity={0.18}
+              strokeWidth={1.5}
+              dot={false}
+              connectNulls={false}
+              isAnimationActive={!reduced}
+              animationDuration={250}
+            />
+          </AreaChart>
+        ) : line ? (
           <LineChart
             data={points}
             margin={{ top: 14, right: 15, bottom: 10, left: 0 }}
@@ -119,6 +167,7 @@ export function ReportChart({
           >
             {axes}
             <Bar
+              maxBarSize={dashboard ? 24 : undefined}
               dataKey="value"
               radius={[3, 3, 0, 0]}
               isAnimationActive={!reduced}

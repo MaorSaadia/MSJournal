@@ -45,7 +45,12 @@ function RecentTrades({ trades }: { trades: Trade[] }) {
             <tr key={t.id}>
               <td>{timestampLabel(t.closeAt)}</td>
               <td>
-                <Link className="symbol-badge" href={`/trade-view/${t.id}?mode=demo&from=${encodeURIComponent("/?mode=demo")}`}>{t.symbol}</Link>
+                <Link
+                  className="symbol-badge"
+                  href={`/trade-view/${t.id}?mode=demo&from=${encodeURIComponent("/?mode=demo")}`}
+                >
+                  {t.symbol}
+                </Link>
                 <span className="trade-direction">{t.direction}</span>
               </td>
               <td
@@ -93,18 +98,13 @@ export function Dashboard({
   return (
     <motion.div
       className="dashboard"
-      initial={{ opacity: 0, y: 6 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22 }}
     >
       <header className="page-header">
         <div>
-          <div className="breadcrumb">
-            Workspace <span>/</span> Overview
-          </div>
-          <h1>
-            Dashboard<span className="title-dot">.</span>
-          </h1>
+          <h1>Dashboard</h1>
         </div>
         <DashboardFilters
           filters={filters}

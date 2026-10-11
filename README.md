@@ -401,3 +401,10 @@ npm.cmd run db:check:journal
 ```
 
 Finish Day 8 verification passed **35 focused calculation/cache regressions**, the disposable database reconciliation/privacy scenario, the final production build (including TypeScript), and ESLint. Chrome passed baseline setup, deposit/withdrawal saves, all/short/unknown filter scopes, balance independence, completed-trade coverage fallback, exact source-portion statistics, heatmap zero activity, cached return with dashboard requests blocked, point-to-details navigation, Reports reconciliation, reduced motion, and 1440/390 containment in both themes. Settled synthetic-only captures were visually inspected at `test-results/finish-day-eight-Finish-Da-83ea2-avigation-themes-and-mobile/dashboard-{light,dark}.png` and `dashboard-mobile-{light,dark}.png`; they remain ignored by Git. The final read-only audit, after guarded fixture cleanup, again found the original 75 sources, 41 published groups, no pending processing and 72 reliable entry portions, with all original source values intact. No private import was reprocessed and no existing review/image/manual fee was rewritten. Day 9 was not started.
+
+
+### Dashboard reference redesign
+
+The dashboard now uses compact split metric cards, a supported-measure radar, a 13-week violet activity heatmap, aligned chart rows, and a two-thirds-width calendar. Financial calculation services and existing stored data are unchanged. Radar ratio axes have a disclosed display cap of 3; no overall skill score is calculated. Secondary coverage, balance setup and cash adjustments expand on demand.
+
+Visual comparison and the disposable-fixture screenshots are documented in [artifacts/dashboard-redesign](artifacts/dashboard-redesign/README.md). The existing focused dashboard browser check covers navigation, cached returns, balances, themes/mobile, and the reference-size card heights.

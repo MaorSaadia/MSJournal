@@ -16,6 +16,9 @@ test("Finish Day 8 dashboard portions, balances, navigation, themes and mobile",
   await page.emulateMedia({ reducedMotion: "reduce" });
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
   expect(
     (
       await page.request.post("/api/auth/sign-up/email", {
@@ -144,6 +147,7 @@ test("Finish Day 8 dashboard portions, balances, navigation, themes and mobile",
   await page
     .getByRole("button", { name: "Use closed-portion statistics" })
     .click();
+  await page.locator(".balance-management > summary").click();
   await page.getByText("Set starting balance", { exact: true }).click();
   const baseline = page.getByRole("form", {
     name: "Starting balance for Day eight synthetic",
@@ -247,15 +251,50 @@ test("Finish Day 8 dashboard portions, balances, navigation, themes and mobile",
       ),
     ).toBe(true);
   }
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 1895, height: 938 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.locator(".metric-grid")).toBeVisible();
+  const metricHeights = await page
+    .locator(".metric-card")
+    .evaluateAll((nodes) => nodes.map((n) => n.getBoundingClientRect().height));
+  expect(metricHeights.every((h) => h >= 110 && h <= 125)).toBe(true);
   await page.screenshot({
-    path: testInfo.outputPath("dashboard-mobile.png"),
-    fullPage: true,
+    path: testInfo.outputPath("dashboard-reference-upper.png"),
+  });
+  await page.locator(".lower-grid").scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: testInfo.outputPath("dashboard-reference-lower.png"),
   });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+  const chartHeights = await page
+    .locator(".analysis-grid > .panel")
+    .evaluateAll((nodes) => nodes.map((n) => n.getBoundingClientRect().height));
+  for (const height of chartHeights) {
+    expect(height).toBeGreaterThanOrEqual(300);
+    expect(height).toBeLessThanOrEqual(340);
+  }
+  if (process.env.MSJOURNAL_DEV_ORIGIN) {
+    const devHost = new URL(process.env.MSJOURNAL_DEV_ORIGIN).hostname;
+    const cookies = await page.context().cookies(origin);
+    await page
+      .context()
+      .addCookies(cookies.map((cookie) => ({ ...cookie, domain: devHost })));
+    await page.goto(`${process.env.MSJOURNAL_DEV_ORIGIN}/?${q}`, {
+      timeout: 120000,
+    });
+    await expect(page.locator(".dashboard-connected")).toContainText("33.3%", {
+      timeout: 120000,
+    });
+    await expect(page.locator("nextjs-portal [data-issues-open]")).toHaveCount(
+      0,
+    );
+    await page.screenshot({
+      path: testInfo.outputPath("dashboard-development.png"),
+    });
+  }
   expect(errors).toEqual([]);
 });

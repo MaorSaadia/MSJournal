@@ -2,8 +2,13 @@
 import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { ShieldCheck } from "lucide-react";
+import {
+  RealMetricCards,
+  PerformanceProfile,
+  profileConvention,
+} from "./performance";
 import type { Filters } from "@/lib/types";
 import type { TradingAccount } from "@/lib/accounts/types";
 import { authorizedSelection } from "@/lib/accounts/types";
@@ -42,7 +47,6 @@ export function RealDashboard({
 }) {
   const search = useSearchParams(),
     router = useRouter(),
-    reduced = useReducedMotion(),
     { userId, scrollPositions } = useCalendarCache();
   const ids = authorizedSelection(
     accounts,
@@ -117,13 +121,11 @@ export function RealDashboard({
     });
   const basis = data?.basis ?? q.basis,
     complete = q.outcomeBasis === "complete",
-    unit = complete ? "trade" : "portion",
     outcomes = data?.outcomes,
     dayStats = data?.realizedSummary;
   const statisticsHelp =
     "Closed portions count each matched exit portion once, including breakevens. Several portions may belong to one position. Complete trades require verified flat-to-flat coverage. Daily realized P&L always follows local exit dates.";
-  const number = (value: string | null | undefined, suffix = "") =>
-    value == null ? "Unavailable" : value + suffix;
+
   const dayHref = (date: string) =>
     `/trade-view?${new URLSearchParams({ accounts: ids.join(","), archived: q.archived, start: date, end: date, dateBasis: "activity", basis, outcomeBasis: "portions", dashboardFrom: href, ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`;
   const detailHref = (id: string) =>
@@ -132,12 +134,6 @@ export function RealDashboard({
     save();
     router.push(target);
   };
-  const note = (text: string) =>
-    complete
-      ? text
-      : text
-          .replaceAll("complete trades", "closed portions")
-          .replaceAll("trades", "portions");
   const opening = {
     key: "opening",
     label: `${q.start} · Start`,
@@ -152,15 +148,12 @@ export function RealDashboard({
   return (
     <motion.div
       className="dashboard dashboard-connected"
-      initial={reduced ? false : { opacity: 0, y: 6 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
     >
       <header className="page-header">
         <div>
-          <div className="breadcrumb">Workspace / Overview</div>
-          <h1>
-            Dashboard<span className="title-dot">.</span>
-          </h1>
+          <h1>Dashboard</h1>
         </div>
         <DashboardFilters
           filters={filters}
@@ -180,10 +173,6 @@ export function RealDashboard({
       </header>
       <div className="dashboard-intro">
         <ModeControl mode="real" />
-        <span className="private-indicator">
-          <ShieldCheck size={12} />
-          Private · USD · {displayTimezone}
-        </span>
         <label className="dashboard-basis-label">
           Statistics
           <select
@@ -207,19 +196,29 @@ export function RealDashboard({
             <option value="net">Net</option>
           </select>
         </label>
-        <label className="dashboard-archived">
-          <input
-            type="checkbox"
-            checked={q.archived === "1"}
-            onChange={(e) =>
-              update({
-                archived: e.target.checked ? "1" : "0",
-                accounts: undefined,
-              })
-            }
-          />
-          Include archived
-        </label>
+        <details className="dashboard-settings">
+          <summary>Settings</summary>
+          <div>
+            {" "}
+            <span className="private-indicator">
+              <ShieldCheck size={12} />
+              Private · USD · {displayTimezone}
+            </span>
+            <label className="dashboard-archived">
+              <input
+                type="checkbox"
+                checked={q.archived === "1"}
+                onChange={(e) =>
+                  update({
+                    archived: e.target.checked ? "1" : "0",
+                    accounts: undefined,
+                  })
+                }
+              />
+              Include archived
+            </label>
+          </div>
+        </details>
       </div>
       {!parsed.success && (
         <p role="alert">
@@ -239,16 +238,24 @@ export function RealDashboard({
       ) : (
         <>
           <div className="dashboard-scope-note">
-            <span>
-              {data.portionCount} closed portions · {data.completeCount}{" "}
-              verified complete trades · {basis}
-              {basis === "net" && outcomes?.estimated
-                ? " (estimated fees)"
-                : ""}
-              {data.requestedBasis !== basis
-                ? " used because fees are incomplete"
-                : ""}
-            </span>
+            <details className="dashboard-coverage">
+              <summary>
+                {complete ? "Complete trades" : "Closed portions"} · {basis}
+                {data.requestedBasis !== basis
+                  ? " · gross fallback"
+                  : ""} · {data.portionCount} portions
+              </summary>{" "}
+              <span>
+                {data.portionCount} closed portions · {data.completeCount}{" "}
+                verified complete trades · {basis}
+                {basis === "net" && outcomes?.estimated
+                  ? " (estimated fees)"
+                  : ""}
+                {data.requestedBasis !== basis
+                  ? " used because fees are incomplete"
+                  : ""}
+              </span>
+            </details>
             <Link
               href={`/reports?${new URLSearchParams({ start: q.start, end: q.end, accounts: ids.join(","), archived: q.archived, basis, analysis: complete ? "complete" : "portions", ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`}
               onClick={save}
@@ -262,65 +269,7 @@ export function RealDashboard({
               <Link href="/trade-view">Process in Trade View →</Link>
             </p>
           )}
-          <div className="metric-grid">
-            {[
-              {
-                label: `Realized ${basis} P&L`,
-                value: journalMoney(dayStats?.total ?? null, true),
-                foot: `${data.days.length} active days · local exit dates`,
-              },
-              {
-                label: complete ? "Winning trades" : "Winning portions",
-                value: number(outcomes?.winRate, "%"),
-                foot: `${outcomes?.wins ?? 0} winning / ${outcomes?.count ?? 0} ${complete ? "complete trades" : "closed portions"} · ${outcomes?.zeros ?? 0} breakeven`,
-              },
-              {
-                label: `Profit factor · ${complete ? "trades" : "portions"}`,
-                value:
-                  outcomes?.profitFactor ??
-                  note(outcomes?.profitFactorNote ?? "No matching results"),
-                foot: `${basis} positive P&L / absolute negative P&L`,
-              },
-              {
-                label: "Winning days",
-                value: number(dayStats?.winRate, "%"),
-                foot: `${dayStats?.wins ?? 0} profitable / ${data.days.length} active days`,
-              },
-            ].map((card) => (
-              <section className="metric-card" key={card.label}>
-                <div className="metric-label">
-                  {card.label}
-                  <Help label={card.label} text={statisticsHelp} />
-                </div>
-                <div className="metric-body">
-                  <strong className="metric-value">{card.value}</strong>
-                </div>
-                <p className="metric-foot">{card.foot}</p>
-              </section>
-            ))}
-            <section className="metric-card average-portions">
-              <div className="metric-label">
-                Average winning/losing {unit}
-                <Help
-                  label={`Average ${unit}`}
-                  text={`Arithmetic averages of positive and negative ${basis} results. Breakevens remain in the winning percentage denominator.`}
-                />
-              </div>
-              <div className="comparison-values">
-                <strong className="positive">
-                  {journalMoney(outcomes?.averageWin ?? null, true)}
-                </strong>
-                <strong className="negative">
-                  {journalMoney(outcomes?.averageLoss ?? null, true)}
-                </strong>
-              </div>
-              <p className="metric-foot">
-                {outcomes?.averageWin && outcomes.averageLoss
-                  ? `${outcomes.averageRatio} : 1 · win/loss ratio`
-                  : `${basis} · averages shown separately`}
-              </p>
-            </section>
-          </div>
+          <RealMetricCards data={data} complete={complete} />
           {complete && data.completeCount === 0 && (
             <p className="dashboard-scope-note">
               Performance matching does not verify complete positions.{" "}
@@ -330,52 +279,8 @@ export function RealDashboard({
             </p>
           )}
           <div className="analysis-grid">
-            <Panel
-              title="Performance profile"
-              help="Raw MSJournal measures, without a score. Review coverage describes recordkeeping, not trading quality."
-            >
-              <dl className="performance-measures">
-                {[
-                  [
-                    "Winning days",
-                    number(dayStats?.winRate, "%"),
-                    `${data.days.length} active days`,
-                  ],
-                  [
-                    complete ? "Winning trades" : "Winning portions",
-                    number(outcomes?.winRate, "%"),
-                    `${outcomes?.count ?? 0} ${complete ? "trades" : "portions"}`,
-                  ],
-                  [
-                    complete ? "Profit factor" : "Profit factor · portions",
-                    outcomes?.profitFactor ??
-                      note(outcomes?.profitFactorNote ?? "No results"),
-                    basis,
-                  ],
-                  [
-                    "Average win/loss ratio",
-                    outcomes?.averageWin && outcomes.averageLoss
-                      ? outcomes.averageRatio + " : 1"
-                      : "Unavailable",
-                    `${outcomes?.wins ?? 0} wins · ${outcomes?.losses ?? 0} losses`,
-                  ],
-                  [
-                    "Review completion",
-                    data.reviewCoverage.percent === null
-                      ? "Not recorded"
-                      : data.reviewCoverage.percent + "%",
-                    `${data.reviewCoverage.reviewed} / ${data.reviewCoverage.total} contributing records reviewed`,
-                  ],
-                ].map(([label, value, sample]) => (
-                  <div key={label}>
-                    <dt>
-                      {label}
-                      <small>{sample}</small>
-                    </dt>
-                    <dd>{value}</dd>
-                  </div>
-                ))}
-              </dl>
+            <Panel title="Performance profile" help={profileConvention}>
+              <PerformanceProfile data={data} complete={complete} />
             </Panel>
             <Panel
               title="Activity tracker"
@@ -390,11 +295,12 @@ export function RealDashboard({
               />
             </Panel>
             <Panel
-              title={`Cumulative realized ${basis} P&L`}
+              title="Cumulative P&L"
               help="Starts at zero for this selected range; P&L is not account balance."
             >
               {data.days.length ? (
                 <ReportChart
+                  dashboard
                   rows={[
                     opening,
                     ...data.days.map((d) => ({ ...d, href: dayHref(d.date) })),
@@ -413,11 +319,12 @@ export function RealDashboard({
               )}
             </Panel>
             <Panel
-              title={`Daily realized ${basis} P&L`}
+              title="Daily P&L"
               help={`Matched exits in ${displayTimezone}, including breakeven activity.`}
             >
               {data.days.length ? (
                 <ReportChart
+                  dashboard
                   rows={data.days.map((d) => ({ ...d, href: dayHref(d.date) }))}
                   basis={`${basis} · closed portions`}
                   onInspect={inspect}
@@ -430,29 +337,63 @@ export function RealDashboard({
               )}
             </Panel>
             <Panel
-              title="Recent journal records"
+              title="Recent records"
+              action={
+                <Link
+                  href={dayHref(q.start).replace(
+                    `end=${q.start}`,
+                    `end=${q.end}`,
+                  )}
+                  onClick={save}
+                >
+                  View all
+                </Link>
+              }
               help="Selected-period contributions inside published shared-fill groups; counts of groups differ from counts of exit portions."
             >
               <div className="recent-table-scroll">
                 <table className="recent-table">
                   <thead>
                     <tr>
-                      <th>Final exit</th>
-                      <th>Contract / status</th>
-                      <th>Selected {basis}</th>
+                      <th>Date</th>
+                      <th>Symbol</th>
+                      <th>P&L</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.recent.map((r) => (
+                    {data.recent.slice(0, 8).map((r) => (
                       <tr key={r.id}>
-                        <td>{journalTimestamp(r.exit, displayTimezone)}</td>
+                        <td title={journalTimestamp(r.exit, displayTimezone)}>
+                          {new Intl.DateTimeFormat("en-US", {
+                            timeZone: displayTimezone,
+                            month: "2-digit",
+                            day: "2-digit",
+                            year: "numeric",
+                          }).format(new Date(r.exit))}
+                        </td>
                         <td>
                           <Link href={detailHref(r.id)} onClick={save}>
                             {r.symbol}
                           </Link>
-                          <small>{r.status}</small>
+                          <span
+                            className="record-kind"
+                            title={r.status}
+                            aria-label={r.status}
+                          >
+                            ·
+                          </span>
                         </td>
-                        <td>{journalMoney(r.value, true)}</td>
+                        <td
+                          className={
+                            Number(r.value) > 0
+                              ? "positive"
+                              : Number(r.value) < 0
+                                ? "negative"
+                                : ""
+                          }
+                        >
+                          {journalMoney(r.value, true)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -465,8 +406,9 @@ export function RealDashboard({
               </div>
             </Panel>
             <Panel
-              title="Journal balance estimate"
-              help="Baseline plus subsequent realized P&L less known/estimated fees, plus dated cash adjustments. Includes every instrument and direction in each account; incomplete imports are not broker balances."
+              title="Account balance"
+              className="dashboard-balance-panel"
+              help={`Baseline plus subsequent realized P&L less known/estimated fees, plus dated cash adjustments. Includes every instrument and direction in each account; incomplete imports are not broker balances. ${data.balances.covered}/${data.balances.selected} account baselines cover the range start. ${data.balances.combined?.missingFees ?? 0} portions have unknown fees. Cash movements stay separate from P&L.`}
               action={
                 data.balances.combined ? (
                   <span className="panel-value">
@@ -483,20 +425,16 @@ export function RealDashboard({
                       : data.balances.combined.estimated
                         ? "Estimated balance"
                         : "Journal balance estimate"}{" "}
-                    · {data.balances.covered}/{data.balances.selected} account
-                    baselines cover the range start
-                    {data.balances.combined.missingFees
-                      ? ` · ${data.balances.combined.missingFees} portions have unknown fees`
-                      : ""}
-                    {data.balances.combined.estimated
-                      ? " · includes estimated fees"
-                      : ""}
-                    . All instruments; cash changes stay separate from P&L.
+                    · {data.balances.covered}/{data.balances.selected} baselines
                   </p>
                   <BalanceChart
                     points={data.balances.combined.points}
                     entering={data.balances.combined.entering}
                     start={q.start}
+                    adjustments={data.balances.accounts.flatMap(
+                      (a) => a.adjustments,
+                    )}
+                    timezone={displayTimezone}
                   />
                 </>
               ) : (
@@ -505,9 +443,16 @@ export function RealDashboard({
                   the tracking range starts.
                 </p>
               )}
-              {data.balances.accounts.map((a) => (
-                <BalanceSetup account={a} end={q.end} key={a.id} />
-              ))}
+              <details className="balance-management">
+                <summary>
+                  {data.balances.combined
+                    ? "Manage baselines & cash adjustments"
+                    : "Set up account baselines"}
+                </summary>
+                {data.balances.accounts.map((a) => (
+                  <BalanceSetup account={a} end={q.end} key={a.id} />
+                ))}
+              </details>
               {!data.balances.accounts.length && (
                 <p className="panel-note">
                   <Link href="/prop-accounts">Add or select an account →</Link>
@@ -515,9 +460,7 @@ export function RealDashboard({
               )}
             </Panel>
           </div>
-          <div className="section-divider">
-            <span>THE DAILY PICTURE</span>
-          </div>
+
           <div className="lower-grid">
             <TradingCalendar
               compact
@@ -536,7 +479,7 @@ export function RealDashboard({
             />
             <div className="lower-stack">
               <Panel
-                title="End-of-day realized drawdown"
+                title="Realized drawdown"
                 help="Cumulative daily P&L minus its running peak, including the initial zero. Resets at the selected range start; this is not intraday or prop-firm trailing drawdown."
                 action={
                   <span className="panel-value">
@@ -549,6 +492,7 @@ export function RealDashboard({
                 </p>
                 {data.days.length ? (
                   <ReportChart
+                    dashboard
                     rows={[
                       opening,
                       ...data.days.map((d) => ({
@@ -569,12 +513,8 @@ export function RealDashboard({
                 )}
               </Panel>
               <Panel
-                title={
-                  complete
-                    ? "Complete-trade entry time"
-                    : "Entry time by closed portion"
-                }
-                help={`Known local entry times in ${displayTimezone}. Short portions open with the earlier sell; long portions with the earlier buy. Several points may belong to one position.`}
+                title="Entry time performance"
+                help={`Known local entry times in ${displayTimezone}. ${data.timePoints.length}/${data.timeCount} supported points; ${data.excludedEntry} unknown entries excluded. Short portions open with the earlier sell; long portions with the earlier buy. Several points may belong to one position. ${basis}.`}
               >
                 {data.timePoints.length ? (
                   <>
@@ -620,15 +560,6 @@ export function RealDashboard({
                       : "No reliable entry times in this selection. Equal timestamps or conflicting fill metadata are excluded."}
                   </p>
                 )}
-                <p className="panel-note">
-                  {data.excludedEntry} unknown entries excluded ·{" "}
-                  {data.timePoints.length}/{data.timeCount} supported points
-                  shown
-                  {!complete
-                    ? " · several points may belong to one position"
-                    : ""}{" "}
-                  · {basis}
-                </p>
               </Panel>
             </div>
           </div>
