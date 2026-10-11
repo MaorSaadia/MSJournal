@@ -4,7 +4,9 @@ import { authorizedSelection } from "@/lib/accounts/types";
 import { getPreferences } from "@/lib/preferences";
 import { RealDashboard } from "@/components/dashboard/real-dashboard";
 import { redirect } from "next/navigation";
-import { currentMonth } from "@/lib/dates";
+import { todayIn, monthEnd, shiftDay } from "@/lib/calendar/model";
+import { localDay } from "@/lib/journal/calculations";
+import { portionExit } from "@/lib/journal/processing";
 import { getJournal } from "@/lib/journal/service";
 export const metadata = { title: "Dashboard" };
 export default async function Home({
@@ -52,13 +54,33 @@ export default async function Home({
     redirect(
       `/?${new URLSearchParams({ ...params, accounts: selectedIds.join(",") })}`,
     );
+  const initialMonth = todayIn(preferences.displayTimezone).slice(0, 7);
+  const available = data.portions
+    .filter((p) => selectedIds.includes(p.tradingAccountId))
+    .map((p) => localDay(portionExit(p), preferences.displayTimezone))
+    .sort();
   return (
     <RealDashboard
-      accounts={accounts}
-      selectedIds={selectedIds}
+      accounts={accounts.map(
+        ({ id, displayName, firm, stage, archivedAt }) => ({
+          id,
+          displayName,
+          firm,
+          stage,
+          archivedAt,
+        }),
+      )}
       displayTimezone={preferences.displayTimezone}
-      initialMonth={currentMonth()}
-      data={data}
+      initialMonth={initialMonth}
+      initialRange={{
+        start: available[0]
+          ? available[0] < shiftDay(available.at(-1)!, -3660)
+            ? shiftDay(available.at(-1)!, -3660)
+            : available[0]
+          : initialMonth + "-01",
+        end: available.at(-1) ?? monthEnd(initialMonth),
+      }}
+      initialSymbols={[...new Set(data.portions.map((p) => p.symbol))].sort()}
     />
   );
 }

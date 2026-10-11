@@ -1,0 +1,158 @@
+import {
+  D,
+  sum,
+  portionExit,
+  type Portion,
+  type PortionFee,
+} from "@/lib/journal/processing";
+import { dayBounds, shiftDay } from "@/lib/calendar/model";
+export type BalanceAccount = {
+  id: string;
+  displayName: string;
+  currency: string;
+  openingBalance: string | null;
+  openingBalanceDate: string | null;
+  reportingTimezone: string;
+};
+export type CashAdjustment = {
+  id: string;
+  tradingAccountId: string;
+  effectiveAt: string;
+  amount: string;
+  kind: "deposit" | "withdrawal" | "other";
+  explanation: string;
+};
+export type BalancePoint = { date: string; value: string };
+export type AccountBalance = {
+  id: string;
+  name: string;
+  timezone: string;
+  baseline: string | null;
+  baselineDate: string | null;
+  baselineInstant: string | null;
+  entering: string | null;
+  ending: string | null;
+  missingFees: number;
+  estimated: boolean;
+  coversStart: boolean;
+  points: BalancePoint[];
+  adjustments: CashAdjustment[];
+};
+export function balanceEstimates(
+  accounts: BalanceAccount[],
+  portions: Portion[],
+  fees: Record<string, PortionFee>,
+  adjustments: CashAdjustment[],
+  start: string,
+  end: string,
+  timezone: string,
+) {
+  const bounds = {
+    start: new Date(dayBounds(start, timezone).start).toISOString(),
+    end: new Date(dayBounds(end, timezone).end).toISOString(),
+  };
+  const dates: string[] = [];
+  for (let date = start; date <= end; date = shiftDay(date, 1))
+    dates.push(date);
+  const rows: AccountBalance[] = accounts.map((a) => {
+    const baselineInstant = a.openingBalanceDate
+      ? new Date(
+          dayBounds(a.openingBalanceDate, a.reportingTimezone).start,
+        ).toISOString()
+      : null;
+    const applicable = portions.filter(
+      (p) =>
+        p.tradingAccountId === a.id &&
+        baselineInstant !== null &&
+        Date.parse(portionExit(p)) >= Date.parse(baselineInstant) &&
+        Date.parse(portionExit(p)) < Date.parse(bounds.end),
+    );
+    const cash = adjustments.filter(
+      (c) =>
+        c.tradingAccountId === a.id &&
+        baselineInstant !== null &&
+        Date.parse(c.effectiveAt) >= Date.parse(baselineInstant) &&
+        Date.parse(c.effectiveAt) < Date.parse(bounds.end),
+    );
+    const valueBefore = (instant: string) =>
+      new D(a.openingBalance!)
+        .plus(
+          sum(
+            applicable
+              .filter((p) => Date.parse(portionExit(p)) < Date.parse(instant))
+              .map((p) =>
+                new D(p.grossPnl).minus(fees[p.id]?.amount ?? 0).toFixed(),
+              ),
+          ),
+        )
+        .plus(
+          sum(
+            cash
+              .filter((c) => Date.parse(c.effectiveAt) < Date.parse(instant))
+              .map((c) => c.amount),
+          ),
+        )
+        .toFixed();
+    const coversStart =
+      a.currency === "USD" &&
+      baselineInstant !== null &&
+      baselineInstant <= bounds.start &&
+      a.openingBalance !== null;
+    const validEnd =
+      a.currency === "USD" &&
+      baselineInstant !== null &&
+      baselineInstant < bounds.end &&
+      a.openingBalance !== null;
+    return {
+      id: a.id,
+      name: a.displayName,
+      timezone: a.reportingTimezone,
+      baseline: a.openingBalance,
+      baselineDate: a.openingBalanceDate,
+      baselineInstant,
+      entering: coversStart ? valueBefore(bounds.start) : null,
+      ending: validEnd ? valueBefore(bounds.end) : null,
+      missingFees: applicable.filter((p) => fees[p.id]?.amount == null).length,
+      estimated: applicable.some((p) => fees[p.id]?.kind === "Estimated"),
+      coversStart,
+      points: validEnd
+        ? dates
+            .filter(
+              (date) =>
+                Date.parse(dayBounds(date, timezone).end) >
+                Date.parse(baselineInstant!),
+            )
+            .map((date) => ({
+              date,
+              value: valueBefore(dayBounds(date, timezone).end),
+            }))
+        : [],
+      adjustments: adjustments
+        .filter((c) => c.tradingAccountId === a.id)
+        .sort((a, b) => b.effectiveAt.localeCompare(a.effectiveAt))
+        .slice(0, 10),
+    };
+  });
+  const covered = rows.filter((r) => r.coversStart),
+    combined = covered.length
+      ? {
+          entering: sum(covered.map((r) => r.entering!)),
+          ending: sum(covered.map((r) => r.ending!)),
+          points: dates.map((date) => ({
+            date,
+            value: sum(
+              covered.map((r) => r.points.find((p) => p.date === date)!.value),
+            ),
+          })),
+          missingFees: covered.reduce((n, r) => n + r.missingFees, 0),
+          estimated: covered.some((r) => r.estimated),
+        }
+      : null;
+  return {
+    accounts: rows,
+    combined,
+    covered: covered.length,
+    selected: accounts.length,
+  };
+}
+export type Balances = ReturnType<typeof balanceEstimates>;

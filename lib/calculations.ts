@@ -1,3 +1,5 @@
+import { summary } from "./journal/statistics";
+import { D } from "./journal/processing";
 import { dayKey, dateKeys } from "./dates";
 import type {
   Account,
@@ -47,31 +49,43 @@ export function dailyResults(trades: Trade[]): DailyResult[] {
   return [...days.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 export function metrics(trades: Trade[]) {
-  const wins = trades.filter((t) => netCents(t) > 0);
-  const losses = trades.filter((t) => netCents(t) < 0);
-  const positive = wins.reduce((s, t) => s + netCents(t), 0);
-  const negative = -losses.reduce((s, t) => s + netCents(t), 0);
-  const days = dailyResults(trades);
-  const averageWin = wins.length ? positive / wins.length : null;
-  const averageLoss = losses.length ? negative / losses.length : null;
+  const stats = summary(
+    trades.map((t) => String(netCents(t))),
+    false,
+    false,
+  );
+  const days = dailyResults(trades),
+    dayStats = summary(
+      days.map((d) => String(d.netCents)),
+      false,
+      false,
+    );
+  const averageWin =
+    stats.averageWin === null ? null : Number(stats.averageWin);
+  const averageLoss =
+    stats.averageLoss === null
+      ? null
+      : new D(stats.averageLoss).abs().toNumber();
   return {
-    count: trades.length,
-    wins: wins.length,
-    losses: losses.length,
-    breakeven: trades.length - wins.length - losses.length,
-    netCents: positive - negative,
-    positive,
-    negative,
+    count: stats.count,
+    wins: stats.wins!,
+    losses: stats.losses!,
+    breakeven: stats.zeros!,
+    netCents: Number(stats.total),
+    positive: new D(stats.averageWin ?? 0).times(stats.wins!).toNumber(),
+    negative: new D(stats.averageLoss ?? 0)
+      .times(stats.losses!)
+      .abs()
+      .toNumber(),
     days: days.length,
-    winRate: trades.length ? (wins.length / trades.length) * 100 : null,
-    dayWinRate: days.length
-      ? (days.filter((d) => d.netCents > 0).length / days.length) * 100
-      : null,
-    profitFactor: negative ? positive / negative : null,
+    winRate: stats.winRate === null ? null : Number(stats.winRate),
+    dayWinRate: dayStats.winRate === null ? null : Number(dayStats.winRate),
+    profitFactor:
+      stats.profitFactor === null ? null : Number(stats.profitFactor),
     averageWin,
     averageLoss,
     winLossRatio:
-      averageLoss && averageWin !== null ? averageWin / averageLoss : null,
+      stats.averageRatio === null ? null : Number(stats.averageRatio),
   };
 }
 export function cumulativeSeries(trades: Trade[], start: string, end: string) {

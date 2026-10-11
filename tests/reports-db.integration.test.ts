@@ -11,6 +11,8 @@ vi.mock("@/lib/session", () => ({
   requireUser: async () => ({ id: state.actor }),
 }));
 vi.mock("@/db/client", () => ({ getDb: state.database }));
+import { dashboardData } from "@/lib/dashboard/service";
+import { saveBalance } from "@/lib/balances/service";
 import { reports } from "@/lib/reports/service";
 import { calendarData } from "@/lib/calendar/service";
 import { tradeView } from "@/lib/journal/view-service";
@@ -73,6 +75,7 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
           const safe = verified.map((u) => u.id);
           if (!safe.length) return;
           for (const table of [
+            schema.balanceAdjustments,
             schema.reviewAttachments,
             schema.reviewSources,
             schema.journalReviews,
@@ -163,6 +166,97 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
         (await reports({ ...q, analysis: "complete" })).summary.count,
       ).toBe(0);
       expect((await reports({ ...q, basis: "net" })).summary.total).toBeNull();
+      const dashboard = await dashboardData({ ...q, basis: "net" });
+      expect(dashboard.basis).toBe("gross");
+      expect(dashboard.outcomes.count).toBe(3);
+      expect(dashboard.outcomes.winRate).toBe("33.3");
+      expect(dashboard.outcomes.profitFactor).toBe("0.50");
+      expect(dashboard.outcomes.averageWin).toBe("5");
+      expect(dashboard.outcomes.averageLoss).toBe("-10");
+      expect(dashboard.reviewCoverage.percent).toBeNull();
+      expect(dashboard.days.map((d) => d.total)).toEqual(
+        gross.days.map((d) => d.total),
+      );
+      expect(dashboard.realizedSummary.maxDrawdown).toBe("10");
+      expect(dashboard.timeCount).toBe(3);
+      const portionReport = await reports({ ...q, analysis: "portions" });
+      const portionView = await tradeView({
+        ...q,
+        dateBasis: "activity",
+        outcomeBasis: "portions",
+      });
+      expect(portionReport.summary.winRate).toBe(dashboard.outcomes.winRate);
+      expect(portionReport.summary.total).toBe(dashboard.outcomes.total);
+      expect(portionReport.summary.profitFactor).toBe(
+        dashboard.outcomes.profitFactor,
+      );
+      expect(portionView.summary.statistics).toMatchObject(dashboard.outcomes);
+      const winning = await tradeView({
+        ...q,
+        dateBasis: "activity",
+        outcomeBasis: "portions",
+        outcome: "profit",
+      });
+      expect(new D(winning.summary.gross).eq(5)).toBe(true);
+      expect(winning.summary.statistics?.count).toBe(1);
+      await saveBalance({
+        action: "baseline",
+        accountId: accounts[0],
+        amount: "100",
+        date: "2026-10-01",
+      });
+      const cash = {
+        action: "adjustment",
+        accountId: accounts[0],
+        id: randomUUID(),
+        kind: "deposit",
+        amount: "20",
+        localTime: "2026-10-02T10:00",
+        explanation: "Synthetic deposit",
+      };
+      await saveBalance(cash);
+      await saveBalance(cash);
+      await expect(saveBalance({ ...cash, amount: "21" })).rejects.toThrow();
+      await expect(
+        saveBalance({
+          ...cash,
+          id: randomUUID(),
+          kind: "other",
+          explanation: "",
+        }),
+      ).rejects.toThrow();
+      const withCash = await dashboardData({ ...q, start: "2026-10-02" });
+      expect(withCash.balances.combined?.entering).toBe("90");
+      expect(withCash.balances.combined?.ending).toBe("115");
+      expect(withCash.balances.combined?.missingFees).toBe(3);
+      expect(withCash.balances.accounts[0].adjustments).toHaveLength(1);
+      const unknownDashboard = await dashboardData({
+        ...q,
+        direction: "unknown",
+      });
+      const unknownCalendar = (await calendarData({
+        ...q,
+        month: "2026-10",
+        direction: "unknown",
+      })) as CalendarMonth;
+      expect(unknownDashboard.portionCount).toBe(0);
+      expect(unknownCalendar.summary.count).toBe(unknownDashboard.portionCount);
+      const narrow = await dashboardData({ ...q, symbol: "UNMATCHED" });
+      expect(narrow.portionCount).toBe(0);
+      expect(narrow.balances.combined?.ending).toBe("115");
+      expect(
+        (await dashboardData({ ...q, outcomeBasis: "complete" })).outcomes
+          .count,
+      ).toBe(0);
+      state.actor = users[1];
+      await expect(dashboardData(q)).rejects.toThrow();
+      await expect(saveBalance(cash)).rejects.toThrow();
+      state.actor = users[0];
+      await saveBalance({
+        action: "remove",
+        accountId: accounts[0],
+        id: cash.id,
+      });
       const breakdown = await reports({ ...q, tab: "breakdowns" });
       for (const groups of Object.values(breakdown.groups))
         for (const group of groups) {

@@ -47,12 +47,14 @@ function Table({
   save,
   curves = false,
   complete = false,
+  portions = false,
 }: {
   rows: (Group & { cumulative?: string | null; drawdown?: string | null })[];
   denominator: string;
   save: () => void;
   curves?: boolean;
   complete?: boolean;
+  portions?: boolean;
 }) {
   return (
     <div className="report-table-wrap">
@@ -66,7 +68,7 @@ function Table({
             <th>{denominator}</th>
             <th>P&L · USD</th>
             <th>Avg / {denominator}</th>
-            {complete && <th>Win rate</th>}
+            {complete && <th>{portions ? "Winning portions" : "Win rate"}</th>}
             {curves && (
               <>
                 <th>Cumulative P&L</th>
@@ -164,6 +166,7 @@ export function Reports() {
     if (values.archived !== undefined) next.delete("accounts");
     window.history.pushState(null, "", `/reports?${next}`);
   }
+  const portions = q.analysis === "portions" && q.tab !== "behavior";
   const select = (
     key: keyof typeof q,
     label: string,
@@ -188,12 +191,15 @@ export function Reports() {
       q.tab === "behavior"
         ? q.behaviorBasis === "complete"
         : q.analysis === "complete",
-    denominator = complete
-      ? "trades"
+    outcomeMode = complete || portions,
+    denominator = outcomeMode
+      ? complete
+        ? "trades"
+        : "portions"
       : q.tab === "behavior"
         ? "records"
         : "active days",
-    basis = `${q.basis} · ${complete ? "complete trades" : q.tab === "behavior" ? "closed records" : "realized activity"}`,
+    basis = `${q.basis} · ${complete ? "complete trades" : portions ? "closed portions" : q.tab === "behavior" ? "closed records" : "realized activity"}`,
     s = data?.summary;
   const inspect = (target: string) => {
     save();
@@ -367,6 +373,7 @@ export function Reports() {
           select("analysis", "Analyze", [
             ["activity", "Realized activity"],
             ["complete", "Complete trades"],
+            ["portions", "Closed portions"],
           ])}
         <details className="report-extra">
           <summary>Instrument filters</summary>
@@ -566,7 +573,9 @@ export function Reports() {
                       ? "Complete trades"
                       : q.tab === "behavior"
                         ? "Included records"
-                        : "Active days"
+                        : portions
+                          ? "Closed portions"
+                          : "Active days"
                   }
                   value={String(s.count)}
                   detail={
@@ -574,19 +583,26 @@ export function Reports() {
                   }
                 />
                 <Metric
-                  label={`Average / ${complete ? "trade" : q.tab === "behavior" ? "record" : "active day"}`}
+                  label={`Average / ${complete ? "trade" : portions ? "portion" : q.tab === "behavior" ? "record" : "active day"}`}
                   value={journalMoney(s.average, true)}
                 />
-                {complete ? (
+                {outcomeMode ? (
                   <>
                     <Metric
-                      label="Win rate"
+                      label={complete ? "Win rate" : "Winning portions"}
                       value={s.winRate === null ? "—" : s.winRate + "%"}
                       detail="Breakevens included"
                     />
                     <Metric
-                      label="Profit factor"
-                      value={s.profitFactor ?? s.profitFactorNote}
+                      label={
+                        complete ? "Profit factor" : "Profit factor · portions"
+                      }
+                      value={
+                        s.profitFactor ??
+                        (portions
+                          ? s.profitFactorNote.replaceAll("trades", "portions")
+                          : s.profitFactorNote)
+                      }
                     />
                   </>
                 ) : q.tab === "overview" ? (
@@ -602,20 +618,25 @@ export function Reports() {
                   <section className="report-card">
                     <div className="report-card-heading">
                       <h2>
-                        {complete ? "Trade outcomes" : "Daily realized P&L"}
+                        {outcomeMode
+                          ? complete
+                            ? "Trade outcomes"
+                            : "Portion outcomes"
+                          : "Daily realized P&L"}
                       </h2>
                       <span>{basis} · USD</span>
                     </div>
                     <ReportChart
-                      rows={complete ? data.distribution : data.days}
+                      rows={outcomeMode ? data.distribution : data.days}
                       basis={basis}
                       onInspect={inspect}
                     />
-                    {complete ? (
+                    {outcomeMode ? (
                       <Table
                         rows={data.distribution}
                         denominator={denominator}
                         complete
+                        portions={portions}
                         save={save}
                       />
                     ) : (
@@ -625,24 +646,28 @@ export function Reports() {
                       </p>
                     )}
                   </section>
-                  {complete ? (
+                  {outcomeMode ? (
                     <section className="report-card">
-                      <h2>Trade statistics</h2>
+                      <h2>
+                        {complete
+                          ? "Trade statistics"
+                          : "Closed-portion statistics"}
+                      </h2>
                       <div className="report-secondary">
                         <Metric
-                          label="Average winning trade"
+                          label={`Average winning ${complete ? "trade" : "portion"}`}
                           value={journalMoney(s.averageWin, true)}
                         />
                         <Metric
-                          label="Average losing trade"
+                          label={`Average losing ${complete ? "trade" : "portion"}`}
                           value={journalMoney(s.averageLoss, true)}
                         />
                         <Metric
-                          label="Largest winning trade"
+                          label={`Largest winning ${complete ? "trade" : "portion"}`}
                           value={journalMoney(s.best, true)}
                         />
                         <Metric
-                          label="Largest losing trade"
+                          label={`Largest losing ${complete ? "trade" : "portion"}`}
                           value={journalMoney(s.worst, true)}
                         />
                         <Metric
@@ -796,7 +821,8 @@ export function Reports() {
                   <Table
                     rows={groups}
                     denominator={denominator}
-                    complete={complete}
+                    complete={outcomeMode}
+                    portions={portions}
                     save={save}
                   />
                   {selectedGroup === "hour" && (

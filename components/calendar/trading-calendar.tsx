@@ -17,7 +17,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Help } from "@/components/dashboard/panel";
-import { useCalendarCache, useCalendarRequest, usePrivateRequest } from "./cache-provider";
+import {
+  useCalendarCache,
+  useCalendarRequest,
+  usePrivateRequest,
+} from "./cache-provider";
 import { CalendarGrid, CalendarSkeleton } from "./calendar-grid";
 import {
   Popover,
@@ -84,7 +88,7 @@ export function TradingCalendar({
   const search = useSearchParams(),
     pathname = usePathname();
   const monthKey = compact ? "calMonth" : "month",
-    basisKey = compact ? "calBasis" : "basis",
+    basisKey = "basis",
     dayKey = compact ? "calDay" : "day";
   const rawMonth = search.get(monthKey),
     month = monthSchema.safeParse(rawMonth).success ? rawMonth! : initialMonth;
@@ -95,7 +99,11 @@ export function TradingCalendar({
     : search.has("accounts")
       ? search.get("accounts")!.split(",").filter(Boolean)
       : available.map((a) => a.id);
-  const requestedBasis = search.get(basisKey) === "net" ? "net" : "gross";
+  const requestedBasis =
+    (search.get(basisKey) ?? (compact ? search.get("calBasis") : null)) ===
+    "net"
+      ? "net"
+      : "gross";
   const dayValue = search.get(dayKey),
     selectedDay =
       daySchema.safeParse(dayValue).success && dayValue!.startsWith(month)
@@ -133,7 +141,9 @@ export function TradingCalendar({
   }).toString();
   const state = useCalendarRequest<CalendarMonth>(query),
     data = state.data;
-  const reviewIndicators = usePrivateRequest<import("@/lib/reviews/indicators").ReviewIndicators>(query,"/api/reviews/indicators");
+  const reviewIndicators = usePrivateRequest<
+    import("@/lib/reviews/indicators").ReviewIndicators
+  >(query, "/api/reviews/indicators");
   const refresh = state.refresh;
   const details = useCalendarRequest<CalendarDetails>(
     selectedDay ? query + `&day=${selectedDay}` : null,
@@ -186,11 +196,12 @@ export function TradingCalendar({
       inMonth = date.startsWith(month),
       inRange = !filters || (date >= filters.start && date <= filters.end);
     const value = d ? (basis === "gross" ? d.gross : d.net) : null,
-      wins = d ? (basis === "gross" ? d.grossWins : d.netWins) : null,
-      winPercent =
-        d && d.count > 0 && wins != null
-          ? `${new D(wins).div(d.count).times(100).toFixed(1)}%`
-          : null,
+      winRate = d
+        ? basis === "gross"
+          ? d.grossStatistics.winRate
+          : d.netStatistics.winRate
+        : null,
+      winPercent = winRate === null ? null : `${winRate}%`,
       outcome = d
         ? value === null
           ? "Net unavailable"
@@ -215,7 +226,15 @@ export function TradingCalendar({
           {date === data?.today && (
             <i className="calendar-today-dot" aria-label="Today" />
           )}
-          {inMonth && !!reviewIndicators.data?.days[date] && <span className="calendar-review-dot" title="Trade reviews saved" aria-label="Trade reviews saved">✎</span>}
+          {inMonth && !!reviewIndicators.data?.days[date] && (
+            <span
+              className="calendar-review-dot"
+              title="Trade reviews saved"
+              aria-label="Trade reviews saved"
+            >
+              ✎
+            </span>
+          )}
         </span>
         {inMonth && d && (
           <>
@@ -228,7 +247,14 @@ export function TradingCalendar({
                     : "Counted from closed Tradovate report portions. A trade closed in parts may produce more than one portion; complete-trade coverage is not yet verified."
                 }
               >
-                {d.count} {d.count === 1 ? "trade" : "trades"}
+                {d.count}{" "}
+                {mode === "demo"
+                  ? d.count === 1
+                    ? "trade"
+                    : "trades"
+                  : d.count === 1
+                    ? "portion"
+                    : "portions"}
               </span>
             </span>
             <span
@@ -684,7 +710,7 @@ export function TradingCalendar({
               )}
               <Link
                 className="back-link"
-                href={`/trade-view?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}) })}`}
+                href={`/trade-view?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, outcomeBasis: mode === "real" ? "portions" : "complete", dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}) })}`}
               >
                 Open this day in Trade View →
               </Link>
@@ -735,17 +761,20 @@ export function TradingCalendar({
                       </p>
                       {r.href && (
                         <>
-                        <Link
-                          href={`/trade-view/${r.id}?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}), from: `${pathname}?${search}` })}`}
-                        >
-                          View full record →
-                        </Link>
-                        <Link
-                          href={`/trade-view/${r.id}?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, tab: "review", dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}), from: `${pathname}?${search}` })}`}
-                        >
-                          Review →
-                        </Link>
-                        <p className="small muted">This review belongs to the whole record, including contributions on other days.</p>
+                          <Link
+                            href={`/trade-view/${r.id}?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, outcomeBasis: mode === "real" ? "portions" : "complete", dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}), from: `${pathname}?${search}` })}`}
+                          >
+                            View full record →
+                          </Link>
+                          <Link
+                            href={`/trade-view/${r.id}?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, tab: "review", dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}), from: `${pathname}?${search}` })}`}
+                          >
+                            Review →
+                          </Link>
+                          <p className="small muted">
+                            This review belongs to the whole record, including
+                            contributions on other days.
+                          </p>
                         </>
                       )}
                     </article>

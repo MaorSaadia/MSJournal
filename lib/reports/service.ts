@@ -1,4 +1,5 @@
 import "server-only";
+import { REAL_RECORD_KIND } from "@/lib/journal/statistics";
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { tradingAccounts, userPreferences, reviewTags } from "@/db/schema";
@@ -155,7 +156,7 @@ export async function reports(
             sql`,`,
           )})`;
           const symbol = sql`(${q.symbol ?? null}::text is null or r.symbol=${q.symbol ?? null}) and (${q.root ?? null}::text is null or coalesce(substring(r.symbol from '^([A-Z0-9]+?)[FGHJKMNQUVXZ][0-9]{1,4}$'),r.symbol)=${q.root ?? null})`;
-          if (q.tab !== "behavior" && q.analysis === "activity") {
+          if (q.tab !== "behavior" && q.analysis !== "complete") {
             const result =
               await tx.execute(sql`select p.id::text,p.owner_id as "ownerId",p.trading_account_id::text as "tradingAccountId",p.symbol,p.buy_fill_id as "buyFillId",p.sell_fill_id as "sellFillId",p.quantity::text,p.buy_price::text as "buyPrice",p.sell_price::text as "sellPrice",p.gross_pnl::text as "grossPnl",p.bought_at as "boughtAt",p.sold_at as "soldAt",f.amount::text as amount,f.kind
      from journal_records r join journal_sources l on l.record_id=r.id and l.owner_id=${owner.id} and l.trading_account_id=r.trading_account_id
@@ -186,7 +187,7 @@ export async function reports(
             ? sql`left join journal_reviews rv on rv.record_id=r.id and rv.owner_id=${owner.id} and rv.trading_account_id=r.trading_account_id and rv.needs_reassignment=false`
             : sql``;
           const result =
-            await tx.execute(sql`select r.id::text,r.trading_account_id::text as "accountId",a.display_name as account,r.symbol,r.direction,r.status,'portion'::text as type,r.entry_at as entry,r.exit_at as exit,extract(epoch from r.exit_at-r.entry_at)::text as duration,r.gross_pnl::text as gross,r.fees::text as fees,(r.gross_pnl-r.fees)::text as net,r.fee_kind as "feeKind",(r.fee_kind in ('Estimated','Mixed')) as estimated,${reviewProjection}
+            await tx.execute(sql`select r.id::text,r.trading_account_id::text as "accountId",a.display_name as account,r.symbol,r.direction,r.status,${REAL_RECORD_KIND}::text as type,r.entry_at as entry,r.exit_at as exit,extract(epoch from r.exit_at-r.entry_at)::text as duration,r.gross_pnl::text as gross,r.fees::text as fees,(r.gross_pnl-r.fees)::text as net,r.fee_kind as "feeKind",(r.fee_kind in ('Estimated','Mixed')) as estimated,${reviewProjection}
     from journal_records r join trading_accounts a on a.id=r.trading_account_id and a.owner_id=${owner.id} ${reviewJoin}
     where r.owner_id=${owner.id} and r.current=true and ${scope} and ${symbol} and r.exit_at>=${bounds.start}::timestamptz and r.exit_at<${bounds.end}::timestamptz`);
           records = result.rows.map((raw) => {

@@ -18,6 +18,17 @@ async function run() {
       "select count(*)::int as portions, count(*) filter (where bought_at = sold_at)::int as equal_timestamps from tradovate_performance_records",
     );
     console.log("Stored source structure:", result.rows[0]);
+    const coverage = await db.query(`select
+      (select count(*)::int from journal_records where current=true) as published_groups,
+      (select count(*)::int from journal_sources) as linked_portions,
+      (select count(*)::int from tradovate_performance_records p where not exists(select 1 from journal_sources s where s.source_id=p.id and s.owner_id=p.owner_id)) as unprocessed_portions,
+      (select count(*)::int from journal_processing where status<>'Ready') as pending_accounts,
+      (select count(*)::int from journal_portion_fees where amount is not null) as fee_covered_portions,
+      (select count(*)::int from tradovate_performance_records p where p.bought_at<>p.sold_at and exists(select 1 from journal_sources s join journal_records r on r.id=s.record_id and r.owner_id=s.owner_id and r.current=true where s.source_id=p.id and s.owner_id=p.owner_id and r.direction<>'unknown')) as reliable_entry_portions`);
+    console.log(
+      "Journal publication and dashboard coverage:",
+      coverage.rows[0],
+    );
     const sources = await db.query(
       "select raw_values, source_timezone, quantity, buy_price, sell_price, gross_pnl, bought_at, sold_at, buy_fill_id, sell_fill_id from tradovate_performance_records",
     );

@@ -1,0 +1,260 @@
+.dashboard-connected .dashboard-intro {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.dashboard-basis-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.dashboard-basis-label select {
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--foreground);
+}
+.dashboard-archived {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.dashboard-scope-note {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin: 12px 0 20px;
+  line-height: 1.7;
+}
+.dashboard-scope-note a,
+.dashboard-scope-note button,
+.dashboard-action-state a {
+  color: var(--primary);
+}
+.dashboard-fetch-note {
+  font-size: 12px;
+  padding: 12px;
+  background: var(--accent);
+  border-radius: 8px;
+  margin: 12px 0;
+}
+.dashboard-loading {
+  min-height: 350px;
+  display: grid;
+  place-items: center;
+  color: var(--muted-foreground);
+}
+.dashboard-connected .metric-value {
+  font-size: 25px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.dashboard-connected .metric-card {
+  height: auto;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+}
+.dashboard-connected .metric-foot {
+  white-space: normal;
+  overflow-wrap: break-word;
+  font-size: 10px;
+}
+.average-portions .comparison-values {
+  padding: 18px 0;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.average-portions strong {
+  font-size: 19px;
+}
+.performance-measures {
+  margin: 0;
+  padding: 18px 20px;
+}
+.performance-measures > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.performance-measures > div:last-child {
+  border-bottom: 0;
+}
+.performance-measures dt {
+  font-size: 12px;
+}
+.performance-measures dt small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  margin-top: 6px;
+}
+.performance-measures dd {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: right;
+}
+.dashboard-connected .report-chart {
+  height: 240px;
+  padding: 0 8px;
+  margin-top: 4px;
+}
+.dashboard-action-state {
+  padding: 25px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.heatmap-grid .heat-cell {
+  display: block;
+  border-radius: 3px;
+}
+.heat-cell.heat-flat {
+  outline: 1px solid var(--violet);
+  outline-offset: 1px;
+}
+.heat-flat-key {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  outline: 1px solid var(--violet);
+  margin-right: 4px;
+}
+.balance-account {
+  padding: 15px 20px;
+  border-top: 1px solid var(--border);
+}
+.balance-account-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+.balance-account details {
+  margin-top: 10px;
+  font-size: 11px;
+}
+.balance-account summary {
+  cursor: pointer;
+  color: var(--primary);
+  padding: 5px 0;
+}
+.balance-account form {
+  margin-top: 12px;
+}
+.balance-account fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.balance-account .field-label {
+  flex: 1;
+  min-width: 120px;
+  font-size: 11px;
+}
+.balance-account input,
+.balance-account select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+}
+.balance-account .panel-note {
+  padding: 4px 0;
+  margin: 4px 0;
+  flex-basis: 100%;
+  font-size: 10px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.balance-save {
+  padding: 8px 12px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 6px;
+}
+.balance-adjustments {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+.balance-adjustments li {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+}
+.balance-adjustments small {
+  display: block;
+  color: var(--muted-foreground);
+  margin-top: 4px;
+}
+.balance-adjustments button {
+  color: var(--negative);
+}
+.time-points-table {
+  padding: 10px 18px;
+  max-height: 300px;
+  overflow: auto;
+  font-size: 11px;
+}
+.time-points-table summary {
+  cursor: pointer;
+  color: var(--primary);
+}
+.dashboard-connected .chart-container {
+  height: 240px;
+  min-width: 0;
+}
+.dark .balance-account input[type="date"],
+.dark .balance-account input[type="datetime-local"] {
+  color-scheme: dark;
+}
+@media (max-width: 600px) {
+  .dashboard-connected .average-portions {
+    grid-column: span 2;
+  }
+  .dashboard-connected .metric-value {
+    font-size: 22px;
+  }
+  .dashboard-connected .dashboard-intro {
+    align-items: start;
+  }
+  .dashboard-connected .dashboard-basis-label {
+    flex-basis: 45%;
+  }
+  .performance-measures {
+    padding: 10px 18px;
+  }
+  .dashboard-connected .report-chart {
+    height: 230px;
+  }
+  .balance-account {
+    padding: 14px;
+  }
+  .average-portions strong {
+    font-size: 17px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-connected * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -29,7 +29,7 @@ export type Filters = {
   start: string;
   end: string;
   symbol: string;
-  direction: "all" | Direction;
+  direction: "all" | Direction | "unknown";
 };
 export type DailyResult = {
   date: string;

@@ -52,7 +52,7 @@ export const requestSchema = z
     end: daySchema.optional(),
     day: daySchema.optional(),
     symbol: z.string().max(80).optional(),
-    direction: z.enum(["all", "long", "short"]).default("all"),
+    direction: z.enum(["all", "long", "short", "unknown"]).default("all"),
   })
   .strict()
   .refine((v) => !v.start || !v.end || v.start <= v.end);

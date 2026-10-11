@@ -45,6 +45,7 @@ const chipLabels: Record<string, string> = {
   holding: "Holding duration",
   mistakes: "Any selected mistake",
   reviewMissing: "Not recorded",
+  outcomeBasis: "Statistics basis",
   review: "Review",
   mistake: "Mistake",
   emotion: "Emotion",
@@ -246,6 +247,11 @@ export function JournalList() {
     <div
       className={`accounts-page journal-page trade-view tv-${prefs.density}`}
     >
+      {q.dashboardFrom && (
+        <Link href={q.dashboardFrom} prefetch={false} className="back-link">
+          ← Back to dashboard
+        </Link>
+      )}
       {q.reportFrom && (
         <Link href={q.reportFrom} prefetch={false} className="back-link">
           ← Back to Reports
@@ -320,6 +326,23 @@ export function JournalList() {
           value={q.search}
           change={(v) => update("search", v)}
         />
+        {q.outcomeBasis === "portions" && data?.summary.statistics && (
+          <p className="dashboard-scope-note">
+            {data.summary.statistics.count} closed portions ·{" "}
+            {data.summary.statistics.winRate === null
+              ? "Unavailable"
+              : `${data.summary.statistics.winRate}%`}{" "}
+            winning portions · profit factor · portions:{" "}
+            {data.summary.statistics.profitFactor ??
+              data.summary.statistics.profitFactorNote.replaceAll(
+                "trades",
+                "portions",
+              )}{" "}
+            · average winning/losing portion:{" "}
+            {journalMoney(data.summary.statistics.averageWin, true)} /{" "}
+            {journalMoney(data.summary.statistics.averageLoss, true)}
+          </p>
+        )}
         <details className="tv-menu">
           <summary>
             Accounts
@@ -407,6 +430,10 @@ export function JournalList() {
             ["activity", "Realized activity in range"],
           ])}
         </div>
+        {control("outcomeBasis", "Statistics basis", [
+          ["portions", "Closed portions"],
+          ["complete", "Complete trades"],
+        ])}
         {control("basis", "P&L basis", [
           ["gross", "Gross"],
           ["net", "Net"],

@@ -1,4 +1,5 @@
 import "server-only";
+import { REAL_RECORD_KIND } from "./statistics";
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -300,6 +301,7 @@ export async function getJournal(headers?: Headers) {
           portions: sources.filter((p) => published.has(p.id)).map(portion),
           records: records.map((r) => ({
             ...r,
+            type: REAL_RECORD_KIND,
             entryAt: r.entryAt?.toISOString() ?? null,
             exitAt: r.exitAt.toISOString(),
             updatedAt: r.updatedAt.toISOString(),

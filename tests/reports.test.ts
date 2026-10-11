@@ -95,6 +95,17 @@ function run(
   });
 }
 describe("reports financial bases and exact drills", () => {
+  it("excludes partial groups from complete performance and review coverage", () => {
+    const partial = { ...record("partial", "10"), partial: true };
+    expect(run({ analysis: "complete" }, [partial]).summary.count).toBe(0);
+    const behavior = run({ tab: "behavior", behaviorBasis: "complete" }, [
+      partial,
+    ]);
+    expect(behavior.summary.count).toBe(0);
+    expect(behavior.coverage.reviewed).toBe(0);
+    expect(behavior.supportedComplete).toBe(0);
+  });
+
   it("attributes portions by local exit, resets cumulative and drawdown at zero, and uses active-day denominators", () => {
     const result = run();
     expect(result.days.map((d) => d.date)).toEqual([

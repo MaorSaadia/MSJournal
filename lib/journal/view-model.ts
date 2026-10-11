@@ -4,6 +4,7 @@ import {
   type ReviewFields,
   type ReviewTag,
 } from "@/lib/reviews/model";
+import { summary, isCompleteTrade, type Summary } from "./statistics";
 import { z } from "zod";
 import { daySchema, dayBounds } from "@/lib/calendar/model";
 import { D, sum } from "./processing";
@@ -26,6 +27,7 @@ export const viewSchema = z
     end: daySchema
       .refine((v) => v >= "1900-01-01" && v <= "9998-12-31")
       .optional(),
+    outcomeBasis: z.enum(["complete", "portions"]).default("complete"),
     dateBasis: z.enum(["closed", "activity"]).default("closed"),
     basis: z.enum(["gross", "net"]).default("gross"),
     search: z.string().trim().max(100).default(""),
@@ -47,6 +49,14 @@ export const viewSchema = z
     hour: z.coerce.number().int().min(0).max(23).optional(),
     holding: z.enum(durationBuckets).optional(),
     reviewMissing: z.enum(["mistake", "emotion", "adherence"]).optional(),
+    dashboardFrom: z
+      .string()
+      .max(16000)
+      .refine(
+        (v) => v.startsWith("/?") && !v.includes("\\"),
+        "Invalid dashboard return link",
+      )
+      .optional(),
     reportFrom: z
       .string()
       .max(16000)
@@ -120,6 +130,7 @@ export type ViewRecord = {
   imported: string | null;
 };
 export type ViewSummary = {
+  statistics?: Summary;
   count: number;
   trades: number;
   portions: number;
@@ -157,9 +168,15 @@ export function rangeBounds(q: ViewQuery, timezone: string) {
   };
 }
 export function summaryOf(rows: ViewRecord[], q: ViewQuery): ViewSummary {
-  const trades = rows.filter((r) => r.type === "trade");
+  const trades = rows.filter(isCompleteTrade);
   const covered = rows.filter((r) => r.net !== null).length;
   return {
+    statistics: summary(
+      (q.outcomeBasis === "complete" ? trades : rows).map((r) =>
+        q.basis === "gross" ? r.gross : r.net,
+      ),
+      rows.some((r) => r.estimated),
+    ),
     count: rows.length,
     trades: trades.length,
     portions: rows.length - trades.length,
@@ -172,14 +189,8 @@ export function summaryOf(rows: ViewRecord[], q: ViewQuery): ViewSummary {
       trades.length === rows.length &&
       !rows.some((r) => r.partial) &&
       (q.basis === "gross" || covered === rows.length)
-        ? new D(
-            trades.filter((r) =>
-              new D(q.basis === "gross" ? r.gross : r.net!).gt(0),
-            ).length,
-          )
-            .div(trades.length)
-            .times(100)
-            .toFixed(1)
+        ? summary(trades.map((r) => (q.basis === "gross" ? r.gross : r.net)))
+            .winRate
         : null,
   };
 }

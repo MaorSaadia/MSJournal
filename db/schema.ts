@@ -329,6 +329,41 @@ export const tradingAccounts = pgTable(
     ),
   ],
 );
+// Cash movements affect journal balance estimates, never trading P&L.
+export const balanceAdjustments = pgTable(
+  "account_balance_adjustments",
+  {
+    id: uuid("id").primaryKey(),
+    ownerId: text("owner_id").notNull(),
+    tradingAccountId: uuid("trading_account_id").notNull(),
+    effectiveAt: timestamp("effective_at", { withTimezone: true }).notNull(),
+    amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+    kind: text("kind").$type<"deposit" | "withdrawal" | "other">().notNull(),
+    explanation: text("explanation").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.tradingAccountId, t.ownerId],
+      foreignColumns: [tradingAccounts.id, tradingAccounts.ownerId],
+    }).onDelete("restrict"),
+    index("account_balance_adjustments_scope_time_idx").on(
+      t.ownerId,
+      t.tradingAccountId,
+      t.effectiveAt,
+    ),
+    check(
+      "account_balance_adjustments_kind",
+      sql`${t.kind} in ('deposit','withdrawal','other')`,
+    ),
+    check(
+      "account_balance_adjustments_sign",
+      sql`(${t.kind}='deposit' and ${t.amount}>0) or (${t.kind}='withdrawal' and ${t.amount}<0) or (${t.kind}='other' and ${t.amount}<>0 and length(trim(${t.explanation}))>0)`,
+    ),
+  ],
+);
 // Imported source records are deliberately separate from reconstructed journal trades.
 const sourceScope = () => ({
   id: uuid("id").primaryKey().defaultRandom(),

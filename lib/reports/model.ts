@@ -1,3 +1,9 @@
+import {
+  summary,
+  isCompleteTrade,
+  type Summary,
+} from "@/lib/journal/statistics";
+export { summary, type Summary } from "@/lib/journal/statistics";
 import { z } from "zod";
 import { daySchema } from "@/lib/calendar/model";
 import {
@@ -22,8 +28,9 @@ export const reportSchema = z
     end: daySchema,
     accounts: z.string().max(8000).optional(),
     archived: z.enum(["0", "1"]).default("0"),
+    direction: z.enum(["all", "long", "short", "unknown"]).default("all"),
     basis: z.enum(["gross", "net"]).default("gross"),
-    analysis: z.enum(["activity", "complete"]).default("activity"),
+    analysis: z.enum(["activity", "complete", "portions"]).default("activity"),
     root: z
       .string()
       .regex(/^[A-Z0-9]{1,20}$/)
@@ -75,24 +82,6 @@ export type DayPoint = Group & {
   cumulative: string | null;
   drawdown: string | null;
 };
-export type Summary = {
-  count: number;
-  covered: number;
-  estimated: boolean;
-  total: string | null;
-  average: string | null;
-  wins: number | null;
-  losses: number | null;
-  zeros: number | null;
-  best: string | null;
-  worst: string | null;
-  winRate: string | null;
-  profitFactor: string | null;
-  profitFactorNote: string;
-  averageWin: string | null;
-  averageLoss: string | null;
-  maxDrawdown: string | null;
-};
 export type ReportData = {
   userId: string;
   timezone: string;
@@ -128,52 +117,6 @@ type Item = {
   value: string | null;
   estimated: boolean;
 };
-const average = (values: string[]) =>
-  values.length ? new D(sum(values)).div(values.length).toFixed() : null;
-export function summary(values: (string | null)[], estimated = false): Summary {
-  const eligible = values.every((v) => v !== null),
-    known = values.filter((v): v is string => v !== null),
-    positive = known.filter((v) => new D(v).gt(0)),
-    negative = known.filter((v) => new D(v).lt(0));
-  return {
-    count: values.length,
-    covered: known.length,
-    estimated,
-    total: eligible ? sum(known) : null,
-    average: eligible ? average(known) : null,
-    wins: eligible ? positive.length : null,
-    losses: eligible ? negative.length : null,
-    zeros: eligible ? known.length - positive.length - negative.length : null,
-    best:
-      eligible && positive.length
-        ? positive.reduce((a, b) => (new D(a).gt(b) ? a : b))
-        : null,
-    worst:
-      eligible && negative.length
-        ? negative.reduce((a, b) => (new D(a).lt(b) ? a : b))
-        : null,
-    winRate:
-      eligible && values.length
-        ? new D(positive.length).div(values.length).times(100).toFixed(1)
-        : null,
-    profitFactor:
-      eligible && negative.length
-        ? new D(sum(positive)).div(new D(sum(negative)).abs()).toFixed(2)
-        : null,
-    profitFactorNote: !eligible
-      ? "Fee coverage incomplete"
-      : !values.length
-        ? "No complete trades"
-        : !negative.length
-          ? positive.length
-            ? "No losing trades"
-            : "No winning or losing trades"
-          : "",
-    averageWin: eligible ? average(positive) : null,
-    averageLoss: eligible ? average(negative) : null,
-    maxDrawdown: null,
-  };
-}
 export function reportHref(
   q: ReportQuery,
   ids: string[],
@@ -186,6 +129,10 @@ export function reportHref(
     start: q.start,
     end: q.end,
     basis: q.basis,
+    direction: q.direction,
+    ...(q.analysis === "portions" && q.tab !== "behavior"
+      ? { outcomeBasis: "portions" }
+      : {}),
     dateBasis:
       q.tab === "behavior" || q.analysis === "complete" ? "closed" : "activity",
     ...(q.tab === "behavior"
@@ -238,7 +185,13 @@ export function summarizeReports({
   const realized = realizedPerformance(
     portions,
     fees,
-    { accounts: ids, start: q.start, end: q.end, symbol: q.symbol },
+    {
+      accounts: ids,
+      start: q.start,
+      end: q.end,
+      symbol: q.symbol,
+      direction: q.direction,
+    },
     timezone,
   );
   const full = records.filter((r) =>
@@ -247,11 +200,16 @@ export function summarizeReports({
         ? q.behaviorBasis === "complete"
         : q.analysis === "complete"
     )
-      ? r.type === "trade"
+      ? isCompleteTrade(r) &&
+        (q.direction === "all" || r.direction === q.direction)
       : true,
   );
   const coverageBase = records.filter(
-    (r) => r.type === (q.behaviorBasis === "complete" ? "trade" : "portion"),
+    (r) =>
+      (q.behaviorBasis === "complete"
+        ? isCompleteTrade(r)
+        : r.type === "portion") &&
+      (q.direction === "all" || r.direction === q.direction),
   );
   const coverage = {
     reviewed: coverageBase.filter((r) => r.reviewData.status === "reviewed")
@@ -275,6 +233,8 @@ export function summarizeReports({
     q.tab === "behavior"
       ? q.behaviorBasis === "complete"
       : q.analysis === "complete";
+  const outcomeMode =
+    complete || (q.analysis === "portions" && q.tab !== "behavior");
   const value = (r: ViewRecord) => (q.basis === "gross" ? r.gross : r.net);
   const items: Item[] =
     q.tab !== "behavior" && !complete
@@ -308,7 +268,7 @@ export function summarizeReports({
       values = unique.map((i) => i.value),
       eligible = values.every((v) => v !== null),
       count =
-        complete || q.tab === "behavior"
+        outcomeMode || q.tab === "behavior"
           ? unique.length
           : new Set(unique.map((i) => i.date)).size,
       total = eligible ? sum(values as string[]) : null;
@@ -319,7 +279,7 @@ export function summarizeReports({
       total,
       average:
         total !== null && count ? new D(total).div(count).toFixed() : null,
-      winRate: complete ? summary(values).winRate : null,
+      winRate: outcomeMode ? summary(values).winRate : null,
       href: reportHref(q, ids, extra),
     };
   };
@@ -347,13 +307,13 @@ export function summarizeReports({
       };
     });
   const stats = summary(
-    complete || q.tab === "behavior"
+    outcomeMode || q.tab === "behavior"
       ? items.map((i) => i.value)
       : days.map((d) => d.total),
     items.some((i) => i.estimated),
   );
   stats.maxDrawdown = eligible ? minimum.abs().toFixed() : null;
-  if (!complete && q.tab !== "behavior" && eligible && days.length) {
+  if (!outcomeMode && q.tab !== "behavior" && eligible && days.length) {
     stats.best = D.max(...days.map((d) => new D(d.total!))).toFixed();
     stats.worst = D.min(...days.map((d) => new D(d.total!))).toFixed();
   }
@@ -496,14 +456,14 @@ export function summarizeReports({
     );
   }
   const distribution =
-    complete && eligible
+    outcomeMode && eligible
       ? ["profit", "loss", "zero"].map((key) =>
           aggregate(
             key,
             {
-              profit: "Winning trades",
-              loss: "Losing trades",
-              zero: "Breakeven trades",
+              profit: complete ? "Winning trades" : "Winning portions",
+              loss: complete ? "Losing trades" : "Losing portions",
+              zero: complete ? "Breakeven trades" : "Breakeven portions",
             }[key]!,
             items.filter(
               (i) =>
@@ -529,7 +489,7 @@ export function summarizeReports({
     groups,
     distribution,
     coverage,
-    supportedComplete: records.filter((r) => r.type === "trade").length,
+    supportedComplete: records.filter(isCompleteTrade).length,
     closedRecords: records.filter((r) => r.type === "portion").length,
     excludedEntry: complete ? chosen.filter((r) => r.entry === null).length : 0,
     excludedDuration: complete

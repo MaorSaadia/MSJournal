@@ -57,6 +57,7 @@ export function CalendarCacheProvider({
         reviews
           ? (key) =>
               key.includes("|/api/journal|") ||
+              key.includes("|/api/dashboard|") ||
               key.includes("|/api/reviews/") ||
               (key.includes("|/api/reports|") &&
                 new URLSearchParams(key.split("|/api/reports|")[1]).get(
@@ -132,7 +133,7 @@ export function usePrivateRequest<
     router = useRouter();
   const key =
     query !== null
-      ? identity + "|daily-stats-v1|" + endpoint + "|" + query
+      ? identity + "|daily-stats-v2|" + endpoint + "|" + query
       : null;
   const state = useSyncExternalStore(
     cache.subscribe,

@@ -1,3 +1,4 @@
+import { summary } from "./statistics";
 import { formatInTimeZone } from "./timezone";
 import {
   D,
@@ -76,6 +77,15 @@ export function realizedPerformance(
                 new D(p.grossPnl).minus(fees[p.id].amount!).gt(0),
               ).length,
         cumulative: running.toFixed(),
+        grossStatistics: summary(values.map((p) => p.grossPnl)),
+        netStatistics: summary(
+          values.map((p) =>
+            fees[p.id]?.amount == null
+              ? null
+              : new D(p.grossPnl).minus(fees[p.id].amount!).toFixed(),
+          ),
+          known.some((p) => fees[p.id].kind === "Estimated"),
+        ),
       };
     });
   const covered = selected.filter((p) => fees[p.id]?.amount != null);

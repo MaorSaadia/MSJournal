@@ -75,9 +75,11 @@ export function ReportChart({
                 {p.count}{" "}
                 {basis.includes("complete trades")
                   ? "trades"
-                  : basis.includes("closed records")
-                    ? "records"
-                    : "active days"}{" "}
+                  : basis.includes("closed portions")
+                    ? "portions"
+                    : basis.includes("closed records")
+                      ? "records"
+                      : "active days"}{" "}
                 · {basis}
               </small>
             </div>
