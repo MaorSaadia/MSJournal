@@ -408,3 +408,12 @@ Finish Day 8 verification passed **35 focused calculation/cache regressions**, t
 The dashboard now uses compact split metric cards, a supported-measure radar, a 13-week violet activity heatmap, aligned chart rows, and a two-thirds-width calendar. Financial calculation services and existing stored data are unchanged. Radar ratio axes have a disclosed display cap of 3; no overall skill score is calculated. Secondary coverage, balance setup and cash adjustments expand on demand.
 
 Visual comparison and the disposable-fixture screenshots are documented in [artifacts/dashboard-redesign](artifacts/dashboard-redesign/README.md). The existing focused dashboard browser check covers navigation, cached returns, balances, themes/mobile, and the reference-size card heights.
+
+
+### Day 9 — Prop accounts, custom rules and progress
+
+Open **Prop Accounts → Overview** to establish an explicit phase cutoff and observed baseline, then configure custom dated rules in **Rules**. Firm names apply no automatic policy. Completed prop days use independently confirmed IANA/reset settings; targets retain phase-to-date P&L across rule edits. Deposits/withdrawals stay out of trading profit, missing net fees remain incomplete, and manual dashboard snapshots remain dated observations rather than cash or P&L corrections.
+
+Static and end-of-day trailing estimates, optional daily realized loss and the documented best-day consistency formula are supported. Intraday equity trailing uses manual snapshots; maximum contracts are a reference rule. Status/phase/reset actions preserve history and require explicit user decisions. Currency remains USD. The dashboard's compact redesign is preserved, and prop-only updates retain cached financial navigation.
+
+Reviewed additive migration `drizzle/0006_steep_thing.sql` was applied to the configured database. For another environment, review it and run `npm.cmd run db:migrate -- --reviewed`. See the [Day 9 setup, calculation conventions, limitations and verification guide](docs/day-nine.md). No database reset, official firm templates, reset expenses or Day 10 features are included.

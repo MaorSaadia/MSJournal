@@ -6,7 +6,13 @@ export const FIRMS = [
   "Take Profit Trader",
 ] as const;
 export const STAGES = ["Evaluation", "Funded", "Personal"] as const;
-export const STATUSES = ["Active", "Passed", "Failed", "Closed"] as const;
+export const STATUSES = [
+  "Active",
+  "Passed",
+  "Failed",
+  "Paused",
+  "Closed",
+] as const;
 export function validTimezone(value: string) {
   try {
     new Intl.DateTimeFormat("en", { timeZone: value }).format();
@@ -54,6 +60,11 @@ function validDate(value: string) {
 export const tradingAccountSchema = z
   .object({
     displayName: z.string().trim().min(1, "Display name is required.").max(100),
+    programName: z.string().trim().max(100).optional(),
+    startDate: z
+      .string()
+      .refine((v) => !v || validDate(v), "Enter a valid start date.")
+      .optional(),
     firmChoice: z.enum([...FIRMS, "Other", ""]),
     customFirm: z.string().trim().max(100),
     platform: z.literal("Tradovate"),
@@ -107,6 +118,8 @@ export type AccountFormValues = z.infer<typeof tradingAccountSchema>;
 export function accountValues(input: AccountFormValues) {
   return {
     displayName: input.displayName,
+    programName: input.programName || null,
+    startDate: input.startDate || null,
     firm:
       input.stage === "Personal"
         ? null

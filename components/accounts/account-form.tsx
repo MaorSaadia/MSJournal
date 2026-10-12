@@ -21,6 +21,8 @@ import type { TradingAccount } from "@/lib/accounts/types";
 import { RequestError, requestJson } from "@/lib/client-api";
 const defaults: AccountFormValues = {
   displayName: "",
+  programName: "",
+  startDate: "",
   firmChoice: "",
   customFirm: "",
   platform: "Tradovate",
@@ -39,6 +41,8 @@ function initialValues(account?: TradingAccount): AccountFormValues {
   const known = FIRMS.find((f) => f === account.firm);
   return {
     displayName: account.displayName,
+    programName: account.programName ?? "",
+    startDate: account.startDate ?? "",
     firmChoice: account.stage === "Personal" ? "" : (known ?? "Other"),
     customFirm: known ? "" : (account.firm ?? ""),
     platform: "Tradovate",
@@ -55,10 +59,12 @@ function initialValues(account?: TradingAccount): AccountFormValues {
 }
 export function AccountForm({
   account,
+  tracked = false,
   onClose,
   onSaved,
 }: {
   account?: TradingAccount;
+  tracked?: boolean;
   onClose: () => void;
   onSaved: (account: TradingAccount) => void;
 }) {
@@ -191,6 +197,7 @@ export function AccountForm({
             <label className="form-field">
               Stage *
               <select
+                disabled={tracked}
                 {...register("stage")}
                 aria-label="Stage"
                 {...accessible("stage")}
@@ -204,6 +211,7 @@ export function AccountForm({
             <label className="form-field">
               Status *
               <select
+                disabled={tracked}
                 {...register("status")}
                 aria-label="Status"
                 {...accessible("status")}
@@ -224,7 +232,9 @@ export function AccountForm({
                 >
                   <option value="">Select a firm</option>
                   {[...FIRMS, "Other"].map((f) => (
-                    <option key={f}>{f}</option>
+                    <option key={f} value={f}>
+                      {f === "Other" ? "Custom" : f}
+                    </option>
                   ))}
                 </select>
                 {fieldError("firmChoice")}
@@ -258,6 +268,24 @@ export function AccountForm({
                 future imports; archived identifiers stay reserved.
               </small>
               {fieldError("brokerIdentifier")}
+            </label>
+            <label className="form-field">
+              Program name
+              <input
+                {...register("programName")}
+                {...accessible("programName")}
+                placeholder="Your program / plan"
+              />
+              {fieldError("programName")}
+            </label>
+            <label className="form-field">
+              Account start date
+              <input
+                type="date"
+                {...register("startDate")}
+                {...accessible("startDate")}
+              />
+              {fieldError("startDate")}
             </label>
             <label className="form-field">
               Nominal account size (USD) *
@@ -321,6 +349,8 @@ export function AccountForm({
             )}
           </datalist>
           <p className="form-explanation">
+            {tracked &&
+              "Use the dated phase/status actions in account Overview to change a tracked phase or status. "}
             Currency: USD. An opening balance is an entered baseline; it is
             never shown as a verified current balance.
           </p>

@@ -53,20 +53,28 @@ export function CalendarCacheProvider({
       const reviews = (
         event as CustomEvent<{ url?: string }>
       ).detail?.url?.startsWith("/api/reviews");
+      const propsOnly =
+        (event as CustomEvent<{ url?: string }>).detail?.url?.startsWith(
+          "/api/prop-progress",
+        ) ?? false;
       cache.invalidate(
-        reviews
-          ? (key) =>
-              key.includes("|/api/journal|") ||
-              key.includes("|/api/dashboard|") ||
-              key.includes("|/api/reviews/") ||
-              (key.includes("|/api/reports|") &&
-                new URLSearchParams(key.split("|/api/reports|")[1]).get(
-                  "tab",
-                ) === "behavior")
-          : undefined,
+        propsOnly
+          ? (key) => key.includes("|/api/prop-progress|")
+          : reviews
+            ? (key) =>
+                key.includes("|/api/journal|") ||
+                key.includes("|/api/dashboard|") ||
+                key.includes("|/api/reviews/") ||
+                (key.includes("|/api/reports|") &&
+                  new URLSearchParams(key.split("|/api/reports|")[1]).get(
+                    "tab",
+                  ) === "behavior")
+            : undefined,
       );
       window.dispatchEvent(
-        new CustomEvent("msjournal:calendar-refresh", { detail: { reviews } }),
+        new CustomEvent("msjournal:calendar-refresh", {
+          detail: { reviews, propsOnly },
+        }),
       );
       if (
         (event as CustomEvent<{ url?: string }>).detail?.url ===
@@ -171,14 +179,25 @@ export function usePrivateRequest<
     };
   }, [key, query, cache, router, timezone, userId, missing, endpoint]);
   const refresh = () => {
-    cache.invalidate();
-    window.dispatchEvent(new Event("msjournal:calendar-refresh"));
+    const propsOnly = endpoint === "/api/prop-progress";
+    cache.invalidate(
+      propsOnly ? (key) => key.includes("|/api/prop-progress|") : undefined,
+    );
+    window.dispatchEvent(
+      new CustomEvent("msjournal:calendar-refresh", { detail: { propsOnly } }),
+    );
   };
   useEffect(() => {
     if (!key || query === null) return;
     const handler = (event: Event) => {
       if (
+        (event as CustomEvent<{ propsOnly?: boolean }>).detail?.propsOnly &&
+        endpoint !== "/api/prop-progress"
+      )
+        return;
+      if (
         (endpoint === "/api/calendar" ||
+          endpoint === "/api/prop-progress" ||
           (endpoint === "/api/reports" &&
             new URLSearchParams(query).get("tab") !== "behavior")) &&
         (event as CustomEvent<{ reviews?: boolean }>).detail?.reviews

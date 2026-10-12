@@ -23,6 +23,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { AccountForm } from "./account-form";
+import { usePrivateRequest } from "@/components/calendar/cache-provider";
+import type { PropData } from "@/lib/props/service";
+import { PropSummary } from "@/components/props/progress";
 export function decimalUSD(value: string) {
   const [whole, fraction = "00"] = value.split(".");
   return `${whole.startsWith("-") ? "-" : ""}$${whole.replace(/^-/, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${fraction.padEnd(2, "0")}`;
@@ -33,6 +36,7 @@ export function AccountsPage({
   initialAccounts: TradingAccount[];
 }) {
   const router = useRouter();
+  const progress = usePrivateRequest<PropData>("", "/api/prop-progress");
   const [accounts, setAccounts] = useState(initialAccounts),
     [search, setSearch] = useState(""),
     [firm, setFirm] = useState("all"),
@@ -88,7 +92,7 @@ export function AccountsPage({
   return (
     <motion.div
       className="accounts-page"
-      initial={{ opacity: 0, y: 6 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
     >
       <header className="page-header">
@@ -179,6 +183,12 @@ export function AccountsPage({
           {error}
         </p>
       )}
+      {progress.error && (
+        <p role="alert" className="form-error">
+          Prop progress unavailable. {progress.error}{" "}
+          <button onClick={progress.refresh}>Retry</button>
+        </p>
+      )}
       {visible.length ? (
         <div className="managed-account-grid">
           {visible.map((account) => (
@@ -186,7 +196,11 @@ export function AccountsPage({
               <header>
                 <span className="account-glyph">{account.displayName[0]}</span>
                 <div>
-                  <h2>{account.displayName}</h2>
+                  <h2>
+                    <Link href={`/prop-accounts/${account.id}`}>
+                      {account.displayName}
+                    </Link>
+                  </h2>
                   <p>{account.firm ?? "Personal account"}</p>
                 </div>
                 <span
@@ -224,6 +238,26 @@ export function AccountsPage({
                   <dd>{account.reportingTimezone}</dd>
                 </div>
               </dl>
+              {progress.data && (
+                <PropSummary
+                  progress={
+                    progress.data.accounts
+                      .find((a) => a.account.id === account.id)
+                      ?.phases.at(-1) ?? null
+                  }
+                  timezone={progress.data.timezone}
+                />
+              )}
+              <p className="prop-card-freshness">
+                Latest import:{" "}
+                {progress.data?.accounts
+                  .find((a) => a.account.id === account.id)
+                  ?.latestImport?.slice(0, 10) ?? "None"}{" "}
+                · Last activity:{" "}
+                {progress.data?.accounts
+                  .find((a) => a.account.id === account.id)
+                  ?.latestActivity?.slice(0, 10) ?? "None"}
+              </p>
               {!account.brokerIdentifier && (
                 <p className="mapping-note">
                   Map a broker identifier before future imports.
@@ -232,10 +266,14 @@ export function AccountsPage({
               {account.openingBalance !== null && (
                 <p className="baseline-note">
                   Entered baseline: {decimalUSD(account.openingBalance)} ·{" "}
-                  {account.openingBalanceDate}. Current balance unavailable.
+                  {account.openingBalanceDate}. Journal baseline; prop phase
+                  baseline is configured separately.
                 </p>
               )}
               <footer>
+                <Button asChild variant="outline">
+                  <Link href={`/prop-accounts/${account.id}`}>Overview</Link>
+                </Button>
                 {account.archivedAt ? (
                   <Button
                     variant="outline"
@@ -298,7 +336,7 @@ export function AccountsPage({
           </h2>
           <p>
             {accounts.length === 0
-              ? "Create an account to start organizing your private journal. Trade importing comes next."
+              ? "Create an account, configure its tracking phase and custom rules, then import Performance.csv."
               : "Adjust your search or filters to find an account."}
           </p>
           {accounts.length === 0 && (
@@ -317,6 +355,11 @@ export function AccountsPage({
         <AccountForm
           key={editing === "new" ? "new" : editing.id}
           account={editing === "new" ? undefined : editing}
+          tracked={
+            editing !== "new" &&
+            !!progress.data?.accounts.find((a) => a.account.id === editing.id)
+              ?.phases.length
+          }
           onClose={() => setEditing(null)}
           onSaved={(account) => {
             update(account);

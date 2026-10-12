@@ -1,0 +1,613 @@
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { TradingAccount } from "@/lib/accounts/types";
+import type { PropRules } from "@/lib/props/validation";
+import type { PropData } from "@/lib/props/service";
+import { usePrivateRequest } from "@/components/calendar/cache-provider";
+import { AccountForm } from "@/components/accounts/account-form";
+import { Button } from "@/components/ui/button";
+import { journalMoney, localDay } from "@/lib/journal/calculations";
+import { journalTimestamp } from "@/lib/timezones";
+import { RequirementOverview } from "./progress";
+import { PropBalanceChart } from "./charts";
+import {
+  PhaseForm,
+  RulesForm,
+  SnapshotForm,
+  StatusForm,
+  CopyRulesForm,
+} from "./forms";
+import { requestJson } from "@/lib/client-api";
+export function PropAccountDetail({
+  account: initial,
+  ownedAccounts,
+}: {
+  account: TradingAccount;
+  ownedAccounts: TradingAccount[];
+}) {
+  const router = useRouter(),
+    search = useSearchParams(),
+    [settings, setSettings] = useState(false),
+    [account, setAccount] = useState(initial),
+    [tab, setTab] = useState<"Overview" | "Rules" | "History">("Overview"),
+    [feedback, setFeedback] = useState(""),
+    [copiedRules, setCopiedRules] = useState<PropRules | null>(null),
+    [copiedEffective, setCopiedEffective] = useState<string | null>(null);
+  const state = usePrivateRequest<PropData>(
+      `accountId=${account.id}`,
+      "/api/prop-progress",
+    ),
+    data = state.data,
+    item = data?.accounts[0];
+  const progress =
+    item?.phases.find((p) => p.phase.id === search.get("phase")) ??
+    item?.phases.at(-1) ??
+    null;
+  const saved = ({
+    phaseId,
+    accountId,
+  }: {
+    phaseId: string;
+    accountId: string;
+  }) => {
+    setFeedback(
+      "Saved. Progress reflects the dated configuration; account status remains user-managed.",
+    );
+    if (accountId !== account.id)
+      router.push(`/prop-accounts/${accountId}?phase=${phaseId}`);
+    else {
+      window.history.replaceState(
+        null,
+        "",
+        `/prop-accounts/${account.id}?phase=${phaseId}`,
+      );
+      state.refresh();
+      router.refresh();
+    }
+  };
+  const metadata = item?.account ?? account;
+  const query = progress
+    ? new URLSearchParams({
+        accounts: account.id,
+        archived: metadata.archivedAt ? "1" : "0",
+        start: localDay(
+          progress.phase.startAt,
+          data?.timezone ?? account.reportingTimezone,
+        ),
+        end: localDay(
+          progress.phase.endAt ?? progress.asOf,
+          data?.timezone ?? account.reportingTimezone,
+        ),
+        dateBasis: "activity",
+        outcomeBasis: "portions",
+      })
+    : new URLSearchParams({ accounts: account.id });
+  async function archive() {
+    try {
+      const r = await requestJson<{ account: TradingAccount }>(
+        `/api/trading-accounts/${account.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ archived: !metadata.archivedAt }),
+        },
+      );
+      setAccount(r.account);
+      state.refresh();
+      router.refresh();
+      setFeedback(
+        r.account.archivedAt
+          ? "Archived; history preserved."
+          : "Account restored.",
+      );
+    } catch (e) {
+      setFeedback(e instanceof Error ? e.message : "Could not update account.");
+    }
+  }
+  return (
+    <div className="prop-workspace">
+      <header className="page-header">
+        <div>
+          <Link href="/prop-accounts" className="prop-back">
+            ← Prop Accounts
+          </Link>
+          <h1>{metadata.displayName}</h1>
+          <p className="page-description">
+            {metadata.firm ?? "Personal"} ·{" "}
+            {metadata.programName ?? "Program not named"} · {metadata.stage} ·{" "}
+            {metadata.status}
+          </p>
+        </div>
+        <div className="prop-actions">
+          <Button variant="outline" onClick={() => setSettings(true)}>
+            Account settings
+          </Button>
+          <Button variant="outline" onClick={() => void archive()}>
+            {metadata.archivedAt ? "Restore" : "Archive account"}
+          </Button>
+          <Button asChild>
+            <Link href={`/imports?accounts=${account.id}`}>Import CSV</Link>
+          </Button>
+        </div>
+      </header>
+      <div className="prop-links">
+        <Link href={`/trade-view?${query}`}>Trade View · phase dates</Link>
+        <Link
+          href={`/calendar?${query}&month=${query.get("start")?.slice(0, 7) ?? ""}`}
+        >
+          Calendar · journal days
+        </Link>
+        <Link href={`/prop-accounts/${account.id}/fees`}>Fee settings</Link>
+        <button onClick={state.refresh}>Refresh progress</button>
+      </div>
+      {feedback && (
+        <p role="status" className="prop-local-note">
+          {feedback}
+        </p>
+      )}
+      {state.error && (
+        <p role="alert" className="form-error">
+          {state.error} <button onClick={state.refresh}>Retry</button>
+        </p>
+      )}
+      {!data ? (
+        <p role="status" className="prop-setup">
+          Loading account progress…
+        </p>
+      ) : (
+        <>
+          <div className="prop-detail-toolbar">
+            <label>
+              Tracking period
+              <select
+                aria-label="Tracking period"
+                value={progress?.phase.id ?? ""}
+                onChange={(e) => {
+                  window.history.replaceState(
+                    null,
+                    "",
+                    `?phase=${e.target.value}`,
+                  );
+                  setFeedback("");
+                }}
+              >
+                {item?.phases.map((p) => (
+                  <option key={p.phase.id} value={p.phase.id}>
+                    {p.phase.label} · {p.phase.kind} · {p.phase.status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span>
+              Latest import:{" "}
+              {item?.latestImport
+                ? journalTimestamp(item.latestImport, data.timezone)
+                : "None"}{" "}
+              · analyzed {journalTimestamp(data.asOf, data.timezone)}
+            </span>
+          </div>
+          {metadata.archivedAt && (
+            <p className="prop-local-note">
+              Archived history is readable. Restore the account to change
+              configuration or add observations.
+            </p>
+          )}
+          {!progress ? (
+            <PhaseForm
+              account={metadata}
+              previous={null}
+              accounts={ownedAccounts}
+              onSaved={saved}
+            />
+          ) : (
+            <>
+              <nav className="prop-tabs" aria-label="Account detail sections">
+                {(["Overview", "Rules", "History"] as const).map((t) => (
+                  <button
+                    aria-pressed={tab === t}
+                    onClick={() => setTab(t)}
+                    key={t}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </nav>
+              {tab === "Overview" && (
+                <>
+                  <RequirementOverview
+                    progress={progress}
+                    timezone={data.timezone}
+                  />
+                  <section className="panel prop-balance-panel">
+                    <header className="panel-header">
+                      <h2>Balance & threshold observations</h2>
+                    </header>
+                    <PropBalanceChart progress={progress} />
+                  </section>
+                  <div className="prop-freshness">
+                    Latest imported close:{" "}
+                    {progress.latestActivity
+                      ? journalTimestamp(progress.latestActivity, data.timezone)
+                      : "None"}{" "}
+                    · latest snapshot:{" "}
+                    {progress.snapshots[0]
+                      ? journalTimestamp(
+                          progress.snapshots[0].asOf,
+                          data.timezone,
+                        )
+                      : "None"}
+                    . Estimates are based on imported closes; manual
+                    observations are dated separately.
+                  </div>
+                  {progress.snapshots[0] && (
+                    <div className="prop-manual">
+                      <h2>Manually recorded from prop dashboard</h2>
+                      <p>
+                        {journalTimestamp(
+                          progress.snapshots[0].asOf,
+                          data.timezone,
+                        )}{" "}
+                        · Balance {journalMoney(progress.snapshots[0].balance)}{" "}
+                        · threshold{" "}
+                        {journalMoney(progress.snapshots[0].threshold)} ·
+                        observed days{" "}
+                        {progress.snapshots[0].qualifyingDays ?? "not recorded"}{" "}
+                        · observed snapshot buffer{" "}
+                        {journalMoney(progress.snapshots[0].buffer, true)}
+                      </p>
+                    </div>
+                  )}
+                  <section className="panel prop-days">
+                    <header className="panel-header">
+                      <h2>Prop rule-day realized summaries</h2>
+                    </header>
+                    {progress.current?.rules.daySettingsConfirmed ? (
+                      <div className="prop-table-scroll">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Rule date</th>
+                              <th>Portions</th>
+                              <th>{progress.current.rules.basis} P&L</th>
+                              <th>Qualification</th>
+                              <th>Realized loss crossing</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {progress.current.days.map((d) => (
+                              <tr key={d.date}>
+                                <td>{d.date}</td>
+                                <td>{d.count}</td>
+                                <td>{journalMoney(d.pnl, true)}</td>
+                                <td>
+                                  {!d.complete
+                                    ? "Partial / unfinished"
+                                    : d.qualifying === null
+                                      ? "Incomplete"
+                                      : d.qualifying
+                                        ? "Qualifying"
+                                        : "Not qualifying"}
+                                </td>
+                                <td>
+                                  {d.lossCrossing === null
+                                    ? "Not evaluated"
+                                    : d.lossCrossing
+                                      ? "Observed"
+                                      : "Not observed in imported closes"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {!progress.current.days.length && (
+                          <p className="prop-setup">
+                            No supported rule-day activity in this version.
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="prop-setup">
+                        Confirm the rule timezone, reset and label convention in
+                        Rules before interpreting daily results.
+                      </p>
+                    )}
+                  </section>
+                  {!metadata.archivedAt && (
+                    <div className="prop-editor-stack">
+                      <details>
+                        <summary>Record a manual dashboard snapshot</summary>
+                        <SnapshotForm
+                          key={data.asOf}
+                          account={metadata}
+                          progress={progress}
+                          onSaved={saved}
+                        />
+                      </details>
+                      <details>
+                        <summary>
+                          Confirm phase baseline / imported history
+                        </summary>
+                        <BaselineCorrection
+                          account={metadata}
+                          progress={progress}
+                          onSaved={saved}
+                        />
+                      </details>
+                      {!progress.phase.endAt && (
+                        <details>
+                          <summary>
+                            Mark passed, failed, paused or closed
+                          </summary>
+                          <StatusForm
+                            key={data.asOf}
+                            account={metadata}
+                            progress={progress}
+                            onSaved={saved}
+                          />
+                        </details>
+                      )}
+                      <details>
+                        <summary>Start funded phase / record a reset</summary>
+                        <PhaseForm
+                          key={data.asOf}
+                          account={metadata}
+                          previous={progress}
+                          accounts={ownedAccounts}
+                          onSaved={saved}
+                        />
+                      </details>
+                    </div>
+                  )}
+                </>
+              )}
+              {tab === "Rules" && (
+                <>
+                  {metadata.archivedAt ? (
+                    <p className="prop-setup">
+                      Restore this account to configure rules. Saved versions
+                      remain visible in History.
+                    </p>
+                  ) : (
+                    <>
+                      <RulesForm
+                        key={
+                          data.asOf +
+                          progress.phase.id +
+                          JSON.stringify(copiedRules)
+                        }
+                        account={metadata}
+                        progress={progress}
+                        draft={copiedRules}
+                        draftEffective={copiedEffective}
+                        onSaved={(result) => {
+                          setCopiedRules(null);
+                          setCopiedEffective(null);
+                          saved(result);
+                        }}
+                      />
+                      <details className="prop-editor-stack">
+                        <summary>
+                          Copy configuration from an owned account
+                        </summary>
+                        <CopyRulesForm
+                          key={data.asOf}
+                          account={metadata}
+                          progress={progress}
+                          sources={data.copySources}
+                          onCopied={(rules, effectiveLocal) => {
+                            setCopiedRules(rules);
+                            setCopiedEffective(effectiveLocal);
+                            setFeedback(
+                              "Configuration loaded into Rules. Confirm target day settings and high-water mark, then save a new version.",
+                            );
+                          }}
+                          onSaved={saved}
+                        />
+                      </details>
+                    </>
+                  )}
+                </>
+              )}
+              {tab === "History" && (
+                <div className="prop-history">
+                  <section className="panel">
+                    <header className="panel-header">
+                      <h2>Phase period</h2>
+                    </header>
+                    <p>
+                      {progress.phase.startAt} →{" "}
+                      {progress.phase.endAt ?? "Open"} · Starting balance{" "}
+                      {journalMoney(progress.phase.baseline)} ·{" "}
+                      {progress.phase.historyConfirmed
+                        ? "History confirmed"
+                        : "History unconfirmed"}
+                    </p>
+                    <p>{progress.phase.note}</p>
+                    <p>
+                      Sources spanning the phase cutoff: {progress.ambiguous}{" "}
+                      excluded. Trade View links use enclosing journal dates;
+                      prop calculations use the exact timestamps above.
+                    </p>
+                    {progress.phase.previousId && (
+                      <p>
+                        Previous phase reference: {progress.phase.previousId}
+                      </p>
+                    )}
+                  </section>
+                  <section className="panel">
+                    <header className="panel-header">
+                      <h2>Immutable rule versions</h2>
+                    </header>
+                    {progress.periods.map((p) => (
+                      <details key={p.id}>
+                        <summary>
+                          {p.effectiveAt} · {p.rules.basis} · {p.state}
+                        </summary>
+                        <p>
+                          Version ends {p.endAt}. Phase-to-date profit{" "}
+                          {journalMoney(p.total, true)}; qualifying days{" "}
+                          {p.qualifying ?? "unconfirmed"}.
+                        </p>
+                        <dl>
+                          {Object.entries(p.rules).map(([k, v]) => (
+                            <div key={k}>
+                              <dt>
+                                {k
+                                  .replace(/([a-z])([A-Z])/g, "$1 $2")
+                                  .replace(/^./, (c) => c.toUpperCase())}
+                              </dt>
+                              <dd>
+                                {v === null ? "Not configured" : String(v)}
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </details>
+                    ))}
+                    {!progress.periods.length && (
+                      <p>
+                        No rules configured. Use the Rules tab to add your
+                        custom requirements.
+                      </p>
+                    )}
+                  </section>
+                  <section className="panel">
+                    <header className="panel-header">
+                      <h2>Manual snapshot history</h2>
+                    </header>
+                    {progress.snapshots.map((s) => (
+                      <article key={s.id}>
+                        <strong>
+                          {journalTimestamp(s.asOf, data.timezone)}
+                        </strong>
+                        <p>
+                          Manually recorded · balance {journalMoney(s.balance)}{" "}
+                          · threshold {journalMoney(s.threshold)} · qualifying
+                          days {s.qualifyingDays ?? "not entered"}
+                        </p>
+                        <p>{s.note}</p>
+                      </article>
+                    ))}
+                    {!progress.snapshots.length && (
+                      <p>
+                        Record an observation from Overview when your prop
+                        dashboard has a balance or threshold to preserve.
+                      </p>
+                    )}
+                  </section>
+                  <section className="panel">
+                    <header className="panel-header">
+                      <h2>Dated phase events</h2>
+                    </header>
+                    {data.events
+                      .filter((e) => e.phaseId === progress.phase.id)
+                      .map((e) => (
+                        <article key={e.id}>
+                          <strong>{e.kind}</strong>
+                          <p>
+                            {e.at} · {e.note}
+                          </p>
+                        </article>
+                      ))}
+                  </section>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+      {settings && (
+        <AccountForm
+          account={metadata}
+          tracked={!!item?.phases.length}
+          onClose={() => setSettings(false)}
+          onSaved={(a) => {
+            setAccount(a);
+            setSettings(false);
+            state.refresh();
+            router.refresh();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+import type { PhaseProgress } from "@/lib/props/model";
+function BaselineCorrection({
+  account,
+  progress,
+  onSaved,
+}: {
+  account: TradingAccount;
+  progress: PhaseProgress;
+  onSaved: (r: { phaseId: string; accountId: string }) => void;
+}) {
+  const [error, setError] = useState(""),
+    [busy, setBusy] = useState(false);
+  return (
+    <form
+      className="prop-form"
+      aria-label="Confirm phase baseline"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        setError("");
+        const f = new FormData(e.currentTarget);
+        try {
+          onSaved(
+            await requestJson("/api/prop-progress", {
+              method: "POST",
+              body: JSON.stringify({
+                action: "baseline",
+                accountId: account.id,
+                phaseId: progress.phase.id,
+                baseline: f.get("baseline"),
+                historyConfirmed: f.get("historyConfirmed") === "on",
+                note: f.get("note"),
+              }),
+            }),
+          );
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Could not save.");
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <fieldset disabled={busy}>
+        <legend>
+          Observed balance immediately before {progress.phase.startAt}
+        </legend>
+        <label>
+          Observed phase starting balance (USD)
+          <input name="baseline" defaultValue={progress.phase.baseline ?? ""} />
+        </label>
+        <label className="prop-check">
+          <input
+            type="checkbox"
+            name="historyConfirmed"
+            defaultChecked={progress.phase.historyConfirmed}
+          />
+          I confirm imported realized history from the exact cutoff is complete.
+        </label>
+        <label>
+          Correction / confirmation note
+          <input name="note" />
+        </label>
+        <p className="prop-local-note">
+          This explicitly confirms or corrects the original cutoff’s baseline.
+          Its prior value is retained in the event history. A recent snapshot is
+          not substituted, and the cutoff never moves, so earlier trades are not
+          counted twice.
+        </p>
+        <Button type="submit">Save baseline confirmation</Button>
+      </fieldset>
+      {error && (
+        <p role="alert" className="form-error">
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}

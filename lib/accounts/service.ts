@@ -2,12 +2,13 @@ import "server-only";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { tradingAccounts } from "@/db/schema";
+import { tradingAccounts, propPhases } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { accountValues, tradingAccountSchema } from "./validation";
 import type { TradingAccount } from "./types";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
 import { ZodError } from "zod";
+import { ReviewError } from "@/lib/reviews/model";
 export class NotFoundError extends Error {
   constructor() {
     super("Account not found or unavailable.");
@@ -35,7 +36,12 @@ function databaseError(error: unknown): never {
   const e = error as { code?: string; cause?: { code?: string } };
   if (e.code === "23505" || e.cause?.code === "23505")
     throw new DuplicateAccountError();
-  if (error instanceof NotFoundError || error instanceof ZodError) throw error;
+  if (
+    error instanceof NotFoundError ||
+    error instanceof ZodError ||
+    error instanceof ReviewError
+  )
+    throw error;
   throw new WorkspaceUnavailableError();
 }
 export async function listTradingAccounts(
@@ -86,10 +92,11 @@ export async function saveTradingAccount(
   const values = accountValues(tradingAccountSchema.parse(input));
   try {
     const db = getDb();
-    const [row] = id
-      ? await db
-          .update(tradingAccounts)
-          .set({ ...values, updatedAt: new Date() })
+    const [row] = await db.transaction(async (tx) => {
+      if (id) {
+        const [existing] = await tx
+          .select()
+          .from(tradingAccounts)
           .where(
             and(
               eq(tradingAccounts.id, accountId.parse(id)),
@@ -97,11 +104,42 @@ export async function saveTradingAccount(
               isNull(tradingAccounts.archivedAt),
             ),
           )
-          .returning()
-      : await db
-          .insert(tradingAccounts)
-          .values({ ...values, ownerId: owner.id })
+          .for("update");
+        if (!existing) throw new NotFoundError();
+        const [phase] = await tx
+          .select({ id: propPhases.id })
+          .from(propPhases)
+          .where(
+            and(
+              eq(propPhases.ownerId, owner.id),
+              eq(propPhases.tradingAccountId, id),
+            ),
+          )
+          .limit(1);
+        if (
+          phase &&
+          (values.stage !== existing.stage || values.status !== existing.status)
+        )
+          throw new ReviewError(
+            "Use the account's dated phase/status actions to change phase or status without rewriting history.",
+            400,
+          );
+        return tx
+          .update(tradingAccounts)
+          .set({ ...values, updatedAt: new Date() })
+          .where(
+            and(
+              eq(tradingAccounts.id, id),
+              eq(tradingAccounts.ownerId, owner.id),
+            ),
+          )
           .returning();
+      }
+      return tx
+        .insert(tradingAccounts)
+        .values({ ...values, ownerId: owner.id })
+        .returning();
+    });
     if (!row) throw new NotFoundError();
     return serialize(row);
   } catch (error) {

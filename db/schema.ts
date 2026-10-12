@@ -1,3 +1,4 @@
+import type { PropRules } from "@/lib/props/validation";
 import { sql } from "drizzle-orm";
 import type { ReviewFields } from "@/lib/reviews/model";
 import {
@@ -271,6 +272,8 @@ export const tradingAccounts = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
     displayName: text("display_name").notNull(),
+    programName: text("program_name"),
+    startDate: date("start_date"),
     firm: text("firm"),
     platform: text("platform").default("Tradovate").notNull(),
     brokerIdentifier: text("broker_identifier"),
@@ -278,7 +281,7 @@ export const tradingAccounts = pgTable(
       .$type<"Evaluation" | "Funded" | "Personal">()
       .notNull(),
     status: text("status")
-      .$type<"Active" | "Passed" | "Failed" | "Closed">()
+      .$type<"Active" | "Passed" | "Failed" | "Paused" | "Closed">()
       .default("Active")
       .notNull(),
     nominalSize: numeric("nominal_size", { precision: 18, scale: 2 }).notNull(),
@@ -311,7 +314,7 @@ export const tradingAccounts = pgTable(
     ),
     check(
       "trading_accounts_status_check",
-      sql`${table.status} in ('Active', 'Passed', 'Failed', 'Closed')`,
+      sql`${table.status} in ('Active', 'Passed', 'Failed', 'Paused', 'Closed')`,
     ),
     check("trading_accounts_currency_check", sql`${table.currency} = 'USD'`),
     check("trading_accounts_nominal_positive", sql`${table.nominalSize} > 0`),
@@ -763,5 +766,121 @@ export const userPreferences = pgTable(
       "user_preferences_week_start_check",
       sql`${table.weekStartsOn} in (0, 1)`,
     ),
+  ],
+);
+
+// Phase/rule/snapshot history is append-only; immutable source trades stay on trading_accounts.
+export const propPhases = pgTable(
+  "prop_phases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id").notNull(),
+    tradingAccountId: uuid("trading_account_id").notNull(),
+    previousId: uuid("previous_id"),
+    kind: text("kind").$type<"Evaluation" | "Funded">().notNull(),
+    label: text("label").notNull(),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }),
+    baseline: numeric("baseline", { precision: 18, scale: 2 }),
+    historyConfirmed: boolean("history_confirmed").notNull().default(false),
+    status: text("status").notNull().default("Active"),
+    statusAt: timestamp("status_at", { withTimezone: true }).notNull(),
+    note: text("note").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("prop_phases_scope").on(t.id, t.ownerId),
+    foreignKey({
+      columns: [t.tradingAccountId, t.ownerId],
+      foreignColumns: [tradingAccounts.id, tradingAccounts.ownerId],
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [t.previousId, t.ownerId],
+      foreignColumns: [t.id, t.ownerId],
+    }).onDelete("restrict"),
+    index("prop_phases_account_start").on(
+      t.ownerId,
+      t.tradingAccountId,
+      t.startAt,
+    ),
+    check(
+      "prop_phases_interval",
+      sql`${t.endAt} is null or ${t.endAt}>${t.startAt}`,
+    ),
+    check("prop_phases_kind", sql`${t.kind} in ('Evaluation','Funded')`),
+    check(
+      "prop_phases_status",
+      sql`${t.status} in ('Active','Passed','Failed','Paused','Closed')`,
+    ),
+  ],
+);
+export const propRuleVersions = pgTable(
+  "prop_rule_versions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id").notNull(),
+    phaseId: uuid("phase_id").notNull(),
+    effectiveAt: timestamp("effective_at", { withTimezone: true }).notNull(),
+    rules: jsonb("rules").$type<PropRules>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.phaseId, t.ownerId],
+      foreignColumns: [propPhases.id, propPhases.ownerId],
+    }).onDelete("restrict"),
+    uniqueIndex("prop_rules_version").on(t.ownerId, t.phaseId, t.effectiveAt),
+  ],
+);
+export const propSnapshots = pgTable(
+  "prop_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id").notNull(),
+    phaseId: uuid("phase_id").notNull(),
+    asOf: timestamp("as_of", { withTimezone: true }).notNull(),
+    balance: numeric("balance", { precision: 18, scale: 2 }).notNull(),
+    threshold: numeric("threshold", { precision: 18, scale: 2 }),
+    qualifyingDays: integer("qualifying_days"),
+    note: text("note").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.phaseId, t.ownerId],
+      foreignColumns: [propPhases.id, propPhases.ownerId],
+    }).onDelete("restrict"),
+    index("prop_snapshots_scope_time").on(t.ownerId, t.phaseId, t.asOf),
+    check(
+      "prop_snapshots_days",
+      sql`${t.qualifyingDays} is null or ${t.qualifyingDays}>=0`,
+    ),
+  ],
+);
+export const propEvents = pgTable(
+  "prop_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id").notNull(),
+    phaseId: uuid("phase_id").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    kind: text("kind").notNull(),
+    note: text("note").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.phaseId, t.ownerId],
+      foreignColumns: [propPhases.id, propPhases.ownerId],
+    }).onDelete("restrict"),
+    index("prop_events_scope_time").on(t.ownerId, t.phaseId, t.at),
   ],
 );
