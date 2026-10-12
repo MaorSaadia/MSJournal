@@ -417,3 +417,9 @@ Open **Prop Accounts → Overview** to establish an explicit phase cutoff and ob
 Static and end-of-day trailing estimates, optional daily realized loss and the documented best-day consistency formula are supported. Intraday equity trailing uses manual snapshots; maximum contracts are a reference rule. Status/phase/reset actions preserve history and require explicit user decisions. Currency remains USD. The dashboard's compact redesign is preserved, and prop-only updates retain cached financial navigation.
 
 Reviewed additive migration `drizzle/0006_steep_thing.sql` was applied to the configured database. For another environment, review it and run `npm.cmd run db:migrate -- --reviewed`. See the [Day 9 setup, calculation conventions, limitations and verification guide](docs/day-nine.md). No database reset, official firm templates, reset expenses or Day 10 features are included.
+
+### Day 10 — Daily preparation and trading-day journal
+
+Use **Start my day** on the dashboard or **Day View** to prepare, write session notes and observations, and explicitly review/reopen your day. **Notebook** searches the same saved personal entries and edits future checklist defaults. Entries retain their calendar date, timezone and historical checklist; account filters only change current imported daily results. Autosave preserves newer/failed input and uses revision conflicts with explicit comparison. Daily review completion remains separate from trade reviews and profitability.
+
+Reviewed additive migration `drizzle/0007_melted_talos.sql` creates private daily entries and checklist templates and was applied to the configured database. Other environments should review it and run `npm.cmd run db:migrate -- --reviewed`. See [Day 10 setup, save/date conventions and verification](docs/day-ten.md). Day 11 is not included.

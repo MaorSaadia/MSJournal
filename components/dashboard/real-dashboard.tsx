@@ -173,6 +173,9 @@ export function RealDashboard({
       </header>
       <div className="dashboard-intro">
         <ModeControl mode="real" />
+        <Link href="/day-view" className="back-link">
+          Start my day
+        </Link>
         <label className="dashboard-basis-label">
           Statistics
           <select

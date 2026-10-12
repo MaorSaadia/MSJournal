@@ -1,22 +1,25 @@
 import type { ReviewData, ReviewFields } from "./model";
-type Draft = { fields: ReviewFields; status: "draft" | "reviewed" };
-export type SaveSnapshot = {
-  draft: Draft;
-  data: ReviewData;
+type Draft<F> = { fields: F; status: "draft" | "reviewed" };
+export type GenericSaveSnapshot<F, T> = {
+  draft: Draft<F>;
+  data: T;
   dirty: boolean;
   state: "idle" | "dirty" | "saving" | "saved" | "error" | "conflict";
   error?: string;
 };
-const encoded = (draft: Draft) => JSON.stringify(draft);
+const encoded = (draft: unknown) => JSON.stringify(draft);
 /** Serialize saves, retain edits made during requests, and require explicit conflict resolution. */
-export class ReviewSaveController {
+export class SaveController<
+  F,
+  T extends { fields: F; status: "draft" | "reviewed"; revision: number },
+> {
   private listeners = new Set<() => void>();
   private pending: Promise<void> | null = null;
   private saved: string;
-  private snapshot: SaveSnapshot;
+  private snapshot: GenericSaveSnapshot<F, T>;
   constructor(
-    data: ReviewData,
-    private persist: (draft: Draft, revision: number) => Promise<ReviewData>,
+    data: T,
+    private persist: (draft: Draft<F>, revision: number) => Promise<T>,
   ) {
     const draft = { fields: data.fields, status: data.status };
     this.saved = encoded(draft);
@@ -29,11 +32,11 @@ export class ReviewSaveController {
       this.listeners.delete(fn);
     };
   };
-  private update(patch: Partial<SaveSnapshot>) {
+  private update(patch: Partial<GenericSaveSnapshot<F, T>>) {
     this.snapshot = { ...this.snapshot, ...patch };
     this.listeners.forEach((fn) => fn());
   }
-  edit(draft: Draft) {
+  edit(draft: Draft<F>) {
     this.update({
       draft,
       dirty: encoded(draft) !== this.saved,
@@ -47,7 +50,7 @@ export class ReviewSaveController {
         this.snapshot.state === "conflict" ? this.snapshot.error : undefined,
     });
   }
-  accept(data: ReviewData) {
+  accept(data: T) {
     if (this.snapshot.dirty || this.pending)
       throw new Error("Save the review before changing screenshots.");
     if (data.revision < this.snapshot.data.revision) return false;
@@ -62,7 +65,7 @@ export class ReviewSaveController {
     });
     return true;
   }
-  useLatest(data: ReviewData) {
+  useLatest(data: T) {
     this.pending = null;
     const draft = { fields: data.fields, status: data.status };
     this.saved = encoded(draft);
@@ -74,7 +77,7 @@ export class ReviewSaveController {
       error: undefined,
     });
   }
-  resolveWithMine(data: ReviewData) {
+  resolveWithMine(data: T) {
     this.update({ data, state: "dirty", error: undefined });
     return this.save();
   }
@@ -114,3 +117,9 @@ export class ReviewSaveController {
     return this.pending;
   };
 }
+
+export type SaveSnapshot = GenericSaveSnapshot<ReviewFields, ReviewData>;
+export class ReviewSaveController extends SaveController<
+  ReviewFields,
+  ReviewData
+> {}

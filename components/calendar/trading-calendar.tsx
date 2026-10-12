@@ -144,6 +144,14 @@ export function TradingCalendar({
   const reviewIndicators = usePrivateRequest<
     import("@/lib/reviews/indicators").ReviewIndicators
   >(query, "/api/reviews/indicators");
+  const dailyIndicators = usePrivateRequest<{
+    userId: string;
+    timezone: string;
+    days: Record<string, string>;
+  }>(
+    mode === "real" ? new URLSearchParams({ month }).toString() : null,
+    "/api/daily/indicators",
+  );
   const refresh = state.refresh;
   const details = useCalendarRequest<CalendarDetails>(
     selectedDay ? query + `&day=${selectedDay}` : null,
@@ -225,6 +233,15 @@ export function TradingCalendar({
           {agenda ? dateLabel(date) : Number(date.slice(-2))}
           {date === data?.today && (
             <i className="calendar-today-dot" aria-label="Today" />
+          )}
+          {inMonth && dailyIndicators.data?.days[date] && (
+            <span
+              className="calendar-daily-note"
+              aria-label={`Daily journal ${dailyIndicators.data.days[date]}`}
+              title={`Personal daily journal: ${dailyIndicators.data.days[date]}`}
+            >
+              D
+            </span>
           )}
           {inMonth && !!reviewIndicators.data?.days[date] && (
             <span
@@ -644,6 +661,13 @@ export function TradingCalendar({
               ? "Read-only demo"
               : "Imported realized contributions"}
           </DialogDescription>
+          {mode === "real" && selectedDay && (
+            <Link
+              href={`/day-view?${new URLSearchParams({ date: selectedDay, accounts: ids.join(","), archived: archived ? "1" : "0", contextTimezone: timezone, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}), from: `${pathname}?${search}` })}`}
+            >
+              Open daily journal
+            </Link>
+          )}
           <div className="calendar-day-navigation">
             <Button
               variant="outline"

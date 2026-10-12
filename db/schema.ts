@@ -1,4 +1,5 @@
 import type { PropRules } from "@/lib/props/validation";
+import type { DailyFields, ObservationMeta } from "@/lib/daily/model";
 import { sql } from "drizzle-orm";
 import type { ReviewFields } from "@/lib/reviews/model";
 import {
@@ -18,6 +19,49 @@ import {
   primaryKey,
   foreignKey,
 } from "drizzle-orm/pg-core";
+
+export const dailyEntries = pgTable(
+  "daily_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    entryDate: date("entry_date").notNull(),
+    timezone: text("timezone").notNull(),
+    revision: integer("revision").notNull().default(1),
+    status: text("status")
+      .$type<"draft" | "reviewed">()
+      .notNull()
+      .default("draft"),
+    fields: jsonb("fields").$type<DailyFields>().notNull(),
+    observationMeta: jsonb("observation_meta")
+      .$type<Record<string, ObservationMeta>>()
+      .notNull()
+      .default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("daily_entries_owner_date").on(t.ownerId, t.entryDate),
+    check("daily_entries_status", sql`${t.status} in ('draft','reviewed')`),
+    check("daily_entries_revision", sql`${t.revision}>0`),
+  ],
+);
+export const dailyTemplates = pgTable("daily_templates", {
+  ownerId: text("owner_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "restrict" }),
+  revision: integer("revision").notNull().default(1),
+  items: jsonb("items").$type<DailyFields["checklist"]>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const reviewTags = pgTable(
   "review_tags",

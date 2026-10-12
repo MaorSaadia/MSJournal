@@ -59,6 +59,7 @@ export const requestSchema = z
 export async function calendarData(
   input: unknown,
   headers?: Headers,
+  contextTimezone?: string,
 ): Promise<CalendarMonth | CalendarDetails> {
   const owner = await requireUser(headers);
   const params = requestSchema.parse(input);
@@ -72,7 +73,8 @@ export async function calendarData(
           .from(userPreferences)
           .where(eq(userPreferences.userId, owner.id));
         // Both locations use the saved display zone; immutable demo and source timestamps stay unchanged.
-        const timezone = pref?.displayTimezone ?? "Asia/Jerusalem",
+        const timezone =
+            contextTimezone ?? pref?.displayTimezone ?? "Asia/Jerusalem",
           weekStartsOn = pref?.weekStartsOn === 1 ? 1 : 0;
         const owned =
           params.mode === "demo"
