@@ -16,6 +16,7 @@ import {
 } from "@/lib/strategies/model";
 import { StrategyBuilder, type BuilderOptions } from "./builder";
 import { StrategyResults } from "./results";
+import { MobileSaveBar } from "@/components/ui/mobile-save-bar";
 export function PlaybookEditor({ initial }: { initial: StrategyData }) {
   const router = useRouter(),
     [controller] = useState(
@@ -134,6 +135,14 @@ export function PlaybookEditor({ initial }: { initial: StrategyData }) {
             : "Saved";
   return (
     <div className="playbook-workspace">
+      <MobileSaveBar
+        status={stateLabel}
+        label="Save playbook"
+        disabled={
+          !state.dirty || state.state === "saving" || state.state === "conflict"
+        }
+        save={() => void controller.save()}
+      />
       <header className="page-header">
         <div>
           <Link href="/strategies">Back to Strategies</Link>

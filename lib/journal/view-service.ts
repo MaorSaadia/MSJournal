@@ -1,6 +1,8 @@
 import "server-only";
 import { REAL_RECORD_KIND } from "@/lib/journal/statistics";
 import { demoReviews } from "@/data/demo-reviews";
+import { ReviewError } from "@/lib/reviews/model";
+import type { ExportRecord } from "@/lib/exports/csv";
 import { reviewState, hasNotes, mistakes } from "@/lib/reviews/model";
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
@@ -65,6 +67,7 @@ export function demoRecords(): ViewRecord[] {
 export async function tradeView(
   input: unknown,
   headers?: Headers,
+  exportLimit?: number,
 ): Promise<TradeViewData> {
   const user = await requireUser(headers),
     q = viewSchema.parse(input);
@@ -108,6 +111,11 @@ export async function tradeView(
             q,
             timezone,
           );
+          if (exportLimit && rows.length > exportLimit)
+            throw new ReviewError(
+              "Too many records. Narrow the export date range or accounts.",
+              413,
+            );
           const pages = Math.max(1, Math.ceil(rows.length / q.size)),
             page = Math.min(q.page, pages),
             index = rows.findIndex((r) => r.id === q.record);
@@ -115,7 +123,9 @@ export async function tradeView(
             userId: user.id,
             timezone,
             accounts,
-            rows: rows.slice((page - 1) * q.size, page * q.size),
+            rows: exportLimit
+              ? rows
+              : rows.slice((page - 1) * q.size, page * q.size),
             summary: summaryOf(rows, q),
             page,
             pages,
@@ -187,7 +197,7 @@ export async function tradeView(
           contribution.quantity::text as quantity, r.entry_price::text as "entryPrice", r.exit_price::text as "exitPrice",
           contribution.values as "sourceValues", contribution.gross::text as gross, contribution.fees::text as fees,
           (contribution.gross-contribution.fees)::text as net, contribution.estimated,
-          contribution.kind as "feeKind", r.gross_pnl::text as "fullGross", contribution.partial,
+          contribution.kind as "feeKind", r.gross_pnl::text as "fullGross", r.fees::text as "fullFees", (r.gross_pnl-r.fees)::text as "fullNet", r.closed_quantity::text as "fullQuantity", a.currency, contribution.partial,
           (select min(b.created_at) from import_provenance ip join import_files f on f.id=ip.file_id and f.owner_id=${user.id}
             join import_batches b on b.id=f.batch_id and b.owner_id=${user.id}
             join journal_sources ls on ls.source_id=ip.performance_record_id and ls.owner_id=${user.id}
@@ -198,7 +208,7 @@ export async function tradeView(
         left join journal_reviews rv on rv.record_id=r.id and rv.owner_id=${user.id} and rv.trading_account_id=r.trading_account_id and rv.needs_reassignment=false
         left join lateral (select count(*)::int n from review_attachments ra where ra.review_id=rv.id and ra.owner_id=${user.id} and ra.state='ready') images on true
         cross join lateral (
-          select jsonb_agg((${partValue})::text) as values, sum(p.gross_pnl) as gross, sum(p.quantity) as quantity,
+          select ${exportLimit ? sql`null::jsonb` : sql`jsonb_agg((${partValue})::text)`} as values, sum(p.gross_pnl) as gross, sum(p.quantity) as quantity,
             case when count(f.amount)=count(*) then sum(f.amount) else null end as fees,
             coalesce(bool_or(f.kind='Estimated'),false) as estimated,
             case when count(f.amount)<>count(*) then 'Unknown' when count(distinct f.kind)>1 then 'Mixed' else min(f.kind) end as kind,
@@ -248,6 +258,30 @@ export async function tradeView(
           account: sql`account`,
         }[q.sort];
         const order = q.order === "asc" ? sql`asc` : sql`desc`;
+        if (exportLimit) {
+          await tx.execute(sql`set local statement_timeout = '30000ms'`);
+          const result = await tx.execute(
+            sql`${cte} select id,type,status,"accountId",account,symbol,root,direction,entry,exit,duration,quantity,"entryPrice","exitPrice",gross,fees,net,estimated,"feeKind","fullGross","fullFees","fullNet","fullQuantity",currency,partial,"strategyName","reviewStatus",imported from filtered order by ${sort} ${order} nulls last,id asc limit ${exportLimit + 1}`,
+          );
+          const rows = result.rows as unknown as ExportRecord[];
+          if (rows.length > exportLimit)
+            throw new ReviewError(
+              "Export exceeds 20,000 records. Narrow the date range or accounts; no truncated file was produced.",
+              413,
+            );
+          return {
+            userId: user.id,
+            timezone,
+            accounts,
+            rows,
+            summary: summaryOf(rows, q),
+            page: 1,
+            pages: 1,
+            sourceCount: 0,
+            pending: false,
+            navigation: null,
+          };
+        }
         const result =
           await tx.execute(sql`${cte}, ordered as (select *, row_number() over(order by ${sort} ${order} nulls last,id asc) as position,
         lag(id) over(order by ${sort} ${order} nulls last,id asc) as previous,
@@ -314,7 +348,7 @@ export async function tradeView(
       { isolationLevel: "repeatable read", accessMode: "read only" },
     );
   } catch (e) {
-    if (e instanceof NotFoundError) throw e;
+    if (e instanceof NotFoundError || e instanceof ReviewError) throw e;
     throw new WorkspaceUnavailableError();
   }
 }

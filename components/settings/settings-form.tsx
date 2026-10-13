@@ -14,6 +14,7 @@ import { ThemeControl } from "@/components/shell";
 import { LogoutButton } from "@/components/auth/logout";
 import Link from "next/link";
 import { TimezoneSelector } from "@/components/ui/timezone-selector";
+import { DataBackups } from "@/components/exports/download-controls";
 export function SettingsForm({ preferences }: { preferences: Preferences }) {
   const router = useRouter();
   const [message, setMessage] = useState(""),
@@ -156,6 +157,7 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
           </Button>
         </form>
       </section>
+      <DataBackups />
       <section className="panel settings-session">
         <ShieldCheck size={21} />
         <div>

@@ -18,6 +18,7 @@ import {
 } from "@/lib/reviews/model";
 import { RecordStrategy } from "@/components/strategies/assignment";
 import { useWritingGuard } from "@/components/daily/writing-guard";
+import { MobileSaveBar } from "@/components/ui/mobile-save-bar";
 import { Screenshots } from "./screenshots";
 
 function Note({
@@ -187,6 +188,26 @@ export function RecordWorkspace({
   );
   return (
     <div className="review-workspace">
+      {!demo && tab === "review" && (
+        <MobileSaveBar
+          status={
+            state.state === "saving"
+              ? "Saving..."
+              : state.error
+                ? "Save error"
+                : state.dirty
+                  ? "Unsaved changes"
+                  : "Saved"
+          }
+          label="Save trade review"
+          disabled={
+            !state.dirty ||
+            state.state === "saving" ||
+            state.state === "conflict"
+          }
+          save={() => void controller.save()}
+        />
+      )}
       <div className="review-tabs" role="tablist" aria-label="Record sections">
         {["overview", "review", "screenshots"].map((value, i) => (
           <button

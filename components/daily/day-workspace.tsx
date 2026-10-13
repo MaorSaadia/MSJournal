@@ -23,6 +23,7 @@ import { journalTimestamp } from "@/lib/timezones";
 import { wallInput } from "@/lib/props/model";
 import { usePrivateRequest } from "@/components/calendar/cache-provider";
 import { useWritingGuard } from "./writing-guard";
+import { MobileSaveBar } from "@/components/ui/mobile-save-bar";
 
 function Note({
   label,
@@ -244,6 +245,14 @@ export function DayWorkspace({
                 : "Not saved yet";
   return (
     <div className="daily-workspace">
+      <MobileSaveBar
+        status={savedStatus}
+        label="Save daily entry"
+        disabled={
+          !state.dirty || state.state === "saving" || state.state === "conflict"
+        }
+        save={() => void controller.save()}
+      />
       <header className="page-header">
         <div>
           <span className="eyebrow">DAY VIEW · PERSONAL JOURNAL</span>

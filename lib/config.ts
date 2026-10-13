@@ -42,6 +42,11 @@ export function readConfig(
   const result = environmentSchema.safeParse(env);
   if (
     !result.success ||
+    (env.NODE_ENV === "production" &&
+      result.success &&
+      ["localhost", "127.0.0.1", "[::1]"].includes(
+        new URL(result.data.BETTER_AUTH_URL).hostname,
+      )) ||
     (result.data.AUTH_REQUIRE_EMAIL_VERIFICATION === "true" &&
       !emailConfigured(result.data))
   )

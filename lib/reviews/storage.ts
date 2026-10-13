@@ -70,13 +70,35 @@ export async function objectStorage() {
         );
       }
     },
-    get: async (key: string) => {
+    get: async (
+      key: string,
+      limit = 10 * 1024 * 1024,
+      signal?: AbortSignal,
+    ) => {
       try {
         const result = await client.send(
           new GetObjectCommand({ Bucket: config.bucket, Key: key }),
+          { abortSignal: signal },
         );
         if (!result.Body) throw new Error();
-        return Buffer.from(await result.Body.transformToByteArray());
+        const reader = result.Body.transformToWebStream().getReader();
+        const chunks: Uint8Array[] = [];
+        let size = 0;
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            size += value.byteLength;
+            if (size > limit || signal?.aborted) {
+              await reader.cancel();
+              throw new Error();
+            }
+            chunks.push(value);
+          }
+        } finally {
+          reader.releaseLock();
+        }
+        return Buffer.concat(chunks);
       } catch {
         throw new ReviewError(
           "Screenshot could not be loaded. Retry shortly.",

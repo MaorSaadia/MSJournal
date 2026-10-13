@@ -432,4 +432,18 @@ Open **Strategies → New strategy**, choose one of 13 editable ready templates 
 
 Playbook Results and Reports compare user-assigned strategies and Unassigned using the existing decimal calculation layer, with separate complete-trade/closed-portion denominators, fee coverage and revision filters. Trade View adds optional strategy display/filtering, and Day View selects intended strategies without automatically classifying trades. Images reuse the existing private Day 7 storage configuration; text remains usable without it. Duplication copies text/checklist, not image files.
 
-Reviewed additive migrations `drizzle/0008_overconfident_wild_pack.sql` (strategies) and `drizzle/0009_handy_wallow.sql` (private reusable templates) were applied to the configured database. Other environments should review them and run `npm.cmd run db:migrate -- --reviewed`. See [Day 11 setup, historical attribution, recovery and verification](docs/day-eleven.md). Day 12 is not included.
+Reviewed additive migrations `drizzle/0008_overconfident_wild_pack.sql` (strategies) and `drizzle/0009_handy_wallow.sql` (private reusable templates) were applied to the configured database. Other environments should review them and run `npm.cmd run db:migrate -- --reviewed`. See [Day 11 setup, historical attribution, recovery and verification](docs/day-eleven.md).
+
+### Day 12 — Exports, portable backups and release preparation
+
+Use **Trade View → Export CSV** to download every record matching the current filters, up to 20,000 records; pagination does not restrict the export. The file preserves decimal financial values and unknown amounts, safely escapes spreadsheet text, and labels selected-filter amounts separately from full-record totals. It retains account/date/strategy/review/outcome/type and gross/net selections and includes UTC/local timestamps.
+
+Use **Settings → Data & backups → Download my data** for a version 1 ZIP containing structured JSON and readable/structured manifests. It includes owned journal preferences/accounts/imports/sources/fees/balances/prop progress/reviews/daily entries/strategies/private templates/revisions/assignments and attachment metadata. Authentication credentials, sessions/tokens, environment secrets and other users' records are excluded. Structured records use one consistent read-only snapshot and are checked for ownership and relationship completeness.
+
+**Include screenshots and playbook images** adds private originals and thumbnails as actual ZIP files. If retrieval fails, retry or explicitly confirm **Download partial archive**; missing files are recorded in the manifest. Structured export works without configured storage. Limits are 100,000 records, 16 MiB structured JSON, 200 image object files and 64 MiB per ZIP. No private archive is hosted at a public URL or persisted on local disk.
+
+**Keep this archive for your records. In-app restoration is not available yet.** Portable archives do not replace database-provider backups. See the [archive format, safety and backup limitations](docs/day-twelve.md) and [deployment/release guide](docs/deployment.md) for required environment setup, official Neon recovery checks, reviewed migration commands, smoke checks and rollback guidance. Production auth URLs must use the final HTTPS origin; localhost configurations are rejected in production.
+
+Mobile polish adds a scrollable short-screen navigation drawer, reachable journal/review/playbook save controls that track the visual viewport, larger writing text and touch targets, contained filter panels and an image viewer that fits short viewports. Existing desktop layouts, themes and private cached navigation remain in place.
+
+This milestone does not deploy or provision anything, apply production migrations, modify provider plans/retention, or add prop firm expenses, reset costs or payout tracking. Verification and remaining release checks are recorded in the deployment guide.

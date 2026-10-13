@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { TradeCsvExport } from "@/components/exports/download-controls";
 import {
   useCalendarCache,
   usePrivateRequest,
@@ -286,9 +287,12 @@ export function JournalList() {
             {q.mode === "demo" && <span className="tv-badge">Demo data</span>}
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/imports">Import trades</Link>
-        </Button>
+        <div className="export-actions">
+          <TradeCsvExport query={query} disabled={!parsed.success || !data} />
+          <Button asChild variant="outline">
+            <Link href="/imports">Import trades</Link>
+          </Button>
+        </div>
       </header>
       <div className="tv-summary" aria-live="polite" aria-busy={!data}>
         {summary ? (

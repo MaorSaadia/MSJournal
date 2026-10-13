@@ -1,0 +1,39 @@
+# Day 12 — exports, portable archives and release preparation
+
+This milestone does not deploy anything. Prop firm expenses, reset costs and payout tracking are intentionally skipped.
+
+## Export filtered trading history
+
+Open **Trade View → Export CSV**. The export uses the current account/archive scope, date range/basis, strategy/review/emotion/mistake/product/direction/outcome filters, P&L basis, record type, statistics basis and ordering. Pagination and visible-column preferences do not limit it. Demo exports are explicitly named `demo` and contain the existing fictional data; they never enter a real archive.
+
+The CSV has one row per matching Trade View record, with exact contracts, account/record IDs, grouping/record type, known direction, UTC ISO timestamps and local timestamps with offset/timezone, quantity, price, gross/fees/net, fee source, currency, strategy and review status. `selected_*` values are the filter contribution; `full_record_*` values are the full parent record. This distinction matters for realized activity, portion-outcome filters and shared-fill groups. Grouped matched portions are not relabeled as proven complete trades. The separate record-type and statistics-basis selections retain their existing Trade View meaning.
+
+Financial values remain decimal strings; unknown is an empty CSV cell. User text that could be a spreadsheet formula is prefixed with an apostrophe, including signed-looking text, while validated numeric financial cells retain legitimate minus signs. Quotes, commas and newlines are escaped. Spreadsheet programs may still format or round imported numbers; import financial columns as text when preserving every decimal digit matters.
+
+The server uses the same validated owner-scoped repeatable-read filter query as Trade View, selects only export columns, caps results at 20,000 rows and applies a 30-second query timeout. It streams CSV in batches of 100 rows after validation; no partial/truncated file is deliberately returned on a row-limit failure. Narrow accounts or dates if the export exceeds limits. Download progress, cancellation and retry errors appear beside the button.
+
+## Settings → Data & backups
+
+**Download my data** produces a standard ZIP with `manifest.json`, `MANIFEST.txt`, and one `data/<database_table>.json` per included category. Format version 1 preserves database column names, IDs, immutable revisions, decimal strings, null unknowns, account/date/timezone conventions, raw stored source rows and relationship fields. Profile data is explicitly limited to ID, name, email and timestamps.
+
+The allowlist covers preferences; active/archived accounts, settings and balances; import batches/files/provenance and Orders/Performance sources; current/superseded journal records, source relationships and processing status; estimated/manual fees; balance adjustments; prop phases/rule versions/snapshots/events; reviews, emotions/mistakes/tags/source associations; daily entries, observations/event metadata/checklist snapshots/default checklist; strategies/private templates/revisions/assignments/checklist responses; and screenshot/playbook-image metadata. Authentication account rows, passwords, sessions, verification/reset tokens, rate limits, environment variables and storage/API credentials are excluded.
+
+All structured categories come from a single read-only repeatable-read transaction. Cursor batches of 250 rows bound retrieval; limits are 100,000 rows and 16 MiB of formatted structured JSON. Composite foreign-key relationships and embedded daily-plan, observation, original-source and assignment-checklist references are validated against included owned entities. A relationship failure aborts the archive rather than silently dropping records. Two export preparations per server process and one per user run at once; this is a local admission limit, not a distributed job queue.
+
+Select **Include screenshots and playbook images** to include original image binaries and thumbnails from the existing private S3 integration. `manifest.images.files` links attachment IDs/categories/roles to stable `images/objects/<hash>.<extension>` paths; SHA-256 hashes and byte counts identify included files. Repeated references to the same storage key share a single ZIP entry. Ready images are fetched; pending/deleting binaries are excluded with their lifecycle status documented. No signed URLs replace binaries. Original uploaded CSV files are not stored by this app, so their binaries cannot be included; their metadata and stored raw rows are included.
+
+When any requested file cannot be retrieved, the request stops with a retry message. **Download partial archive** requires explicit confirmation and rebuilds a current snapshot; the manifest and filename identify missing files. Storage being unconfigured does not prevent structured backups. If images are requested while unavailable, the same explicit partial-export choice applies. Concurrent image deletion after the database snapshot is reported as missing. Image reads have a 120-second deadline and per-object 10 MiB bounds, with at most 200 object files and 64 MiB for the entire ZIP. Oversized archives fail clearly, without silently omitting files.
+
+No archive is saved to disk or exposed through a public URL. Routes require a fresh server session; backup POST also requires the configured same origin. Downloads use `private, no-store`, cookie variance and `nosniff`. Browser downloads are memory bounded to 64 MiB; object URLs are short lived and requests are canceled on unmount/sign-out. Private contents, note bodies and credentials are not logged. ZIP files themselves are unencrypted, so keep downloaded archives securely.
+
+**Keep this archive for your records. In-app restoration is not available yet.**
+
+There is no restore button. Stable IDs, versions, raw inputs and relationship descriptors support a future restore implementation with ownership remapping and validation; versioned manifests allow future readers to interpret schema changes. The current export is a portable journal archive, not an authentication database dump or a replacement for infrastructure-level database backups.
+
+## Operator backup/recovery check
+
+Inspect the configured history window under **Settings → Postgres** without changing it; the recovery view shows which historical points are currently available.
+
+In the intended Neon project, identify the exact production branch and database. Open **Postgres database → Backup & Restore** and inspect the available recovery history and current history window. Availability depends on branch type and plan; do not assume a fixed retention period. Neon's current instant restore supports root branches and overwrites data/schema across the selected branch's databases. Have an operator review the documented recovery procedure and validate a chosen historical point with Time Travel Assist before any recovery action. This milestone did not restore anything or change plans/retention. See the official [instant restore guide](https://neon.com/docs/postgres/backup-restore/branch-restore) and [history window guide](https://neon.com/docs/postgres/backup-restore/history-window), verified during this milestone. Back up private object storage separately too; a database recovery alone does not restore deleted S3 objects.
+
+See [deployment and release preparation](deployment.md) for setup, migration, smoke-check and rollback commands. Verification and observed mobile fixes are recorded there. The archive includes stored history only: fee-setting and default-checklist edits have no standalone historical tables; snapshots already stored on fees and daily entries are preserved.
