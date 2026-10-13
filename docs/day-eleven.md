@@ -1,6 +1,10 @@
 # Day 11 — Strategies and playbooks
 
-Open **Strategies**, name a setup and choose **Create strategy**. Only its name is required. Add optional description, market/timeframe/window notes, context, entry/invalidation/stop/exit/management rules, avoidance conditions, common mistakes and a reorderable checklist. Search by name, filter active/archived strategies, edit, archive/restore, or duplicate the text/checklist. Duplication creates an independent strategy; example image files are not copied. No real-account strategies or examples are pre-created.
+Open **Strategies → New strategy** and choose **Use a template** or **Create your own**. The ready library includes 13 editable ICT and price-action structures. Choose one, customize its name, description, accent and confirmations, then choose **Create strategy**. Only a name is required. Optional entry/risk rules and extra notes stay collapsed until needed; the saved playbook keeps the full existing rule fields and examples. The structures contain planning prompts, not validated trading systems or performance claims. No real-account strategies or examples are pre-created.
+
+Use **My templates → New template** to create a private reusable structure, or **Save as template** from a saved playbook. Personal templates can be edited, reused and deleted. Every use creates an independent strategy and fresh checklist identifiers: editing or deleting a template does not change strategies, historical assignments or daily plans already created from it. Templates copy text and checklist structure; example image files are not copied. Search, archive/restore and duplication remain available for strategies.
+
+The builder has editable confirmation chips, custom confirmations, reordering, accent colors and a desktop live preview. It uses the application's emerald/violet styling in both themes and stacks on mobile. Failed saves retain writing; revision checks reject stale template edits/deletions; closing or navigating away asks before discarding changed writing.
 
 ## Assignments and historical instructions
 
@@ -37,3 +41,9 @@ The production build including TypeScript and scoped ESLint passed. The 21 exist
 The playbook editor was visually inspected at 1440px and 390px in both themes without horizontal overflow. Synthetic captures remain ignored under `test-results/day-eleven-Day-11-owned-pl-5c9ba-s-and-ordinary-reprocessing/`. The post-cleanup read-only audit confirmed the original 75 source portions, 41 published groups, no pending processing and unchanged normalization against raw sources. Live S3 upload/view/removal, large-history performance, conflicting multi-assignment merge discard and all recovery UI interactions were not exercised end-to-end. The final recovery snapshot display, selective refresh and playbook return link received build/type/lint verification after the main browser flow.
 
 Day 12 expenses, resets costs and payout tracking are not included.
+
+## Strategy template update
+
+Reviewed additive migration [0009_handy_wallow.sql](../drizzle/0009_handy_wallow.sql) adds the private `strategy_templates` table and was applied with `npm.cmd run db:migrate -- --reviewed`. Apply it in other environments before using templates. Owner-scoped authenticated endpoints protect listing, editing and deletion. Template mutations refresh the template cache without rebuilding financial summaries.
+
+The production build passed, followed by TypeScript and scoped ESLint checks after the final small builder fixes. One focused disposable browser scenario covers ready-template creation, custom template creation, template save failure/retry with writing retained, edit/reuse/delete independence, revision conflicts and cross-user ownership rejection. Desktop/mobile captures were inspected in both themes. The original financial journal remained at 75 source portions and 41 published groups, with no pending processing and normalization matching preserved raw sources. The broad test suite was not rerun for this update.

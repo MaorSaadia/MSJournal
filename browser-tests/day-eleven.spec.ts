@@ -40,6 +40,8 @@ test("Day 11 owned playbook snapshots, assignment, results and ordinary reproces
     ).status(),
   ).toBe(200);
   await page.goto("/strategies");
+  await page.getByRole("button", { name: "New strategy", exact: true }).click();
+  await page.getByRole("button", { name: /Create your own/ }).click();
   await page.getByLabel("New strategy name").fill("Fictional Day 11 setup");
   await page
     .getByRole("button", { name: "Create strategy", exact: true })

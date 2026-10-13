@@ -21,6 +21,25 @@ import {
   foreignKey,
 } from "drizzle-orm/pg-core";
 
+export const strategyTemplates = pgTable(
+  "strategy_templates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    fields: jsonb("fields").$type<Playbook>().notNull(),
+    revision: integer("revision").notNull().default(1),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("strategy_templates_owner").on(t.ownerId),
+    check("strategy_templates_revision", sql`${t.revision}>0`),
+  ],
+);
+
 export const strategies = pgTable(
   "strategies",
   {

@@ -13,6 +13,7 @@ import {
   type Playbook,
   type StrategyData,
 } from "@/lib/strategies/model";
+import { StrategyBuilder, type BuilderOptions } from "./builder";
 import { StrategyResults } from "./results";
 export function PlaybookEditor({ initial }: { initial: StrategyData }) {
   const router = useRouter(),
@@ -29,6 +30,10 @@ export function PlaybookEditor({ initial }: { initial: StrategyData }) {
           },
         ),
     );
+  const [templateBuilder, setTemplateBuilder] = useState<BuilderOptions | null>(
+    null,
+  );
+  const [templateNotice, setTemplateNotice] = useState("");
   const state = useSyncExternalStore(
       controller.subscribe,
       controller.read,
@@ -159,6 +164,17 @@ export function PlaybookEditor({ initial }: { initial: StrategyData }) {
             {state.data.archived ? "Restore strategy" : "Archive strategy"}
           </button>
           <button
+            disabled={busy || state.dirty || state.state === "saving"}
+            onClick={() =>
+              setTemplateBuilder({
+                purpose: "template",
+                seed: state.data.fields,
+              })
+            }
+          >
+            Save as template
+          </button>
+          <button
             disabled={busy || state.dirty}
             onClick={() => void action("duplicate")}
           >
@@ -218,6 +234,7 @@ export function PlaybookEditor({ initial }: { initial: StrategyData }) {
           </button>
         </section>
       )}
+      {templateNotice && <p role="status">{templateNotice}</p>}
       <nav className="playbook-tabs" aria-label="Playbook sections">
         {[
           ["instructions", "Instructions"],
@@ -278,8 +295,28 @@ export function PlaybookEditor({ initial }: { initial: StrategyData }) {
                 .map(([key, label]) => note(key, label))}
             </details>
             <div className="playbook-writing-grid">
-              {playbookNotes.slice(3).map(([key, label]) => note(key, label))}
+              {playbookNotes
+                .filter(([key]) =>
+                  ["context", "entry", "invalidation"].includes(key),
+                )
+                .map(([key, label]) => note(key, label))}
             </div>
+            <details>
+              <summary>Risk, management and extra notes</summary>
+              <div className="playbook-writing-grid">
+                {playbookNotes
+                  .filter(([key]) =>
+                    [
+                      "stop",
+                      "exit",
+                      "management",
+                      "avoid",
+                      "mistakes",
+                    ].includes(key),
+                  )
+                  .map(([key, label]) => note(key, label))}
+              </div>
+            </details>
             <h2>Setup checklist</h2>
             <p className="muted">
               Assignments snapshot these instructions and start with Not
@@ -380,6 +417,19 @@ export function PlaybookEditor({ initial }: { initial: StrategyData }) {
         </section>
       )}
       {tab === "results" && <StrategyResults strategyId={initial.id} />}
+      {templateBuilder && (
+        <StrategyBuilder
+          options={templateBuilder}
+          close={() => setTemplateBuilder(null)}
+          created={() => {}}
+          saved={() => {
+            setTemplateBuilder(null);
+            setTemplateNotice(
+              "Template saved. Find it in Strategies → My templates.",
+            );
+          }}
+        />
+      )}
     </div>
   );
 }
