@@ -1,4 +1,5 @@
 "use client";
+import { confirmAction } from "@/components/ui/confirm-action";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -124,12 +125,12 @@ export function DayWorkspace({
       status: controller.read().draft.status,
     });
   }
-  function navigate(date: string) {
+  async function navigate(date: string) {
     if (
       dirty() &&
-      !window.confirm(
+      !(await confirmAction(
         "Your latest writing is not saved. Leave and discard those changes?",
-      )
+      ))
     )
       return;
     const next = new URLSearchParams(search.toString());
@@ -320,9 +321,9 @@ export function DayWorkspace({
           </details>
           <div className="daily-actions">
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  window.confirm(
+                  await confirmAction(
                     "Replace the editor with this saved version? Your unsaved changes will be discarded.",
                   )
                 ) {
@@ -335,9 +336,9 @@ export function DayWorkspace({
               Use saved version
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  window.confirm(
+                  await confirmAction(
                     "Replace this saved version with your writing?",
                   )
                 ) {
@@ -533,8 +534,8 @@ export function DayWorkspace({
                     <div className="daily-actions">
                       <h3>Observation {index + 1}</h3>
                       <button
-                        onClick={() => {
-                          if (window.confirm("Remove this observation?"))
+                        onClick={async () => {
+                          if (await confirmAction("Remove this observation?"))
                             edit(
                               "observations",
                               fields.observations.filter(

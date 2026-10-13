@@ -1,4 +1,5 @@
 "use client";
+import { confirmAction } from "@/components/ui/confirm-action";
 import { useRef, useState } from "react";
 import { requestJson } from "@/lib/client-api";
 import { journalMoney } from "@/lib/journal/calculations";
@@ -211,9 +212,9 @@ export function BalanceSetup({
                 <button
                   disabled={busy}
                   aria-label={`Remove ${a.kind} adjustment`}
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      window.confirm(
+                      await confirmAction(
                         "Remove this balance adjustment? Trading P&L stays unchanged.",
                       )
                     )

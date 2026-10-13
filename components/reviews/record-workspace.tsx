@@ -1,4 +1,5 @@
 "use client";
+import { confirmAction } from "@/components/ui/confirm-action";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -16,6 +17,7 @@ import {
   type ReviewTag,
 } from "@/lib/reviews/model";
 import { RecordStrategy } from "@/components/strategies/assignment";
+import { useWritingGuard } from "@/components/daily/writing-guard";
 import { Screenshots } from "./screenshots";
 
 function Note({
@@ -128,54 +130,7 @@ export function RecordWorkspace({
     const timer = setTimeout(() => void controller.save(), 900);
     return () => clearTimeout(timer);
   }, [controller, demo, state.draft, state.dirty, state.state]);
-  useEffect(() => {
-    if (demo) return;
-    const href = window.location.href;
-    const unload = (e: BeforeUnloadEvent) => {
-      if (controller.read().dirty) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    const leave = (e: MouseEvent) => {
-      const anchor = (e.target as HTMLElement).closest<HTMLAnchorElement>(
-        "a[href]",
-      );
-      if (!anchor || !controller.read().dirty || anchor.target === "_blank")
-        return;
-      if (
-        !window.confirm(
-          "Your latest review changes are not saved. Leave and discard those changes?",
-        )
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-    const back = (e: PopStateEvent) => {
-      if (
-        !controller.read().dirty ||
-        new URL(window.location.href).pathname === new URL(href).pathname
-      )
-        return;
-      if (
-        !window.confirm(
-          "Your latest review changes are not saved. Leave and discard those changes?",
-        )
-      ) {
-        e.stopImmediatePropagation();
-        window.history.pushState(null, "", href);
-      }
-    };
-    window.addEventListener("beforeunload", unload);
-    document.addEventListener("click", leave, true);
-    window.addEventListener("popstate", back, true);
-    return () => {
-      window.removeEventListener("beforeunload", unload);
-      document.removeEventListener("click", leave, true);
-      window.removeEventListener("popstate", back, true);
-    };
-  }, [controller, demo]);
+  useWritingGuard(() => !demo && controller.read().dirty);
   function edit(fields: ReviewFields) {
     controller.edit({ fields, status: state.draft.status });
   }
@@ -389,9 +344,9 @@ export function RecordWorkspace({
             </p>
             <Button
               variant="outline"
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  window.confirm(
+                  await confirmAction(
                     "Replace your unsaved changes with the saved review?",
                   )
                 ) {
@@ -403,9 +358,9 @@ export function RecordWorkspace({
               Use latest saved
             </Button>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  window.confirm(
+                  await confirmAction(
                     "Replace the displayed saved review with your current version?",
                   )
                 ) {

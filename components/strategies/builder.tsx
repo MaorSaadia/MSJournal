@@ -1,4 +1,5 @@
 "use client";
+import { confirmAction } from "@/components/ui/confirm-action";
 import { useCallback, useState } from "react";
 import { Sparkles, Plus, Check, BookOpen, ArrowRight } from "lucide-react";
 import {
@@ -72,14 +73,14 @@ export function StrategyBuilder({
     [fields, baseline, custom],
   );
   useWritingGuard(dirty);
-  function confirmDiscard() {
+  async function confirmDiscard() {
     return (
       !dirty() ||
-      window.confirm("Discard your unsaved strategy/template changes?")
+      (await confirmAction("Discard your unsaved strategy/template changes?"))
     );
   }
-  function choose(id: string, source: Playbook) {
-    if (!confirmDiscard()) return;
+  async function choose(id: string, source: Playbook) {
+    if (!(await confirmDiscard())) return;
     const value = copy(source);
     setFields(value);
     setBaseline(JSON.stringify(value));
@@ -87,9 +88,9 @@ export function StrategyBuilder({
     setCustom("");
     setError("");
   }
-  function customMode() {
+  async function customMode() {
     if (mode === "custom") return;
-    if (!confirmDiscard()) return;
+    if (!(await confirmDiscard())) return;
     const value = emptyPlaybook();
     setFields(value);
     setBaseline(JSON.stringify(value));
@@ -171,8 +172,8 @@ export function StrategyBuilder({
   return (
     <Dialog
       open
-      onOpenChange={(open) => {
-        if (!open && !busy && confirmDiscard()) close();
+      onOpenChange={async (open) => {
+        if (!open && !busy && (await confirmDiscard())) close();
       }}
     >
       <DialogContent className="strategy-builder playbook-workspace">
@@ -566,8 +567,8 @@ export function StrategyBuilder({
           <div>
             <button
               disabled={busy}
-              onClick={() => {
-                if (confirmDiscard()) close();
+              onClick={async () => {
+                if (await confirmDiscard()) close();
               }}
             >
               Cancel

@@ -309,8 +309,11 @@ test("Day 11 owned playbook snapshots, assignment, results and ordinary reproces
   await expect(
     page.getByRole("button", { name: "Adopt latest version" }),
   ).toBeVisible();
-  page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Adopt latest version" }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Adopt latest version", exact: true })
+    .click();
   await expect(
     page.getByLabel("Checklist: New fictional checklist condition"),
   ).toHaveValue("Not assessed");
@@ -437,8 +440,11 @@ test("Day 11 owned playbook snapshots, assignment, results and ordinary reproces
     page.getByText("Included portions", { exact: true }),
   ).toBeVisible();
   await expect(page.locator(".playbook-metrics")).toContainText("+$6.00");
-  page.once("dialog", (dialog) => dialog.accept());
   await page
+    .getByRole("button", { name: "Archive strategy", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
     .getByRole("button", { name: "Archive strategy", exact: true })
     .click();
   await expect(

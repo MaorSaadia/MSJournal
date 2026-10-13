@@ -1,4 +1,5 @@
 "use client";
+import { confirmAction } from "@/components/ui/confirm-action";
 import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePrivateRequest } from "@/components/calendar/cache-provider";
@@ -84,9 +85,9 @@ function AssignmentEditor({ initial }: { initial: AssignmentData }) {
             draft.fields.previousStrategyId !== draft.fields.strategyId;
           if (
             changing &&
-            !window.confirm(
+            !(await confirmAction(
               "Replace or remove this strategy snapshot? Its checklist responses will be discarded. Trade notes and screenshots are kept.",
-            )
+            ))
           )
             throw new Error(
               "Assignment change cancelled. Your selection is kept.",
@@ -146,9 +147,9 @@ function AssignmentEditor({ initial }: { initial: AssignmentData }) {
   async function adopt() {
     if (
       !assignment ||
-      !window.confirm(
+      !(await confirmAction(
         "Adopt the latest instructions? This replaces the checklist snapshot and resets all answers to Not assessed.",
-      )
+      ))
     )
       return;
     try {
@@ -249,7 +250,7 @@ function AssignmentEditor({ initial }: { initial: AssignmentData }) {
                 `/api/strategies/assignment?recordId=${initial.recordId}`,
               );
               if (
-                window.confirm(
+                await confirmAction(
                   "Load the current assignment and discard your unsaved selection/answers?",
                 )
               )

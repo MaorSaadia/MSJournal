@@ -1,4 +1,5 @@
 "use client";
+import { confirmAction } from "@/components/ui/confirm-action";
 import { Plus, BookOpen, Sparkles } from "lucide-react";
 import { StrategyBuilder, type BuilderOptions } from "./builder";
 import type {
@@ -44,9 +45,9 @@ export function StrategyIndex() {
   );
   async function removeTemplate(template: PersonalTemplate) {
     if (
-      !window.confirm(
+      !(await confirmAction(
         "Delete this reusable template? Strategies already created from it are kept.",
-      )
+      ))
     )
       return;
     setBusy(true);

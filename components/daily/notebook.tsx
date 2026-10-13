@@ -1,4 +1,5 @@
 "use client";
+import { confirmAction } from "@/components/ui/confirm-action";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -136,12 +137,12 @@ function ChecklistDefaults() {
               {busy ? "Saving…" : "Save checklist defaults"}
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (
                   !dirty() ||
-                  window.confirm(
+                  (await confirmAction(
                     "Discard your unsaved checklist changes and load current defaults?",
-                  )
+                  ))
                 )
                   void load();
               }}

@@ -1,4 +1,5 @@
 "use client";
+import { confirmAction } from "@/components/ui/confirm-action";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { noteFields, mistakes, type ReviewData } from "@/lib/reviews/model";
@@ -73,9 +74,9 @@ function RecoveryCard({
   async function assign() {
     if (
       !target ||
-      !window.confirm(
+      !(await confirmAction(
         "Attach this original review and its images to the selected current record?",
-      )
+      ))
     )
       return;
     setBusy(true);

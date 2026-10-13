@@ -165,8 +165,11 @@ test("private trade review, save failures and conflicts, calendar return, respon
   await expect(page.locator(".review-conflict")).toContainText(
     "Saved by another tab",
   );
-  page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "Save my version instead" }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Replace version", exact: true })
+    .click();
   await expect(page.locator(".review-save-actions [role=status]")).toHaveText(
     "Saved",
   );

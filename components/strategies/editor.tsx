@@ -1,4 +1,5 @@
 "use client";
+import { confirmAction } from "@/components/ui/confirm-action";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -86,9 +87,9 @@ export function PlaybookEditor({ initial }: { initial: StrategyData }) {
     }
     if (
       action === "archive" &&
-      !window.confirm(
+      !(await confirmAction(
         "Archive this strategy? Historical assignments and daily plans remain available.",
-      )
+      ))
     )
       return;
     setBusy(true);
@@ -207,9 +208,9 @@ export function PlaybookEditor({ initial }: { initial: StrategyData }) {
           <h2>Saved revision {comparison.revision}</h2>
           <pre>{JSON.stringify(comparison.fields, null, 2)}</pre>
           <button
-            onClick={() => {
+            onClick={async () => {
               if (
-                window.confirm(
+                await confirmAction(
                   "Discard unsaved writing and use this saved version?",
                 )
               ) {
@@ -221,9 +222,11 @@ export function PlaybookEditor({ initial }: { initial: StrategyData }) {
             Use saved version
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
               if (
-                window.confirm("Replace this saved version with your writing?")
+                await confirmAction(
+                  "Replace this saved version with your writing?",
+                )
               ) {
                 void controller.resolveWithMine(comparison);
                 setComparison(null);

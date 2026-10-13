@@ -13,6 +13,7 @@ import "./day-eight-dashboard.css";
 import "./day-nine.css";
 import "./day-ten.css";
 import "./day-eleven.css";
+import "./confirmations.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {

@@ -1,4 +1,5 @@
 "use client";
+import { confirmAction } from "@/components/ui/confirm-action";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePrivateRequest } from "@/components/calendar/cache-provider";
@@ -122,9 +123,9 @@ function RecoveryCard({
           disabled={!target}
           onClick={async () => {
             if (
-              !window.confirm(
+              !(await confirmAction(
                 "Attach this preserved strategy and answers to exactly this record? Other unresolved assignments are kept.",
-              )
+              ))
             )
               return;
             try {
@@ -149,9 +150,9 @@ function RecoveryCard({
         <button
           onClick={async () => {
             if (
-              !window.confirm(
+              !(await confirmAction(
                 "Discard this unresolved strategy classification and its checklist responses? Trade notes, images and financial records are kept.",
-              )
+              ))
             )
               return;
             try {

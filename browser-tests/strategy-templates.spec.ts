@@ -195,9 +195,12 @@ test("private reusable templates preserve independent strategies and failed writ
   expect(second.fields.checklist[0].id).not.toBe(latest.fields.checklist[0].id);
   await page.goto("/strategies");
   await page.getByRole("button", { name: "My templates", exact: true }).click();
-  page.once("dialog", (d) => d.accept());
   await page
     .getByRole("button", { name: "Delete template", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Remove this item?", exact: true })
+    .getByRole("button", { name: "Remove", exact: true })
     .click();
   await expect(
     page.getByText("Your own starting points", { exact: true }),

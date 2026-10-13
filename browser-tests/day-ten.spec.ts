@@ -69,10 +69,13 @@ test("Daily preparation, resilient writing, observations, review and Notebook", 
   await expect(page.getByLabel("Session notes", { exact: true })).toHaveValue(
     "Writing retained after a failed save",
   );
-  page.once("dialog", (dialog) => dialog.dismiss());
   await page
     .getByRole("link", { name: "Notebook", exact: true })
     .last()
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Keep editing", exact: true })
     .click();
   await expect(page).toHaveURL(/day-view/);
   await page.unroute("**/api/daily");
@@ -215,9 +218,12 @@ test("Daily preparation, resilient writing, observations, review and Notebook", 
   await expect(page.locator(".daily-comparison")).toContainText(
     "Saved version",
   );
-  page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByRole("button", { name: "Use saved version", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Discard changes", exact: true })
     .click();
   await expect(page.getByLabel("Today's focus")).toHaveValue(
     "Other tab's newer writing",
