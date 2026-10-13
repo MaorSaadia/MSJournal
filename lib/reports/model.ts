@@ -22,6 +22,8 @@ import {
 import { emotions, stages, type ReviewTag } from "@/lib/reviews/model";
 export const reportSchema = z
   .object({
+    strategy: z.union([z.uuid(), z.literal("unassigned")]).optional(),
+    strategyRevision: z.coerce.number().int().positive().optional(),
     mode: z.enum(["real", "demo"]).default("real"),
     tab: z.enum(["overview", "breakdowns", "behavior"]).default("overview"),
     start: daySchema,
@@ -88,6 +90,14 @@ export type ReportData = {
   currency: "USD";
   accounts: { id: string; name: string; archived: boolean }[];
   tags: ReviewTag[];
+  strategyGroups?: {
+    id: string;
+    name: string;
+    summary: Summary;
+    revisions: number[];
+    records: { id: string; symbol: string; type: string }[];
+  }[];
+  strategyUnresolved?: number;
   summary: Summary;
   days: DayPoint[];
   groups: Record<string, Group[]>;
@@ -123,6 +133,7 @@ export function reportHref(
   extra: Record<string, string> = {},
 ) {
   const base = {
+    ...(q.strategy ? { strategy: q.strategy } : {}),
     mode: q.mode,
     accounts: ids.join(","),
     archived: q.archived,

@@ -57,6 +57,13 @@
       "when": 1791818798642,
       "tag": "0007_melted_talos",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791871137285,
+      "tag": "0008_overconfident_wild_pack",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ import "./day-eight.css";
 import "./day-eight-dashboard.css";
 import "./day-nine.css";
 import "./day-ten.css";
+import "./day-eleven.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {

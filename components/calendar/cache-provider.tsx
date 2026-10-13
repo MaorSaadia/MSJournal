@@ -61,27 +61,36 @@ export function CalendarCacheProvider({
         (event as CustomEvent<{ url?: string }>).detail?.url?.startsWith(
           "/api/daily",
         ) ?? false;
+      const strategiesOnly =
+        (event as CustomEvent<{ url?: string }>).detail?.url?.startsWith(
+          "/api/strategies",
+        ) ?? false;
       cache.invalidate(
-        dailyOnly
+        strategiesOnly
           ? (key) =>
-              key.includes("|/api/daily|") ||
-              key.includes("|/api/daily/indicators|")
-          : propsOnly
-            ? (key) => key.includes("|/api/prop-progress|")
-            : reviews
-              ? (key) =>
-                  key.includes("|/api/journal|") ||
-                  key.includes("|/api/dashboard|") ||
-                  key.includes("|/api/reviews/") ||
-                  (key.includes("|/api/reports|") &&
-                    new URLSearchParams(key.split("|/api/reports|")[1]).get(
-                      "tab",
-                    ) === "behavior")
-              : undefined,
+              key.includes("|/api/strategies") ||
+              key.includes("|/api/journal|") ||
+              key.includes("|/api/reports|")
+          : dailyOnly
+            ? (key) =>
+                key.includes("|/api/daily|") ||
+                key.includes("|/api/daily/indicators|")
+            : propsOnly
+              ? (key) => key.includes("|/api/prop-progress|")
+              : reviews
+                ? (key) =>
+                    key.includes("|/api/journal|") ||
+                    key.includes("|/api/dashboard|") ||
+                    key.includes("|/api/reviews/") ||
+                    (key.includes("|/api/reports|") &&
+                      new URLSearchParams(key.split("|/api/reports|")[1]).get(
+                        "tab",
+                      ) === "behavior")
+                : undefined,
       );
       window.dispatchEvent(
         new CustomEvent("msjournal:calendar-refresh", {
-          detail: { reviews, propsOnly, dailyOnly },
+          detail: { reviews, propsOnly, dailyOnly, strategiesOnly },
         }),
       );
       if (
@@ -189,17 +198,24 @@ export function usePrivateRequest<
   const refresh = () => {
     const propsOnly = endpoint === "/api/prop-progress";
     const dailyEndpoint = endpoint.startsWith("/api/daily");
+    const strategiesEndpoint = endpoint.startsWith("/api/strategies");
     cache.invalidate(
-      dailyEndpoint
-        ? (key) => key.includes(`|${endpoint}|`)
-        : propsOnly
-          ? (key) => key.includes("|/api/prop-progress|")
-          : undefined,
+      strategiesEndpoint
+        ? (key) =>
+            key.includes("|/api/strategies") ||
+            key.includes("|/api/journal|") ||
+            key.includes("|/api/reports|")
+        : dailyEndpoint
+          ? (key) => key.includes(`|${endpoint}|`)
+          : propsOnly
+            ? (key) => key.includes("|/api/prop-progress|")
+            : undefined,
     );
     window.dispatchEvent(
       new CustomEvent("msjournal:calendar-refresh", {
         detail: {
           propsOnly,
+          strategiesOnly: strategiesEndpoint,
           dailyOnly: dailyEndpoint,
           dailyResultsOnly: endpoint === "/api/daily/results",
         },
@@ -209,6 +225,14 @@ export function usePrivateRequest<
   useEffect(() => {
     if (!key || query === null) return;
     const handler = (event: Event) => {
+      if (
+        (event as CustomEvent<{ strategiesOnly?: boolean }>).detail
+          ?.strategiesOnly &&
+        !endpoint.startsWith("/api/strategies") &&
+        endpoint !== "/api/journal" &&
+        endpoint !== "/api/reports"
+      )
+        return;
       const detail = (
         event as CustomEvent<{
           dailyOnly?: boolean;

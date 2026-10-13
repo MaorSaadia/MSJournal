@@ -15,6 +15,7 @@ import {
   type ReviewFields,
   type ReviewTag,
 } from "@/lib/reviews/model";
+import { RecordStrategy } from "@/components/strategies/assignment";
 import { Screenshots } from "./screenshots";
 
 function Note({
@@ -270,6 +271,7 @@ export function RecordWorkspace({
           <span className={`review-status ${status}`}>{status}</span>
         </div>
       )}
+      {!demo && <RecordStrategy recordId={recordId} />}
       <div
         role="tabpanel"
         id="record-panel-overview"

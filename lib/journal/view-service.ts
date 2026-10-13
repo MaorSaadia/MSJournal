@@ -2,9 +2,14 @@ import "server-only";
 import { REAL_RECORD_KIND } from "@/lib/journal/statistics";
 import { demoReviews } from "@/data/demo-reviews";
 import { reviewState, hasNotes, mistakes } from "@/lib/reviews/model";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { tradingAccounts, userPreferences, reviewTags } from "@/db/schema";
+import {
+  strategies,
+  tradingAccounts,
+  userPreferences,
+  reviewTags,
+} from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { NotFoundError } from "@/lib/accounts/service";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
@@ -160,8 +165,20 @@ export async function tradeView(
           (${q.outcome}='all' or case ${q.outcome} when 'profit' then ${partValue}>0 when 'loss' then ${partValue}<0 else ${partValue}=0 end)
           and (${q.min ?? null}::numeric is null or ${partValue}>=${q.min ?? null}::numeric)
           and (${q.max ?? null}::numeric is null or ${partValue}<=${q.max ?? null}::numeric)))`;
+        if (q.strategy && q.strategy !== "unassigned") {
+          const [owned] = await tx
+            .select()
+            .from(strategies)
+            .where(
+              and(
+                eq(strategies.ownerId, user.id),
+                eq(strategies.id, q.strategy),
+              ),
+            );
+          if (!owned) throw new NotFoundError();
+        }
         const cte = sql`with projected as (
-        select r.id::text, r.trading_account_id::text as "accountId", a.display_name as account, r.symbol,
+        select r.id::text,sa.strategy_id::text as "strategyId",st.fields->>'name' as "strategyName", r.trading_account_id::text as "accountId", a.display_name as account, r.symbol,
           coalesce(substring(r.symbol from '^([A-Z0-9]+?)[FGHJKMNQUVXZ][0-9]{1,4}$'),r.symbol) as root,
           case when rv.status='reviewed' then 'reviewed' when rv.has_content or coalesce(images.n,0)>0 then 'draft' else 'unreviewed' end as "reviewStatus",
           coalesce(rv.has_notes,false) as "hasNotes", coalesce(images.n,0)::int as "imageCount", rv.fields as "reviewFields",
@@ -176,6 +193,8 @@ export async function tradeView(
             join journal_sources ls on ls.source_id=ip.performance_record_id and ls.owner_id=${user.id}
             where ip.owner_id=${user.id} and ls.record_id=r.id) as imported
         from journal_records r join trading_accounts a on a.id=r.trading_account_id and a.owner_id=${user.id}
+        left join strategy_assignments sa on sa.record_id=r.id and sa.owner_id=${user.id} and sa.needs_reassignment=false
+        left join strategies st on st.id=sa.strategy_id and st.owner_id=${user.id}
         left join journal_reviews rv on rv.record_id=r.id and rv.owner_id=${user.id} and rv.trading_account_id=r.trading_account_id and rv.needs_reassignment=false
         left join lateral (select count(*)::int n from review_attachments ra where ra.review_id=rv.id and ra.owner_id=${user.id} and ra.state='ready') images on true
         cross join lateral (
@@ -196,6 +215,7 @@ export async function tradeView(
             (${bounds.start}::timestamptz is null or r.exit_at>=${bounds.start}::timestamptz)
             and (${bounds.end}::timestamptz is null or r.exit_at<${bounds.end}::timestamptz)))
       ), filtered as (select * from projected where
+        (${q.strategy ?? null}::text is null or case when ${q.strategy ?? null}='unassigned' then "strategyId" is null else "strategyId"=${q.strategy ?? null} end) and
         (${q.review}='all' or (${q.review}='notes' and "hasNotes") or (${q.review}='screenshots' and "imageCount">0) or "reviewStatus"=${q.review})
         and (${q.mistake ?? null}::text is null or ("reviewFields"->'mistakes') ? ${q.mistake ?? null})
         and (${q.mistakes ?? null}::text is null or exists(select 1 from unnest(string_to_array(${q.mistakes ?? null},',')) tag where ("reviewFields"->'mistakes') ? tag))
@@ -270,6 +290,13 @@ export async function tradeView(
         return {
           ...data,
           tags,
+          strategyRecoveryCount: Number(
+            (
+              await tx.execute(
+                sql`select count(*)::int n from strategy_assignments where owner_id=${user.id} and needs_reassignment=true`,
+              )
+            ).rows[0].n,
+          ),
           recoveryCount: Number(
             (
               await tx.execute(

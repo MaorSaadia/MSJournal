@@ -1,4 +1,5 @@
 import "server-only";
+import { validatePlans } from "@/lib/strategies/service";
 import { and, eq, sql, gte, lte, count, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -69,7 +70,9 @@ async function entryData(
       and(eq(dailyEntries.ownerId, userId), eq(dailyEntries.entryDate, date)),
     );
   const preferenceTimezone = await preference(tx, userId);
-  const fields = row?.fields ?? emptyDaily((await template(tx, userId)).items);
+  const fields = row
+    ? { ...row.fields, plannedStrategies: row.fields.plannedStrategies ?? [] }
+    : emptyDaily((await template(tx, userId)).items);
   const observations: DailyData["observations"] = {};
   // Source signatures retain provenance across regrouping; unavailable links never erase writing.
   const linked = fields.observations.filter((o) => o.recordId);
@@ -177,6 +180,12 @@ export async function saveDaily(input: unknown, headers?: Headers) {
           "The daily context changed. Reload the saved day before saving; your writing is kept.",
           409,
         );
+      await validatePlans(
+        tx,
+        owner.id,
+        value.fields.plannedStrategies,
+        previous?.fields.plannedStrategies ?? [],
+      );
       const now = new Date();
       const meta: Record<string, ObservationMeta> = {};
       for (const observation of value.fields.observations) {

@@ -1,4 +1,5 @@
 import type { PropRules } from "@/lib/props/validation";
+import type { Playbook } from "@/lib/strategies/model";
 import type { DailyFields, ObservationMeta } from "@/lib/daily/model";
 import { sql } from "drizzle-orm";
 import type { ReviewFields } from "@/lib/reviews/model";
@@ -19,6 +20,147 @@ import {
   primaryKey,
   foreignKey,
 } from "drizzle-orm/pg-core";
+
+export const strategies = pgTable(
+  "strategies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    fields: jsonb("fields").$type<Playbook>().notNull(),
+    revision: integer("revision").notNull().default(1),
+    galleryRevision: integer("gallery_revision").notNull().default(1),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("strategies_scope").on(t.id, t.ownerId),
+    check(
+      "strategies_revision",
+      sql`${t.revision}>0 and ${t.galleryRevision}>0`,
+    ),
+  ],
+);
+export const strategyRevisions = pgTable(
+  "strategy_revisions",
+  {
+    strategyId: uuid("strategy_id").notNull(),
+    ownerId: text("owner_id").notNull(),
+    revision: integer("revision").notNull(),
+    fields: jsonb("fields").$type<Playbook>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.strategyId, t.ownerId, t.revision] }),
+    foreignKey({
+      columns: [t.strategyId, t.ownerId],
+      foreignColumns: [strategies.id, strategies.ownerId],
+    }).onDelete("restrict"),
+  ],
+);
+export const strategyAssignments = pgTable(
+  "strategy_assignments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id").notNull(),
+    tradingAccountId: uuid("trading_account_id").notNull(),
+    recordId: uuid("record_id"),
+    originalRecordId: uuid("original_record_id").notNull(),
+    originalSymbol: text("original_symbol").notNull(),
+    sourceIds: jsonb("original_source_ids").$type<string[]>().notNull(),
+    strategyId: uuid("strategy_id").notNull(),
+    playbookRevision: integer("playbook_revision").notNull(),
+    answers: jsonb("answers")
+      .$type<Record<string, "Met" | "Not met" | "Not assessed">>()
+      .notNull()
+      .default({}),
+    revision: integer("revision").notNull().default(1),
+    needsReassignment: boolean("needs_reassignment").notNull().default(false),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("strategy_assignments_record").on(t.ownerId, t.recordId),
+    index("strategy_assignments_recovery").on(t.ownerId, t.needsReassignment),
+    foreignKey({
+      columns: [t.strategyId, t.ownerId, t.playbookRevision],
+      foreignColumns: [
+        strategyRevisions.strategyId,
+        strategyRevisions.ownerId,
+        strategyRevisions.revision,
+      ],
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [t.recordId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        journalRecords.id,
+        journalRecords.ownerId,
+        journalRecords.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [t.originalRecordId, t.ownerId, t.tradingAccountId],
+      foreignColumns: [
+        journalRecords.id,
+        journalRecords.ownerId,
+        journalRecords.tradingAccountId,
+      ],
+    }).onDelete("restrict"),
+  ],
+);
+export const strategyImages = pgTable(
+  "strategy_images",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id").notNull(),
+    strategyId: uuid("strategy_id").notNull(),
+    objectKey: text("object_key").notNull(),
+    thumbnailKey: text("thumbnail_key").notNull(),
+    mime: text("mime").notNull(),
+    bytes: integer("bytes").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    caption: text("caption").notNull().default(""),
+    stage: text("example_type").$type<
+      "Valid setup" | "Invalid setup" | "Management example" | null
+    >(),
+    position: integer("position").notNull(),
+    revision: integer("revision").notNull().default(1),
+    state: text("state")
+      .$type<"pending" | "ready" | "deleting">()
+      .notNull()
+      .default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.strategyId, t.ownerId],
+      foreignColumns: [strategies.id, strategies.ownerId],
+    }).onDelete("restrict"),
+    uniqueIndex("strategy_images_key").on(t.objectKey),
+    uniqueIndex("strategy_images_thumbnail").on(t.thumbnailKey),
+    check(
+      "strategy_images_limits",
+      sql`${t.bytes} between 1 and 10485760 and ${t.width} between 1 and 16000 and ${t.height} between 1 and 16000 and ${t.width}::bigint*${t.height}<=40000000`,
+    ),
+    check(
+      "strategy_images_state",
+      sql`${t.state} in ('pending','ready','deleting')`,
+    ),
+    check(
+      "strategy_images_type",
+      sql`${t.stage} is null or ${t.stage} in ('Valid setup','Invalid setup','Management example')`,
+    ),
+  ],
+);
 
 export const dailyEntries = pgTable(
   "daily_entries",

@@ -12,6 +12,7 @@ import { localDay, journalMoney } from "@/lib/journal/calculations";
 import { shiftDay } from "@/lib/calendar/model";
 import { DEMO_PERIOD } from "@/data/demo";
 import { emotions, stages } from "@/lib/reviews/model";
+import { StrategyComparison } from "@/components/strategies/results";
 import { ReportChart } from "./charts";
 const labels: Record<string, string> = {
   account: "Account",
@@ -613,6 +614,24 @@ export function Reports() {
                   />
                 ) : null}
               </div>
+              {q.mode === "real" && q.tab !== "behavior" && (
+                <StrategyComparison
+                  data={data}
+                  complete={q.analysis === "complete"}
+                  query={new URLSearchParams({
+                    mode: "real",
+                    accounts: q.accounts ?? "",
+                    archived: q.archived,
+                    start: q.start,
+                    end: q.end,
+                    basis: q.basis,
+                    outcomeBasis:
+                      q.analysis === "complete" ? "complete" : "portions",
+                    dateBasis:
+                      q.analysis === "complete" ? "closed" : "activity",
+                  }).toString()}
+                />
+              )}
               {q.tab === "overview" ? (
                 <>
                   <section className="report-card">

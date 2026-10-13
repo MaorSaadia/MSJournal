@@ -423,3 +423,11 @@ Reviewed additive migration `drizzle/0006_steep_thing.sql` was applied to the co
 Use **Start my day** on the dashboard or **Day View** to prepare, write session notes and observations, and explicitly review/reopen your day. **Notebook** searches the same saved personal entries and edits future checklist defaults. Entries retain their calendar date, timezone and historical checklist; account filters only change current imported daily results. Autosave preserves newer/failed input and uses revision conflicts with explicit comparison. Daily review completion remains separate from trade reviews and profitability.
 
 Reviewed additive migration `drizzle/0007_melted_talos.sql` creates private daily entries and checklist templates and was applied to the configured database. Other environments should review it and run `npm.cmd run db:migrate -- --reviewed`. See [Day 10 setup, save/date conventions and verification](docs/day-ten.md). Day 11 is not included.
+
+### Day 11 — Strategies and playbooks
+
+Create a named setup in **Strategies**, add its rules/checklist and private examples, then assign it from an existing record's **Primary strategy** control. Assignments and daily preparation retain immutable playbook revision references. Editing a playbook preserves historical instructions/answers; adopting the latest snapshot explicitly resets checklist responses. Ordinary reprocessing retains unchanged classifications, while ambiguous regrouping uses the existing recovery destination.
+
+Playbook Results and Reports compare user-assigned strategies and Unassigned using the existing decimal calculation layer, with separate complete-trade/closed-portion denominators, fee coverage and revision filters. Trade View adds optional strategy display/filtering, and Day View selects intended strategies without automatically classifying trades. Images reuse the existing private Day 7 storage configuration; text remains usable without it. Duplication copies text/checklist, not image files.
+
+Reviewed additive migration `drizzle/0008_overconfident_wild_pack.sql` was applied to the configured database. Other environments should review it and run `npm.cmd run db:migrate -- --reviewed`. See [Day 11 setup, historical attribution, recovery and verification](docs/day-eleven.md). Day 12 is not included.

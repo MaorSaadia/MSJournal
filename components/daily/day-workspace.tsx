@@ -9,6 +9,7 @@ import {
   type DailyData,
   type DailyFields,
 } from "@/lib/daily/model";
+import { PlannedStrategies } from "@/components/strategies/plans";
 import { emotions } from "@/lib/reviews/model";
 import {
   todayIn,
@@ -375,6 +376,10 @@ export function DayWorkspace({
                 "Today's focus",
                 "One intention for this session.",
               )}
+              <PlannedStrategies
+                plans={fields.plannedStrategies ?? []}
+                onChange={(plans) => edit("plannedStrategies", plans)}
+              />
               {note("context", "Market context and levels to watch")}
               <details>
                 <summary>Setups, conditions and missed moves</summary>

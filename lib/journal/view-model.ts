@@ -18,6 +18,7 @@ import {
 const amount = z.string().regex(/^-?\d{1,20}(?:\.\d{1,8})?$/);
 export const viewSchema = z
   .object({
+    strategy: z.union([z.uuid(), z.literal("unassigned")]).optional(),
     mode: z.enum(["real", "demo"]).default("real"),
     accounts: z.string().max(8000).optional(),
     archived: z.enum(["0", "1"]).default("0"),
@@ -102,6 +103,8 @@ export const viewSchema = z
   );
 export type ViewQuery = z.infer<typeof viewSchema>;
 export type ViewRecord = {
+  strategyId?: string | null;
+  strategyName?: string | null;
   reviewStatus?: "unreviewed" | "draft" | "reviewed";
   hasNotes?: boolean;
   imageCount?: number;
@@ -141,6 +144,7 @@ export type ViewSummary = {
   winRate: string | null;
 };
 export type TradeViewData = {
+  strategyRecoveryCount?: number;
   tags?: ReviewTag[];
   recoveryCount?: number;
   userId: string;
@@ -199,6 +203,10 @@ export function filterDemo(rows: ViewRecord[], q: ViewQuery, timezone: string) {
   const selected = rows.filter((r) => {
     const value = q.basis === "gross" ? r.gross : r.net;
     return (
+      (!q.strategy ||
+        (q.strategy === "unassigned"
+          ? !r.strategyId
+          : r.strategyId === q.strategy)) &&
       (q.review === "all" ||
         (q.review === "notes"
           ? r.hasNotes

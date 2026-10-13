@@ -1,0 +1,299 @@
+.playbook-workspace {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 22px 20px 28px;
+  color: var(--foreground);
+}
+.playbook-workspace > .page-header {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.playbook-workspace button,
+.strategy-record button,
+.planned-strategies button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 12px;
+  cursor: pointer;
+}
+.playbook-workspace button:disabled,
+.strategy-record button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.playbook-workspace input:not([type="checkbox"]),
+.playbook-workspace select,
+.playbook-workspace textarea,
+.strategy-record input,
+.strategy-record select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px;
+  background: var(--background);
+  color: var(--foreground);
+  min-width: 0;
+}
+.playbook-workspace fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.playbook-workspace label,
+.strategy-record label {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+}
+.playbook-workspace p,
+.strategy-record p,
+.planned-strategies p {
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.playbook-workspace h2,
+.strategy-record h2,
+.planned-strategies h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+.playbook-workspace a,
+.strategy-record a,
+.planned-strategies a {
+  color: var(--positive);
+  font-size: 12px;
+}
+.playbook-workspace :is(input, textarea, select, button, a):focus-visible,
+.strategy-record :is(input, select, button, a):focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 2px;
+}
+.playbook-toolbar {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.playbook-toolbar form {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 250px;
+}
+.playbook-toolbar button {
+  white-space: nowrap;
+}
+.playbook-toolbar select {
+  max-width: 160px;
+}
+.playbook-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.playbook-card {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--card);
+  min-width: 0;
+  margin-bottom: 16px;
+}
+.playbook-grid .playbook-card {
+  margin: 0;
+  border-top: 2px solid var(--violet);
+}
+.playbook-card.accent-emerald {
+  border-top-color: var(--positive);
+}
+.playbook-card.accent-blue {
+  border-top-color: #3b82f6;
+}
+.playbook-card.accent-amber {
+  border-top-color: #d99e32;
+}
+.playbook-card.accent-rose {
+  border-top-color: #e16f92;
+}
+.playbook-actions,
+.playbook-form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.playbook-actions {
+  margin: 8px 0;
+}
+.playbook-form-row > label {
+  flex: 1;
+  min-width: 160px;
+}
+.playbook-note {
+  margin: 14px 0;
+}
+.playbook-note textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.7;
+}
+.playbook-writing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+.playbook-tabs {
+  display: flex;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.playbook-tabs button {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  padding: 12px;
+}
+.playbook-tabs button[aria-pressed="true"] {
+  border-bottom: 2px solid var(--violet);
+  color: var(--violet);
+}
+.playbook-workspace details,
+.strategy-record details {
+  border-block-start: 1px solid var(--border);
+  padding: 12px 0;
+}
+.playbook-workspace summary,
+.strategy-record summary {
+  cursor: pointer;
+  color: var(--violet);
+  font-size: 12px;
+}
+.playbook-checklist-item {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.playbook-checklist-item input {
+  flex: 1;
+}
+.playbook-checklist-item button {
+  flex-shrink: 0;
+}
+.playbook-card pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 350px;
+  overflow: auto;
+  font-size: 12px;
+}
+.strategy-record {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 9px;
+  padding: 16px;
+  margin: 16px 0;
+}
+.strategy-answer {
+  grid-template-columns: minmax(0, 1fr) 160px;
+  align-items: center;
+  margin: 10px 0;
+}
+.playbook-snapshot {
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 12px 0;
+}
+.playbook-snapshot p {
+  white-space: pre-wrap;
+}
+.playbook-snapshot ul {
+  list-style: disc;
+  padding-left: 20px;
+}
+.planned-strategies {
+  border-block: 1px solid var(--border);
+  padding: 16px 0;
+  margin: 16px 0;
+}
+.planned-strategy {
+  padding-top: 12px;
+}
+.playbook-results-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.playbook-results-filters label {
+  flex: 1;
+  min-width: 145px;
+}
+.playbook-workspace label.playbook-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.playbook-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+.playbook-metrics div {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 12px;
+}
+.playbook-metrics span {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.playbook-metrics strong {
+  display: block;
+  font-size: 20px;
+  margin-top: 7px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1000px) {
+  .playbook-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .playbook-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 650px) {
+  .playbook-workspace {
+    padding: 18px 12px 24px;
+  }
+  .playbook-grid,
+  .playbook-writing-grid {
+    grid-template-columns: 1fr;
+  }
+  .playbook-card {
+    padding: 14px;
+  }
+  .playbook-checklist-item {
+    flex-wrap: wrap;
+  }
+  .playbook-checklist-item input {
+    flex-basis: 100%;
+  }
+  .strategy-answer {
+    grid-template-columns: 1fr;
+  }
+  .playbook-toolbar form {
+    flex-wrap: wrap;
+  }
+  .playbook-toolbar select {
+    max-width: none;
+  }
+}

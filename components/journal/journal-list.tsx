@@ -18,6 +18,7 @@ import { D } from "@/lib/journal/processing";
 import { journalMoney } from "@/lib/journal/calculations";
 import { journalTimestamp } from "@/lib/timezones";
 
+import type { StrategyList } from "@/components/strategies/index";
 import { emotions, stages, mistakes } from "@/lib/reviews/model";
 const columns = [
   ["exit", "Close time"],
@@ -37,9 +38,11 @@ const columns = [
   ["feeKind", "Fee source"],
   ["imported", "Imported"],
   ["reviewStatus", "Review status"],
+  ["strategyName", "Strategy"],
 ] as const;
 const defaults = columns.slice(0, 11).map((c) => c[0]) as string[];
 const chipLabels: Record<string, string> = {
+  strategy: "Strategy",
   weekday: "Local exit weekday",
   hour: "Local entry hour",
   holding: "Holding duration",
@@ -166,6 +169,10 @@ export function JournalList() {
     q = parsed.success ? parsed.data : viewSchema.parse({});
   const state = usePrivateRequest<TradeViewData>(query, "/api/journal"),
     data = state.data;
+  const strategyOptions = usePrivateRequest<StrategyList>(
+    q.mode === "real" ? "archived=all" : null,
+    "/api/strategies",
+  );
   const prefs = useTablePreferences(userId);
   const restored = useRef<string | null>(null);
   const href = `/trade-view${query ? "?" + query : ""}`,
@@ -223,6 +230,17 @@ export function JournalList() {
     </label>
   );
   const cell = (r: ViewRecord, key: string) => {
+    if (key === "strategyName")
+      return r.strategyId ? (
+        <Link
+          href={`/strategies/${r.strategyId}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {r.strategyName}
+        </Link>
+      ) : (
+        "Unassigned"
+      );
     const value = r[key as keyof ViewRecord];
     if (value === null) return "—";
     if (["gross", "fees", "net"].includes(key))
@@ -343,6 +361,18 @@ export function JournalList() {
             {journalMoney(data.summary.statistics.averageLoss, true)}
           </p>
         )}
+        {q.mode === "real" &&
+          control("strategy", "Strategy", [
+            ["", "All strategies"],
+            ["unassigned", "Unassigned"],
+            ...(strategyOptions.data?.strategies.map(
+              (s) =>
+                [s.id, s.name + (s.archived ? " (archived)" : "")] as [
+                  string,
+                  string,
+                ],
+            ) ?? []),
+          ])}
         <details className="tv-menu">
           <summary>
             Accounts
@@ -604,6 +634,7 @@ export function JournalList() {
                 "max",
                 "dateBasis",
                 "basis",
+                "strategy",
               ].includes(key) &&
               value !== "all" &&
               !(key === "archived" && value === "0"),
@@ -649,6 +680,13 @@ export function JournalList() {
             ? "Saved results are shown. Refresh failed. "
             : "Could not load trading history. "}
           {state.error} <button onClick={state.refresh}>Retry</button>
+        </p>
+      )}
+      {!!data?.strategyRecoveryCount && (
+        <p className="small muted">
+          <Link href="/trade-view/review-recovery">
+            {data.strategyRecoveryCount} strategy assignments need recovery
+          </Link>
         </p>
       )}
       {data?.pending && (

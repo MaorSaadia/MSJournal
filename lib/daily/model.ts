@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { plansSchema } from "@/lib/strategies/model";
 import { daySchema } from "@/lib/calendar/model";
 import { sourceTimezone } from "@/lib/imports/time";
 import { emotions } from "@/lib/reviews/model";
@@ -36,6 +37,7 @@ export const observationSchema = z
   .strict();
 export const dailyFieldsSchema = z
   .object({
+    plannedStrategies: plansSchema.default([]),
     focus: text,
     context: text,
     setups: text,
@@ -92,6 +94,7 @@ export function emptyDaily(
   checklist: DailyFields["checklist"] = [],
 ): DailyFields {
   return {
+    plannedStrategies: [],
     focus: "",
     context: "",
     setups: "",

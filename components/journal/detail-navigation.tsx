@@ -8,6 +8,9 @@ export function DetailNavigation({ id }: { id: string }) {
     from = search.get("from");
   const safeFrom =
     (from && /^\/(trade-view|calendar)(\?|$)/.test(from)) ||
+    (from &&
+      /^\/strategies\/[0-9a-f-]{36}(\?|$)/i.test(from) &&
+      !from.includes("\\")) ||
     (from && /^\/\?/.test(from))
       ? from
       : "/trade-view";
@@ -36,11 +39,13 @@ export function DetailNavigation({ id }: { id: string }) {
   return (
     <nav className="tv-detail-nav" aria-label="Record navigation">
       <Link href={safeFrom} scroll={false}>
-        {safeFrom.startsWith("/calendar")
-          ? "Back to Calendar"
-          : safeFrom.startsWith("/?")
-            ? "Back to dashboard"
-            : "Back to Trade View"}
+        {safeFrom.startsWith("/strategies/")
+          ? "Back to playbook"
+          : safeFrom.startsWith("/calendar")
+            ? "Back to Calendar"
+            : safeFrom.startsWith("/?")
+              ? "Back to dashboard"
+              : "Back to Trade View"}
       </Link>
       {nav && (
         <>

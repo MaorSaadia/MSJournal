@@ -9,28 +9,60 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { requestJson } from "@/lib/client-api";
-import { stages, type ReviewData, type Attachment } from "@/lib/reviews/model";
-export function Screenshots({
+import { stages } from "@/lib/reviews/model";
+export type GalleryImage = {
+  id: string;
+  caption: string;
+  stage: string | null;
+  position: number;
+  width: number;
+  height: number;
+  revision: number;
+};
+export type GalleryData = {
+  id: string | null;
+  revision: number;
+  storageEnabled: boolean;
+  images: GalleryImage[];
+};
+type GalleryConfig = {
+  endpoint: string;
+  resourceEndpoint: string;
+  uploadKey: string;
+  ownerKey: string;
+  kindChoices: readonly string[];
+  playbook?: boolean;
+};
+const defaultConfig: GalleryConfig = {
+  endpoint: "/api/reviews/screenshots",
+  resourceEndpoint: "/api/reviews",
+  uploadKey: "recordId",
+  ownerKey: "reviewId",
+  kindChoices: stages,
+};
+export function Screenshots<T extends GalleryData>({
   recordId,
   data,
   blocked,
   demo,
   changed,
+  config = defaultConfig,
 }: {
   recordId: string;
-  data: ReviewData;
+  data: T;
   blocked: boolean;
   demo: boolean;
-  changed: (data: ReviewData) => void;
+  changed: (data: T) => void;
+  config?: GalleryConfig;
 }) {
   const fileInput = useRef<HTMLInputElement>(null),
     guard = useRef(false);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [retry, setRetry] = useState<File[]>([]),
-    [view, setView] = useState<Attachment | null>(null),
+    [view, setView] = useState<GalleryImage | null>(null),
     [zoom, setZoom] = useState(100),
-    [remove, setRemove] = useState<Attachment | null>(null);
+    [remove, setRemove] = useState<GalleryImage | null>(null);
   const disabled = busy || blocked || demo || !data.storageEnabled;
   async function upload(files: File[]) {
     if (disabled || guard.current || !files.length) return;
@@ -45,8 +77,8 @@ export function Screenshots({
         const file = pending[0];
         if (file.size > 10 * 1024 * 1024)
           throw new Error("Maximum 10 MB per image.");
-        const result = await requestJson<ReviewData>(
-          `/api/reviews/screenshots?recordId=${recordId}`,
+        const result = await requestJson<T>(
+          `${config.endpoint}?${config.uploadKey}=${recordId}`,
           {
             method: "POST",
             headers: {
@@ -79,10 +111,10 @@ export function Screenshots({
       const ids = data.images.map((i) => i.id);
       [ids[index], ids[index + step]] = [ids[index + step], ids[index]];
       changed(
-        await requestJson<ReviewData>("/api/reviews/screenshots/order", {
+        await requestJson<T>(`${config.endpoint}/order`, {
           method: "POST",
           body: JSON.stringify({
-            reviewId: data.id,
+            [config.ownerKey]: data.id,
             ids,
             revision: data.revision,
           }),
@@ -95,14 +127,18 @@ export function Screenshots({
     }
   }
   async function refresh() {
-    changed(await requestJson<ReviewData>(`/api/reviews?recordId=${recordId}`));
+    changed(
+      await requestJson<T>(
+        `${config.resourceEndpoint}?${config.playbook ? "id" : "recordId"}=${recordId}`,
+      ),
+    );
   }
   async function confirmRemove() {
     if (!remove) return;
     setBusy(true);
     setError("");
     try {
-      await requestJson(`/api/reviews/screenshots/${remove.id}`, {
+      await requestJson(`${config.endpoint}/${remove.id}`, {
         method: "DELETE",
         body: JSON.stringify({ confirmed: true }),
       });
@@ -121,7 +157,9 @@ export function Screenshots({
       <header>
         <h2>Chart screenshots</h2>
         <p className="muted small">
-          Keep a visual reference before, during or after the trade.
+          {config.playbook
+            ? "Valid setups, invalid setups and management examples."
+            : "Keep a visual reference before, during or after the trade."}
         </p>
       </header>
       {demo ? (
@@ -132,7 +170,7 @@ export function Screenshots({
         <div className="review-setup" role="status">
           <h3>Private screenshot storage needs setup</h3>
           <p>
-            Your written reviews remain available. Configure a private
+            Your written content remains available. Configure a private
             S3-compatible bucket using the README instructions.
           </p>
         </div>
@@ -181,7 +219,7 @@ export function Screenshots({
           </div>
           {blocked && (
             <p className="small muted">
-              Save your review changes before changing screenshots.
+              Save your writing before changing screenshots.
             </p>
           )}
           {busy && <p role="status">Uploading or saving screenshot…</p>}
@@ -209,14 +247,18 @@ export function Screenshots({
               aria-label={`View screenshot ${index + 1}`}
             >
               <img
-                src={`/api/reviews/screenshots/${image.id}?thumbnail=1`}
+                src={`${config.endpoint}/${image.id}?thumbnail=1`}
                 alt={image.caption || `Chart screenshot ${index + 1}`}
                 loading="lazy"
                 referrerPolicy="no-referrer"
               />
             </button>
             <ImageMetadata
+              key={`${image.id}:${image.revision}`}
               image={image}
+              endpoint={config.endpoint}
+              kindChoices={config.kindChoices}
+              playbook={config.playbook}
               disabled={disabled}
               saved={() =>
                 void refresh().catch(() =>
@@ -259,7 +301,7 @@ export function Screenshots({
           onClick={async () => {
             setError("");
             try {
-              await requestJson("/api/reviews/screenshots/cleanup", {
+              await requestJson(`${config.endpoint}/cleanup`, {
                 method: "POST",
               });
               await refresh();
@@ -297,7 +339,7 @@ export function Screenshots({
           <div className="review-image-scroll">
             {view && (
               <img
-                src={`/api/reviews/screenshots/${view.id}`}
+                src={`${config.endpoint}/${view.id}`}
                 alt={view.caption || "Full-size chart screenshot"}
                 referrerPolicy="no-referrer"
                 style={{ width: `${zoom}%`, maxWidth: "none" }}
@@ -315,7 +357,7 @@ export function Screenshots({
         <DialogContent>
           <DialogTitle>Remove this screenshot?</DialogTitle>
           <DialogDescription>
-            The screenshot and its caption will be removed from this review.
+            The screenshot and its caption will be removed from this gallery.
           </DialogDescription>
           <Button
             variant="outline"
@@ -337,8 +379,14 @@ function ImageMetadata({
   disabled,
   saved,
   failed,
+  endpoint,
+  kindChoices,
+  playbook,
 }: {
-  image: Attachment;
+  image: GalleryImage;
+  endpoint: string;
+  kindChoices: readonly string[];
+  playbook?: boolean;
   disabled: boolean;
   saved: () => void;
   failed: (message: string) => void;
@@ -352,7 +400,7 @@ function ImageMetadata({
         e.preventDefault();
         setBusy(true);
         try {
-          await requestJson(`/api/reviews/screenshots/${image.id}`, {
+          await requestJson(`${endpoint}/${image.id}`, {
             method: "PATCH",
             body: JSON.stringify({
               revision: image.revision,
@@ -379,15 +427,15 @@ function ImageMetadata({
         />
       </label>
       <label>
-        Stage
+        {playbook ? "Example type" : "Stage"}
         <select
-          aria-label="Screenshot stage"
+          aria-label={playbook ? "Example type" : "Screenshot stage"}
           value={stage}
           disabled={disabled || busy}
           onChange={(e) => setStage(e.target.value)}
         >
           <option value="">Not specified</option>
-          {stages.map((s) => (
+          {kindChoices.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>
@@ -402,7 +450,11 @@ function ImageMetadata({
           (caption === image.caption && stage === (image.stage ?? ""))
         }
       >
-        {busy ? "Saving…" : "Save caption / stage"}
+        {busy
+          ? "Saving…"
+          : playbook
+            ? "Save caption / example type"
+            : "Save caption / stage"}
       </Button>
     </form>
   );

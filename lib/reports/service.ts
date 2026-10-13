@@ -1,8 +1,15 @@
 import "server-only";
 import { REAL_RECORD_KIND } from "@/lib/journal/statistics";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { tradingAccounts, userPreferences, reviewTags } from "@/db/schema";
+import {
+  strategies,
+  strategyAssignments,
+  journalSources,
+  tradingAccounts,
+  userPreferences,
+  reviewTags,
+} from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { NotFoundError } from "@/lib/accounts/service";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
@@ -11,7 +18,12 @@ import { demoRecords } from "@/lib/journal/view-service";
 import { trades, accounts as demoAccounts } from "@/data/demo";
 import { demoReviews } from "@/data/demo-reviews";
 import { reviewState, mistakes } from "@/lib/reviews/model";
-import { D, type Portion, type PortionFee } from "@/lib/journal/processing";
+import {
+  D,
+  direction,
+  type Portion,
+  type PortionFee,
+} from "@/lib/journal/processing";
 import {
   reportSchema,
   summarizeReports,
@@ -92,7 +104,22 @@ export async function reports(
           viewSchema.parse({ start: q.start, end: q.end }),
           timezone,
         );
+        const ownedStrategies =
+          q.mode === "real"
+            ? await tx
+                .select()
+                .from(strategies)
+                .where(eq(strategies.ownerId, owner.id))
+            : [];
+        if (
+          q.strategy &&
+          (q.mode !== "real" ||
+            (q.strategy !== "unassigned" &&
+              !ownedStrategies.some((s) => s.id === q.strategy)))
+        )
+          throw new NotFoundError();
         const fees: Record<string, PortionFee> = {};
+        const portionParent = new Map<string, string>();
         let portions: Portion[] = [],
           records: ReportRecord[] = [],
           unresolved = 0,
@@ -158,16 +185,18 @@ export async function reports(
           const symbol = sql`(${q.symbol ?? null}::text is null or r.symbol=${q.symbol ?? null}) and (${q.root ?? null}::text is null or coalesce(substring(r.symbol from '^([A-Z0-9]+?)[FGHJKMNQUVXZ][0-9]{1,4}$'),r.symbol)=${q.root ?? null})`;
           if (q.tab !== "behavior" && q.analysis !== "complete") {
             const result =
-              await tx.execute(sql`select p.id::text,p.owner_id as "ownerId",p.trading_account_id::text as "tradingAccountId",p.symbol,p.buy_fill_id as "buyFillId",p.sell_fill_id as "sellFillId",p.quantity::text,p.buy_price::text as "buyPrice",p.sell_price::text as "sellPrice",p.gross_pnl::text as "grossPnl",p.bought_at as "boughtAt",p.sold_at as "soldAt",f.amount::text as amount,f.kind
+              await tx.execute(sql`select r.id::text as "recordId",p.id::text,p.owner_id as "ownerId",p.trading_account_id::text as "tradingAccountId",p.symbol,p.buy_fill_id as "buyFillId",p.sell_fill_id as "sellFillId",p.quantity::text,p.buy_price::text as "buyPrice",p.sell_price::text as "sellPrice",p.gross_pnl::text as "grossPnl",p.bought_at as "boughtAt",p.sold_at as "soldAt",f.amount::text as amount,f.kind
      from journal_records r join journal_sources l on l.record_id=r.id and l.owner_id=${owner.id} and l.trading_account_id=r.trading_account_id
      join tradovate_performance_records p on p.id=l.source_id and p.owner_id=${owner.id} and p.trading_account_id=r.trading_account_id
      left join journal_portion_fees f on f.source_id=p.id and f.owner_id=${owner.id} and f.trading_account_id=r.trading_account_id
      where r.owner_id=${owner.id} and r.current=true and ${scope} and ${symbol} and greatest(p.bought_at,p.sold_at)>=${bounds.start}::timestamptz and greatest(p.bought_at,p.sold_at)<${bounds.end}::timestamptz`);
             for (const raw of result.rows) {
               const row = raw as unknown as Portion & {
+                recordId: string;
                 amount: string | null;
                 kind: PortionFee["kind"];
               };
+              portionParent.set(row.id, row.recordId);
               portions.push({
                 ...row,
                 boughtAt: new Date(row.boughtAt).toISOString(),
@@ -239,6 +268,129 @@ export async function reports(
             ).rows[0].pending,
           );
         }
+        const assignments =
+          q.mode === "real" && ids.length
+            ? await tx
+                .select()
+                .from(strategyAssignments)
+                .where(
+                  and(
+                    eq(strategyAssignments.ownerId, owner.id),
+                    inArray(strategyAssignments.tradingAccountId, ids),
+                  ),
+                )
+            : [];
+        const sourceLinks = assignments.some((a) => a.needsReassignment)
+          ? await tx
+              .select()
+              .from(journalSources)
+              .where(
+                and(
+                  eq(journalSources.ownerId, owner.id),
+                  inArray(journalSources.tradingAccountId, ids),
+                ),
+              )
+          : [];
+        const byRecord = new Map(
+          assignments
+            .filter((a) => !a.needsReassignment && a.recordId)
+            .map((a) => [a.recordId!, a]),
+        );
+        const unresolvedSources = new Set(
+          assignments
+            .filter((a) => a.needsReassignment)
+            .flatMap((a) => a.sourceIds),
+        );
+        const ambiguousRecords = new Set(
+          sourceLinks
+            .filter((l) => unresolvedSources.has(l.sourceId))
+            .map((l) => l.recordId),
+        );
+        const matches = (
+          recordId: string | undefined,
+          key: string,
+          version?: number,
+        ) => {
+          if (!recordId || ambiguousRecords.has(recordId)) return false;
+          const a = byRecord.get(recordId);
+          return (
+            (key === "unassigned" ? !a : a?.strategyId === key) &&
+            (!version || a?.playbookRevision === version)
+          );
+        };
+        if (q.strategy) {
+          portions = portions.filter((p) =>
+            matches(portionParent.get(p.id), q.strategy!, q.strategyRevision),
+          );
+          records = records.filter((r) =>
+            matches(r.id, q.strategy!, q.strategyRevision),
+          );
+        }
+        const strategyGroups =
+          q.mode === "real"
+            ? [
+                ...ownedStrategies.map((s) => ({
+                  id: s.id,
+                  name: s.fields.name,
+                })),
+                { id: "unassigned", name: "Unassigned" },
+              ].map((s) => {
+                const selectedParts = portions.filter((p) =>
+                  matches(portionParent.get(p.id), s.id, q.strategyRevision),
+                );
+                const selectedRecords = records.filter((r) =>
+                  matches(r.id, s.id, q.strategyRevision),
+                );
+                const summary = summarizeReports({
+                  q: {
+                    ...q,
+                    tab: "overview",
+                    analysis:
+                      q.analysis === "complete" ? "complete" : "portions",
+                  },
+                  ids,
+                  timezone,
+                  portions: selectedParts,
+                  fees,
+                  records: selectedRecords,
+                  tags: [],
+                }).summary;
+                const links =
+                  q.analysis === "complete"
+                    ? selectedRecords
+                        .filter((r) => r.type === "trade" && !r.partial)
+                        .map((r) => ({
+                          id: r.id,
+                          symbol: r.symbol,
+                          type: r.type,
+                        }))
+                    : selectedParts
+                        .filter(
+                          (p) =>
+                            q.direction === "all" ||
+                            direction(p) === q.direction,
+                        )
+                        .map((p) => ({
+                          id: portionParent.get(p.id)!,
+                          symbol: p.symbol,
+                          type: "portion",
+                        }));
+                return {
+                  ...s,
+                  summary,
+                  revisions: [
+                    ...new Set(
+                      assignments
+                        .filter(
+                          (a) => !a.needsReassignment && a.strategyId === s.id,
+                        )
+                        .map((a) => a.playbookRevision),
+                    ),
+                  ].sort((a, b) => a - b),
+                  records: [...new Map(links.map((r) => [r.id, r])).values()],
+                };
+              })
+            : undefined;
         const data = summarizeReports({
           q,
           ids,
@@ -261,6 +413,9 @@ export async function reports(
           tags: allTags,
           pending,
           ...data,
+          strategyGroups,
+          strategyUnresolved: assignments.filter((a) => a.needsReassignment)
+            .length,
         };
       },
       { isolationLevel: "repeatable read", accessMode: "read only" },
