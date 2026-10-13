@@ -177,7 +177,7 @@ export function TradingCalendar({
     }
     lastScope.current = scope;
   }, [scope, selectedDay, search, dayKey, pathname]);
-  const countLabel = mode === "demo" ? "Trades closed" : "Closed portions";
+  const countLabel = "Trades";
   const basis = data?.basis ?? requestedBasis;
   const basisLabel =
     basis === "gross"
@@ -261,23 +261,17 @@ export function TradingCalendar({
                 title={
                   mode === "demo"
                     ? "Complete closed demo trades."
-                    : "Counted from closed Tradovate report portions. A trade closed in parts may produce more than one portion; complete-trade coverage is not yet verified."
+                    : "Each grouped journal record counts as one trade per active day. Related partial exits are combined; complete position coverage depends on the imported history."
                 }
               >
                 {d.count}{" "}
-                {mode === "demo"
-                  ? d.count === 1
-                    ? "trade"
-                    : "trades"
-                  : d.count === 1
-                    ? "portion"
-                    : "portions"}
+                {d.count === 1 ? "trade" : "trades"}
               </span>
             </span>
             <span
               className="calendar-day-win-rate"
-              aria-label={`${mode === "demo" ? "Trade" : "Closed-portion"} win percentage: ${winPercent ?? "unavailable"}, ${basis === "gross" ? "before fees" : "after fees"}. Breakeven results are included in the total.`}
-              title={`Winning ${mode === "demo" ? "closed trades" : "closed portions"} / all ${mode === "demo" ? "closed trades" : "closed portions"}, ${basis === "gross" ? "before" : "after"} fees. Breakeven results count in the total.`}
+              aria-label={`Trade win percentage: ${winPercent ?? "unavailable"}, ${basis === "gross" ? "before fees" : "after fees"}. Breakeven results are included in the total.`}
+              title={`Winning trades active this day / all trades active this day, ${basis === "gross" ? "before" : "after"} fees. Breakeven results count in the total.`}
             >
               {winPercent ?? "—"}
             </span>
@@ -730,7 +724,7 @@ export function TradingCalendar({
                 </div>
               </div>
               {mode === "real" && (
-                <h3 className="calendar-closed-heading">Closed portions</h3>
+                <h3 className="calendar-closed-heading">Trades active this day</h3>
               )}
               <Link
                 className="back-link"
@@ -740,8 +734,9 @@ export function TradingCalendar({
               </Link>
               {mode === "real" && (
                 <p className="calendar-scope-note">
-                  A trade closed in several parts can produce multiple records
-                  in your Tradovate report.
+                  Related report portions are combined into one journal trade. A trade
+                  with exits on different days counts once on each active day;
+                  amounts and win percentages reflect only this day&apos;s exits.
                 </p>
               )}
               {details.data.records.length ? (
@@ -774,7 +769,7 @@ export function TradingCalendar({
                       <p>
                         {r.partial ? "Partial daily contribution · " : ""}
                         {r.status === "Matched portions"
-                          ? "Closed portions"
+                          ? "Grouped trade"
                           : r.status}
                       </p>
                       <p>

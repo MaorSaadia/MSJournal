@@ -23,12 +23,10 @@ import {
   type Portion,
   type PortionFee,
 } from "@/lib/journal/processing";
-import {
-  realizedPerformance,
-  selectedPortions,
-} from "@/lib/journal/calculations";
+import { selectedPortions } from "@/lib/journal/calculations";
 import {
   aggregateCalendar,
+  calendarPerformance,
   monthSchema,
   daySchema,
   monthEnd,
@@ -111,6 +109,7 @@ export async function calendarData(
           direction: params.direction,
         };
         let rows: Portion[] = [],
+          recordIds: Record<string, string> = {},
           fees: Record<string, PortionFee> = {},
           contributions: DayContribution[] = [],
           unpublished = 0,
@@ -206,6 +205,9 @@ export async function calendarData(
             boughtAt: r.boughtAt.toISOString(),
             soldAt: r.soldAt.toISOString(),
           }));
+          recordIds = Object.fromEntries(
+            published.map(({ source, record }) => [source.id, record.id]),
+          );
           fees = Object.fromEntries(
             published.map(({ source: r, fee }) => [
               r.id,
@@ -284,7 +286,7 @@ export async function calendarData(
           }
         }
         if (params.day) {
-          const result = realizedPerformance(
+          const result = calendarPerformance(
             rows,
             fees,
             {
@@ -293,6 +295,7 @@ export async function calendarData(
               end: params.day < filter.end ? params.day : filter.end,
             },
             timezone,
+            recordIds,
           );
           // Date-range exclusions apply to both summary and records.
           return {
@@ -317,6 +320,7 @@ export async function calendarData(
             params.month,
             weekStartsOn,
             params.basis,
+            recordIds,
           ),
           accounts,
           mode: params.mode,

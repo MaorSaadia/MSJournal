@@ -777,7 +777,7 @@ export function DayWorkspace({
                   </strong>
                 </span>
                 <span>
-                  Closed portions<strong>{data.day?.count ?? 0}</strong>
+                  Trades<strong>{data.day?.count ?? 0}</strong>
                 </span>
               </div>
               {data.day && data.day.net === null && (

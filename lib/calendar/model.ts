@@ -2,15 +2,58 @@ import { TZDate } from "@date-fns/tz";
 import { z } from "zod";
 import {
   realizedPerformance,
+  selectedPortions,
   localDay,
   type JournalFilter,
 } from "@/lib/journal/calculations";
 import {
   D,
   sum,
+  portionExit,
   type Portion,
   type PortionFee,
 } from "@/lib/journal/processing";
+import { summary } from "@/lib/journal/statistics";
+
+// Keep realized amounts on their exit day, but count a published journal record
+// once per day rather than once per source portion. Never infer new positions.
+export function calendarPerformance(
+  rows: Portion[],
+  fees: Record<string, PortionFee>,
+  filter: JournalFilter,
+  timezone: string,
+  recordIds: Record<string, string> = {},
+) {
+  const result = realizedPerformance(rows, fees, filter, timezone);
+  const groups = new Map<string, Map<string, Portion[]>>();
+  for (const row of selectedPortions(rows, filter, timezone)) {
+    const day = localDay(portionExit(row), timezone);
+    const daily = groups.get(day) ?? new Map<string, Portion[]>();
+    const key = JSON.stringify([row.tradingAccountId, recordIds[row.id] ?? row.id]);
+    daily.set(key, [...(daily.get(key) ?? []), row]);
+    groups.set(day, daily);
+  }
+  return {
+    ...result,
+    days: result.days.map((day) => {
+      const trades = [...groups.get(day.date)!.values()];
+      const gross = trades.map((parts) => sum(parts.map((p) => p.grossPnl)));
+      const net = trades.map((parts, i) =>
+        parts.every((p) => fees[p.id]?.amount != null)
+          ? new D(gross[i]).minus(sum(parts.map((p) => fees[p.id].amount!))).toFixed()
+          : null,
+      );
+      return {
+        ...day,
+        count: trades.length,
+        grossWins: gross.filter((value) => new D(value).gt(0)).length,
+        netWins: day.feeAmount === null ? null : net.filter((value) => value !== null && new D(value).gt(0)).length,
+        grossStatistics: summary(gross),
+        netStatistics: summary(net, day.estimated),
+      };
+    }),
+  };
+}
 
 export const monthSchema = z
   .string()
@@ -98,13 +141,14 @@ export function aggregateCalendar(
   month: string,
   weekStartsOn: 0 | 1,
   requested: Basis,
+  recordIds: Record<string, string> = {},
 ) {
   const scope = {
     ...filter,
     start: filter.start > month + "-01" ? filter.start : month + "-01",
     end: filter.end < monthEnd(month) ? filter.end : monthEnd(month),
   };
-  const performance = realizedPerformance(rows, fees, scope, timezone);
+  const performance = calendarPerformance(rows, fees, scope, timezone, recordIds);
   const netAvailable =
     performance.selected.length > 0 && performance.feeAmount !== null;
   const basis = requested === "net" && netAvailable ? "net" : "gross";

@@ -39,6 +39,30 @@ const filter = {
   end: "2026-09-30",
 };
 describe("shared calendar realized activity", () => {
+  it("counts grouped trades per active day and combines their outcomes without changing amounts", () => {
+    const rows = [
+      p("a", "2026-09-02T12:00:00Z", "10"),
+      p("b", "2026-09-02T13:00:00Z", "-15"),
+      p("c", "2026-09-02T14:00:00Z", "8"),
+      p("d", "2026-09-03T12:00:00Z", "2"),
+    ];
+    const fees: Record<string, PortionFee> = {
+      a: { amount: "0", kind: "Manual" },
+      b: { amount: "0", kind: "Manual" },
+      c: { amount: "9", kind: "Estimated" },
+    };
+    const result = aggregateCalendar(rows, fees, filter, "UTC", "2026-09", 0, "gross", {
+      a: "trade-1", b: "trade-1", c: "trade-2", d: "trade-1",
+    });
+    expect(result.days[0]).toMatchObject({ count: 2, gross: "3", net: "-6", grossWins: 1, netWins: 0 });
+    expect(result.days[1]).toMatchObject({ count: 1, gross: "2", net: null, netWins: null });
+    expect(result.summary).toMatchObject({ count: 3, total: "5" });
+    expect(realizedPerformance(rows, fees, filter, "UTC").gross).toBe(result.summary.total);
+    const filtered = aggregateCalendar(rows, fees, { ...filter, end: "2026-09-02" }, "UTC", "2026-09", 0, "net", {
+      a: "trade-1", b: "trade-1", c: "trade-2", d: "trade-1",
+    });
+    expect(filtered.summary).toMatchObject({ count: 2, total: "-6" });
+  });
   it("supports leap February, six rows, week starts and adjacent-month exclusion", () => {
     expect(monthEnd("2024-02")).toBe("2024-02-29");
     expect(monthEnd("2025-02")).toBe("2025-02-28");
