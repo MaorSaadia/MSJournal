@@ -58,7 +58,11 @@ function normalize(
     } catch (e) {
       throw new ColumnError(
         column,
-        e instanceof Error ? e.message : "Invalid value.",
+        e instanceof z.ZodError
+          ? (e.issues[0]?.message ?? "Invalid value.")
+          : e instanceof Error
+            ? e.message
+            : "Invalid value.",
       );
     }
   }
@@ -198,12 +202,11 @@ function normalize(
       ),
     };
   }
-  const duration = required("duration");
-  if (!/^(?:(?:\d+day|\d+hr|\d+min)\s*)*\d+sec$/.test(duration))
-    throw new ColumnError(
-      "duration",
-      "Unsupported duration format; expected e.g. 2min 16sec.",
-    );
+  // This is reported text, not an input to financial calculations or intervals.
+  // Tradovate exports can omit it or use a different display format.
+  const duration = checked("duration", () =>
+    z.string().max(250, "Source value is too long.").parse(read("duration")),
+  );
   return {
     buyFillId: required("buyFillId"),
     sellFillId: required("sellFillId"),
@@ -350,6 +353,17 @@ export function parseReport(
     const raw = Object.fromEntries(headers.map((h, i) => [h, values[i]]));
     try {
       const normalized = normalize(raw, expected, timezone);
+      if (
+        "duration" in normalized &&
+        !/^(?:(?:\d+day|\d+hr|\d+min)\s*)*\d+sec$/.test(normalized.duration)
+      )
+        file.warnings.push({
+          row,
+          column: "duration",
+          message: normalized.duration
+            ? "Reported duration uses an unfamiliar display format and is preserved as source metadata. Matched intervals use the validated buy/sell timestamps."
+            : "Reported duration is blank. Matched intervals use the validated buy/sell timestamps.",
+        });
       const identity =
         "orderId" in normalized
           ? normalized.orderId

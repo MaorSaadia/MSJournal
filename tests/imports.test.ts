@@ -23,6 +23,44 @@ const stored = (file: ParsedFile) =>
     occurrence,
   }));
 describe("verified Tradovate source formats", () => {
+  it("keeps valid Performance rows with blank or unfamiliar duration metadata", () => {
+    const durations = ["", "2min", "00:00:00.250"];
+    const result = parse(
+      "performance",
+      durations.map((duration, i) =>
+        performance({ buyFillId: `duration-${i}`, duration }),
+      ),
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.rows).toHaveLength(3);
+    expect(result.rows.map((row) => row.raw.duration)).toEqual(durations);
+    expect(
+      result.rows.map((row) => (row.values as { duration: string }).duration),
+    ).toEqual(durations);
+    expect(
+      result.warnings.filter((w) => w.column === "duration").map((w) => w.row),
+    ).toEqual([2, 3, 4]);
+    expect(result.rows[0].values).toMatchObject({
+      grossPnl: "-45",
+      boughtAt: "2026-09-02T13:52:32.000Z",
+      soldAt: "2026-09-02T13:52:15.000Z",
+    });
+    expect(
+      parse("performance", [performance({ duration: "", qty: "invalid" })])
+        .errors[0].column,
+    ).toBe("qty");
+  });
+  it("shows readable required-field errors and still limits duration metadata", () => {
+    const missing = parse("performance", [performance({ buyFillId: "" })]);
+    expect(missing.errors[0].message).toBe("Required source value is missing.");
+    expect(
+      parse("performance", [performance({ duration: "x".repeat(251) })])
+        .errors[0],
+    ).toMatchObject({
+      column: "duration",
+      message: "Source value is too long.",
+    });
+  });
   it("preserves string IDs, raw quotes, exact decimals, symbols and canceled orders without inventing fills", () => {
     const result = parse("orders", [
       order(),
