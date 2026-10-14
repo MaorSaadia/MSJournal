@@ -97,7 +97,7 @@ export function Shell({
   displayName: string;
 }) {
   const pathname = usePathname();
-  const { returnHref, tradesHref, reportsHref } = useCalendarCache();
+  const { returnHref, tradesHref, reportsHref, progressHref } = useCalendarCache();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const links = (compact: boolean) => (
@@ -127,7 +127,9 @@ export function Shell({
                   ? tradesHref
                   : item.href === "/reports"
                     ? reportsHref
-                    : item.href
+                    : item.href === "/progress-tracker"
+                      ? progressHref
+                      : item.href
             }
             title={compact ? item.title : undefined}
             aria-current={pathname === item.href ? "page" : undefined}

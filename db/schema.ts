@@ -21,6 +21,48 @@ import {
   foreignKey,
 } from "drizzle-orm/pg-core";
 
+export const processGoals = pgTable("process_goals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ownerId: text("owner_id").notNull().references(() => user.id, { onDelete: "restrict" }),
+  name: text("name").notNull(),
+  type: text("type").$type<"preparation" | "daily-review" | "trade-review" | "habit">().notNull(),
+  start: date("start_date").notNull(),
+  end: date("end_date").notNull(),
+  target: integer("target").notNull(),
+  description: text("description").notNull().default(""),
+  timezone: text("timezone").notNull(),
+  archived: boolean("archived").notNull().default(false),
+  revision: integer("revision").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("process_goals_scope").on(t.id, t.ownerId),
+  index("process_goals_owner_window").on(t.ownerId, t.archived, t.start, t.end),
+  check("process_goals_type", sql`${t.type} in ('preparation','daily-review','trade-review','habit')`),
+  check("process_goals_target", sql`${t.target} between 1 and 100000`),
+  check("process_goals_window", sql`${t.end} >= ${t.start} and ${t.end} - ${t.start} < 366`),
+  check("process_goals_revision", sql`${t.revision} > 0`),
+  check("process_goals_text", sql`length(${t.name}) between 1 and 100 and length(${t.description}) <= 500`),
+]);
+export const goalCheckins = pgTable("goal_checkins", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ownerId: text("owner_id").notNull(),
+  goalId: uuid("goal_id").notNull(),
+  date: date("entry_date").notNull(),
+  state: text("state").$type<"done" | "not-done" | "not-assessed">().notNull(),
+  note: text("note").notNull().default(""),
+  revision: integer("revision").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  foreignKey({ columns: [t.goalId, t.ownerId], foreignColumns: [processGoals.id, processGoals.ownerId] }).onDelete("restrict"),
+  uniqueIndex("goal_checkins_daily").on(t.goalId, t.ownerId, t.date),
+  index("goal_checkins_owner_time").on(t.ownerId, t.updatedAt),
+  check("goal_checkins_state", sql`${t.state} in ('done','not-done','not-assessed')`),
+  check("goal_checkins_revision", sql`${t.revision} > 0`),
+  check("goal_checkins_note", sql`length(${t.note}) <= 500`),
+]);
+
 export const strategyTemplates = pgTable(
   "strategy_templates",
   {

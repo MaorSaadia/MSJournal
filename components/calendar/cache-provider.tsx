@@ -22,6 +22,8 @@ const Context = createContext<{
   rememberTrades: (href: string) => void;
   reportsHref: string;
   rememberReports: (href: string) => void;
+  progressHref: string;
+  rememberProgress: (href: string) => void;
   scrollPositions: Map<string, number>;
 } | null>(null);
 export function CalendarCacheProvider({
@@ -44,12 +46,14 @@ export function CalendarCacheProvider({
   const [returnHref, remember] = useState("/calendar");
   const [tradesHref, rememberTrades] = useState("/trade-view");
   const [reportsHref, rememberReports] = useState("/reports");
+  const [progressHref, rememberProgress] = useState("/progress-tracker");
   const scrollPositions = useMemo(() => {
     void identity;
     return new Map<string, number>();
   }, [identity]);
   useEffect(() => {
     const mutate = (event: Event) => {
+      cache.invalidate((key) => key.includes("|/api/progress|"));
       const reviews = (
         event as CustomEvent<{ url?: string }>
       ).detail?.url?.startsWith("/api/reviews");
@@ -80,12 +84,14 @@ export function CalendarCacheProvider({
             : dailyOnly
               ? (key) =>
                   key.includes("|/api/daily|") ||
+                  key.includes("|/api/progress|") ||
                   key.includes("|/api/daily/indicators|")
               : propsOnly
                 ? (key) => key.includes("|/api/prop-progress|")
                 : reviews
                   ? (key) =>
                       key.includes("|/api/journal|") ||
+                      key.includes("|/api/progress|") ||
                       key.includes("|/api/dashboard|") ||
                       key.includes("|/api/reviews/") ||
                       (key.includes("|/api/reports|") &&
@@ -146,6 +152,8 @@ export function CalendarCacheProvider({
         rememberTrades,
         reportsHref,
         rememberReports,
+        progressHref,
+        rememberProgress,
         scrollPositions,
       }}
     >
@@ -262,6 +270,7 @@ export function usePrivateRequest<
         detail?.dailyOnly &&
         !detail.dailyResultsOnly &&
         endpoint !== "/api/daily" &&
+        endpoint !== "/api/progress" &&
         endpoint !== "/api/daily/indicators"
       )
         return;

@@ -32,6 +32,8 @@ export const backupTables = [
   schema.strategyRevisions,
   schema.strategyAssignments,
   schema.strategyImages,
+  schema.processGoals,
+  schema.goalCheckins,
 ];
 export const backupCatalog = backupTables.map((table) => {
   const config = getTableConfig(table);

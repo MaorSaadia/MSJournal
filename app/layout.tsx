@@ -15,6 +15,7 @@ import "./day-ten.css";
 import "./day-eleven.css";
 import "./confirmations.css";
 import "./day-twelve.css";
+import "./day-thirteen.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {

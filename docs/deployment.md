@@ -34,7 +34,7 @@ Before releasing, inspect committed SQL under `drizzle/` and confirm the intende
 npm run db:migrate -- --reviewed
 ```
 
-This applies pending version-controlled migrations; never use destructive resets or `drizzle-kit push` as the production workflow. Day 12 adds no database migration. The latest committed migration is `0009_handy_wallow.sql` for private strategy templates; an older environment must apply all reviewed pending migrations before running this release. No production migrations were applied in this milestone.
+This applies pending version-controlled migrations; never use destructive resets or `drizzle-kit push` as the production workflow. Day 12 adds no database migration. Day 13 adds `0010_windy_luminals.sql` for private process goals and habit check-ins; an older environment must apply all reviewed pending migrations before running this release. No production migrations were applied in these milestones.
 
 Build and start with the required server environment configured:
 

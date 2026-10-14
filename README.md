@@ -438,7 +438,7 @@ Reviewed additive migrations `drizzle/0008_overconfident_wild_pack.sql` (strateg
 
 Use **Trade View → Export CSV** to download every record matching the current filters, up to 20,000 records; pagination does not restrict the export. The file preserves decimal financial values and unknown amounts, safely escapes spreadsheet text, and labels selected-filter amounts separately from full-record totals. It retains account/date/strategy/review/outcome/type and gross/net selections and includes UTC/local timestamps.
 
-Use **Settings → Data & backups → Download my data** for a version 1 ZIP containing structured JSON and readable/structured manifests. It includes owned journal preferences/accounts/imports/sources/fees/balances/prop progress/reviews/daily entries/strategies/private templates/revisions/assignments and attachment metadata. Authentication credentials, sessions/tokens, environment secrets and other users' records are excluded. Structured records use one consistent read-only snapshot and are checked for ownership and relationship completeness.
+Use **Settings → Data & backups → Download my data** for a version 2 ZIP containing structured JSON and readable/structured manifests. It includes owned journal preferences/accounts/imports/sources/fees/balances/prop progress/reviews/daily entries/strategies/private templates/revisions/assignments and attachment metadata. Authentication credentials, sessions/tokens, environment secrets and other users' records are excluded. Structured records use one consistent read-only snapshot and are checked for ownership and relationship completeness.
 
 **Include screenshots and playbook images** adds private originals and thumbnails as actual ZIP files. If retrieval fails, retry or explicitly confirm **Download partial archive**; missing files are recorded in the manifest. Structured export works without configured storage. Limits are 100,000 records, 16 MiB structured JSON, 200 image object files and 64 MiB per ZIP. No private archive is hosted at a public URL or persisted on local disk.
 
@@ -447,3 +447,12 @@ Use **Settings → Data & backups → Download my data** for a version 1 ZIP con
 Mobile polish adds a scrollable short-screen navigation drawer, reachable journal/review/playbook save controls that track the visual viewport, larger writing text and touch targets, contained filter panels and an image viewer that fits short viewports. Existing desktop layouts, themes and private cached navigation remain in place.
 
 This milestone does not deploy or provision anything, apply production migrations, modify provider plans/retention, or add prop firm expenses, reset costs or payout tracking. Verification and remaining release checks are recorded in the deployment guide.
+
+
+## Progress Tracker (Day 13)
+
+Open **Progress Tracker** for preparation checklist completion, explicit trade-review coverage, assessed plan adherence, daily review coverage, a daily heatmap, weighted weekly trends and recorded mistakes. The overview spans all owned accounts; saved personal journal dates remain unchanged. Closed-portion parent records are counted once, with their record basis explained. Missing assessments stay missing.
+
+Create automatic preparation/review goals or a custom daily habit with dated Done / Not done / Not assessed check-ins. Goals use their own windows, can be edited or archived, and protect stale edits. Settings backups now use format version 2 and include goals and check-ins. Keep this archive for your records. In-app restoration is not available yet.
+
+See [Day 13 details](docs/day-thirteen.md) for metric denominators, limits, privacy, migration `0010_windy_luminals.sql`, and verification. Apply reviewed migrations in other environments with `npm run db:migrate -- --reviewed`; no deployment is performed by this milestone.

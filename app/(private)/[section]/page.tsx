@@ -5,7 +5,7 @@ import { navigation } from "@/lib/navigation";
 export function generateStaticParams() {
   return navigation
     .filter(
-      (n) => !["/", "/prop-accounts", "/settings", "/reports"].includes(n.href),
+      (n) => !["/", "/prop-accounts", "/settings", "/reports", "/progress-tracker"].includes(n.href),
     )
     .map((n) => ({ section: n.href.slice(1) }));
 }

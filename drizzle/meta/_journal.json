@@ -71,6 +71,13 @@
       "when": 1791878362228,
       "tag": "0009_handy_wallow",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791992639373,
+      "tag": "0010_windy_luminals",
+      "breakpoints": true
     }
   ]
 }
