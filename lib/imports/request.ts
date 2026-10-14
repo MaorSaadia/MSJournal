@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ImportError } from "./errors";
 import { sourceTimezone } from "./time";
 import { parseReport } from "./parser";
+import { feeAmount } from "@/lib/fees/model";
 import type { ImportOptions, ParsedFile, ReportType } from "./types";
 const MAX_BODY = 11 * 1024 * 1024;
 const optionsSchema = z
@@ -11,6 +12,9 @@ const optionsSchema = z
     timezone: sourceTimezone,
     confirmOrders: z.boolean(),
     confirmPerformance: z.boolean(),
+    feeTotal: feeAmount.optional(),
+    replaceFees: z.boolean().optional(),
+    feeFingerprint: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   })
   .strict();
 export async function readUpload(
@@ -63,6 +67,7 @@ export async function readUpload(
         "orders",
         "performance",
         "token",
+        "feeTotal", "replaceFees", "feeFingerprint",
       ].includes(key) ||
       data.getAll(key).length > 1
     )
@@ -72,6 +77,8 @@ export async function readUpload(
     timezone: data.get("timezone"),
     confirmOrders: data.get("confirmOrders") === "true",
     confirmPerformance: data.get("confirmPerformance") === "true",
+    ...(data.has("feeTotal") && { feeTotal: data.get("feeTotal"), replaceFees: data.get("replaceFees") === "true" }),
+    ...(data.has("feeFingerprint") && { feeFingerprint: data.get("feeFingerprint") }),
   });
   const files: ParsedFile[] = [];
   for (const type of ["orders", "performance"] as ReportType[]) {

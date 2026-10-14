@@ -273,6 +273,7 @@ export function RealDashboard({
             </p>
           )}
           <RealMetricCards data={data} complete={complete} />
+          {basis === "net" && data.allocatedFees > 0 && <p className="dashboard-scope-note">Fees for {data.allocatedFees} records are allocated from entered broker-report totals. Full report totals reconcile; individual records and partial selections use quantity-weighted allocations. <Link href={`/fees${ids.length === 1 ? `?accountId=${ids[0]}` : ""}`}>Manage fees →</Link></p>}
           {complete && data.completeCount === 0 && (
             <p className="dashboard-scope-note">
               Performance matching does not verify complete positions.{" "}

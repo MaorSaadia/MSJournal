@@ -157,6 +157,7 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
           </Button>
         </form>
       </section>
+      <section className="import-card"><h2>Trading fees & net P&L</h2><p className="muted">Add or reconcile broker-reported fee totals for existing imports.</p><Link href="/fees">Manage fees →</Link></section>
       <DataBackups />
       <section className="panel settings-session">
         <ShieldCheck size={21} />

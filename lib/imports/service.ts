@@ -10,6 +10,7 @@ import {
   tradingAccounts,
   tradovateOrders,
   tradovatePerformance,
+  userPreferences,
 } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { readConfig } from "@/lib/config";
@@ -18,6 +19,8 @@ import { NotFoundError } from "@/lib/accounts/service";
 import { classify } from "./identity";
 import { hash } from "./parser";
 import { ImportError } from "./errors";
+import { feePlan, applyFeeTotal } from "@/lib/fees/service";
+import { feeAmount, type FeePart } from "@/lib/fees/model";
 import {
   counts,
   PARSER_VERSION,
@@ -31,6 +34,17 @@ import {
 type DB = ReturnType<typeof getDb>;
 type TX = Parameters<Parameters<DB["transaction"]>[0]>[0];
 type Stored = StoredIdentity & { id: string };
+const sourceKey = (r: StoredIdentity) => JSON.stringify([r.identity, r.fingerprint, r.occurrence]);
+function importFeeParts(files: ParsedFile[], stored: Map<string, Stored[]>) {
+  const file = files.find((f) => f.type === "performance");
+  if (!file?.rows.length || file.errors.length) throw new ImportError("Resolve Performance CSV errors before adding a fee total.");
+  const ids = new Map((stored.get("performance") ?? []).map((r) => [sourceKey(r), r.id]));
+  return file.rows.map((r) => ({ ...(r.values as PerformanceValues), id: ids.get(sourceKey(r)) ?? `new:${sourceKey(r)}` }));
+}
+async function displayZone(db: DB | TX, userId: string) {
+  const [pref] = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId));
+  return pref?.displayTimezone ?? "Asia/Jerusalem";
+}
 async function selectedAccount(
   db: DB | TX,
   userId: string,
@@ -182,7 +196,7 @@ function payloadHash(options: ImportOptions, files: ParsedFile[]) {
   return hash(
     JSON.stringify([
       PARSER_VERSION,
-      options,
+      { ...options, replaceFees: undefined },
       files.map((f) => [f.type, f.name, f.hash]),
     ]),
   );
@@ -245,15 +259,22 @@ export async function previewImport(
   headers?: Headers,
 ): Promise<Preview> {
   const user = await requireUser(headers);
-  await evaluate(getDb(), user.id, options, files);
+  const stored = await evaluate(getDb(), user.id, options, files);
   const canConfirm = files.every((f) => !f.errors.length);
+  let feeReview;
+  if (options.feeTotal !== undefined && canConfirm) {
+    feeAmount.parse(options.feeTotal);
+    feeReview = (await feePlan(getDb(), user.id, options.accountId, importFeeParts(files, stored), options.feeTotal, await displayZone(getDb(), user.id))).quote;
+  }
+  const signedOptions = feeReview ? { ...options, feeFingerprint: feeReview.fingerprint } : options;
   return {
     files,
     counts: counts(files),
     canConfirm,
     token: canConfirm
-      ? signedToken(user.id, payloadHash(options, files))
+      ? signedToken(user.id, payloadHash(signedOptions, files))
       : null,
+    ...(feeReview && { feeReview }),
   };
 }
 function chunks<T>(values: T[], size = 200): T[][] {
@@ -303,8 +324,17 @@ export async function confirmImport(
         "Import blocked: validation or conflicting source records remain. Review a fresh preview; nothing was saved.",
         409,
       );
+    let feeZone: string | undefined;
+    if (options.feeTotal !== undefined) {
+      feeAmount.parse(options.feeTotal);
+      feeZone = await displayZone(tx, user.id);
+      const fee = await feePlan(tx, user.id, options.accountId, importFeeParts(files, existing), options.feeTotal, feeZone);
+      if (fee.quote.fingerprint !== options.feeFingerprint) throw new ImportError("Fees changed since your preview. Review again; nothing was saved.", 409);
+      if (fee.quote.replaceRequired && !options.replaceFees) throw new ImportError("Confirm replacing the fees shown in your preview, then review again.", 409);
+    }
     const summary = counts(files);
     const scope = { ownerId: user.id, tradingAccountId: options.accountId };
+    const feeParts: FeePart[] = [];
     const [batch] = await tx
       .insert(importBatches)
       .values({
@@ -397,6 +427,8 @@ export async function confirmImport(
           inserted.forEach((r) => references.set(key(r), r.id));
         }
       }
+      if (file.type === "performance" && options.feeTotal !== undefined)
+        for (const r of file.rows) feeParts.push({ ...(r.values as PerformanceValues), id: references.get(key(r))! });
       for (const group of chunks(file.rows))
         await tx.insert(importProvenance).values(
           group.map((r) => {
@@ -416,6 +448,10 @@ export async function confirmImport(
             };
           }),
         );
+    }
+    if (options.feeTotal !== undefined) {
+      const plan = await feePlan(tx, user.id, options.accountId, feeParts, options.feeTotal, feeZone!);
+      await applyFeeTotal(tx, user.id, options.accountId, feeParts, options.feeTotal, feeZone!, plan.quote.fingerprint, !!options.replaceFees, "", batch.id);
     }
     return {
       id: batch.id,

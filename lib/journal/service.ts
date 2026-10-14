@@ -14,10 +14,12 @@ import {
   tradingAccounts,
   importProvenance,
   importFiles,
+  feeReconciliationSources,
 } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { NotFoundError } from "@/lib/accounts/service";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
+import { ReviewError } from "@/lib/reviews/model";
 import { reconcileStrategies } from "@/lib/strategies/service";
 import { reconcileReviews } from "@/lib/reviews/service";
 import {
@@ -36,7 +38,7 @@ async function safeDatabase<T>(work: () => Promise<T>): Promise<T> {
   try {
     return await work();
   } catch (error) {
-    if (error instanceof NotFoundError || error instanceof z.ZodError)
+    if (error instanceof NotFoundError || error instanceof z.ZodError || error instanceof ReviewError)
       throw error;
     // Server rendering must never forward raw SQL errors (or their causes) to logs.
     throw new WorkspaceUnavailableError();
@@ -74,7 +76,7 @@ function portion(row: typeof tradovatePerformance.$inferSelect): Portion {
     soldAt: row.soldAt.toISOString(),
   };
 }
-async function lockAccount(tx: Tx, ownerId: string, accountId: string) {
+export async function lockAccount(tx: Tx, ownerId: string, accountId: string) {
   await tx.execute(
     sql`select pg_advisory_xact_lock(hashtextextended(${ownerId + ":" + accountId},0))`,
   );
@@ -90,7 +92,7 @@ async function lockAccount(tx: Tx, ownerId: string, accountId: string) {
     .for("update");
   if (!account) throw new NotFoundError();
 }
-async function publish(
+export async function publish(
   tx: Tx,
   ownerId: string,
   accountId: string,
@@ -129,7 +131,7 @@ async function publish(
     oldFees.map((f) => [f.sourceId, f]),
   );
   for (const p of parts) {
-    if (fees[p.id] && (!applyExisting || fees[p.id].kind === "Manual"))
+    if (fees[p.id] && (!applyExisting || fees[p.id].kind === "Manual" || fees[p.id].kind === "Allocated"))
       continue;
     const value = {
       ...estimateFee(
@@ -558,6 +560,8 @@ export async function setManualFees(input: unknown, headers?: Headers) {
             eq(journalSources.ownerId, user.id),
           ),
         );
+      const reconciled = parts.length ? await tx.select({ id: feeReconciliationSources.sourceId }).from(feeReconciliationSources).where(and(eq(feeReconciliationSources.ownerId, user.id), eq(feeReconciliationSources.active, true), inArray(feeReconciliationSources.sourceId, parts.map((p) => p.id)))).limit(1) : [];
+      if (reconciled.length) throw new ReviewError("This record shares a saved fee total. Edit that total in Fees instead of overwriting its allocation.", 409);
       if (values.total === null) {
         await tx.delete(journalPortionFees).where(
           and(

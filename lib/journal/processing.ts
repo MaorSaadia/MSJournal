@@ -19,7 +19,7 @@ export type Portion = {
 };
 export type PortionFee = {
   amount: string | null;
-  kind: "Unknown" | "Estimated" | "Manual";
+  kind: "Unknown" | "Estimated" | "Manual" | "Allocated";
   perSide?: string | null;
   settingRevision?: string | null;
 };

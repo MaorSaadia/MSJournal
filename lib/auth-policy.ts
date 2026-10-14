@@ -9,6 +9,7 @@ const destinations = new Set([
   "/reports",
   "/strategies",
   "/progress-tracker",
+  "/fees",
 ]);
 export function safeRedirect(value: unknown) {
   if (

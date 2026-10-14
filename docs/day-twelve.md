@@ -14,7 +14,7 @@ The server uses the same validated owner-scoped repeatable-read filter query as 
 
 ## Settings → Data & backups
 
-**Download my data** produces a standard ZIP with `manifest.json`, `MANIFEST.txt`, and one `data/<database_table>.json` per included category. Format version 2 (extended in Day 13 with personal goals and habit check-ins) preserves database column names, IDs, immutable revisions, decimal strings, null unknowns, account/date/timezone conventions, raw stored source rows and relationship fields. Profile data is explicitly limited to ID, name, email and timestamps.
+**Download my data** produces a standard ZIP with `manifest.json`, `MANIFEST.txt`, and one `data/<database_table>.json` per included category. Format version 3 (extended with Day 13 goals/check-ins and broker fee-total history) preserves database column names, IDs, immutable revisions, decimal strings, null unknowns, account/date/timezone conventions, raw stored source rows and relationship fields. Profile data is explicitly limited to ID, name, email and timestamps.
 
 The allowlist covers preferences; active/archived accounts, settings and balances; import batches/files/provenance and Orders/Performance sources; current/superseded journal records, source relationships and processing status; estimated/manual fees; balance adjustments; prop phases/rule versions/snapshots/events; reviews, emotions/mistakes/tags/source associations; daily entries, observations/event metadata/checklist snapshots/default checklist; strategies/private templates/revisions/assignments/checklist responses; and screenshot/playbook-image metadata. Authentication account rows, passwords, sessions, verification/reset tokens, rate limits, environment variables and storage/API credentials are excluded.
 

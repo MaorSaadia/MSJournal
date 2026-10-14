@@ -61,6 +61,9 @@ export type ImportOptions = {
   timezone: string;
   confirmOrders: boolean;
   confirmPerformance: boolean;
+  feeTotal?: string;
+  replaceFees?: boolean;
+  feeFingerprint?: string;
 };
 export type Counts = {
   total: number;
@@ -75,6 +78,7 @@ export type Preview = {
   counts: Counts;
   canConfirm: boolean;
   token: string | null;
+  feeReview?: import("@/lib/fees/model").FeeQuote;
 };
 export type StoredIdentity = {
   identity: string;

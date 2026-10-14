@@ -289,6 +289,7 @@ export function JournalList() {
         </div>
         <div className="export-actions">
           <TradeCsvExport query={query} disabled={!parsed.success || !data} />
+          {q.mode === "real" && <Button asChild variant="outline"><Link href={`/fees${q.accounts?.split(",").filter(Boolean).length === 1 ? `?accountId=${q.accounts}` : ""}`}>Fees & net P&L</Link></Button>}
           <Button asChild variant="outline">
             <Link href="/imports">Import trades</Link>
           </Button>

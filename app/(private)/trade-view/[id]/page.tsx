@@ -209,6 +209,7 @@ export default async function Page({
         <section className="import-card">
           <h2>Closed-portion record · full result</h2>
           <p className="muted">{record.explanation}</p>
+          {(record.feeKind === "Allocated" || record.feeKind === "Mixed") && <p className="muted">Some or all fees may be allocated from an entered report total by closed quantity. These are not broker-reported per-trade charges. <Link href={`/fees?accountId=${record.tradingAccountId}`}>Review fee totals →</Link></p>}
           <div className="journal-summary">
             <div>
               <small>Gross P&L</small>

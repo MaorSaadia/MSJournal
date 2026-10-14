@@ -52,8 +52,8 @@ export function FeeSettings({
       });
       setMessage(
         apply
-          ? "Fee settings saved and applied to existing nonmanual portions. Manual overrides were preserved."
-          : "Fee settings saved for newly processed portions. Existing estimates and manual overrides were preserved.",
+          ? "Fee settings saved and applied to existing nonmanual portions. Entered fee totals and manual overrides were preserved."
+          : "Fee settings saved for newly processed portions. Existing estimates, entered totals and manual overrides were preserved.",
       );
       router.refresh();
     } catch (e) {
@@ -143,7 +143,7 @@ export function FeeSettings({
           onChange={(e) => setApply(e.target.checked)}
         />
         Apply these settings to existing portions, including previously unknown
-        fees. Preserve manual overrides.
+        fees. Preserve entered totals and manual overrides.
       </label>
       <Button disabled={busy}>{busy ? "Saving…" : "Save fee settings"}</Button>
       {error && (

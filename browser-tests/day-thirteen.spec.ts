@@ -242,7 +242,7 @@ test("progress ownership, explicit completion, goal windows, backup inclusion an
       offset = start + size;
     }
     const manifest = JSON.parse(files.get("manifest.json")!.toString());
-    expect(manifest.version).toBe(2);
+    expect(manifest.version).toBe(3);
     expect(
       JSON.parse(files.get("data/process_goals.json")!.toString()),
     ).toHaveLength(2);

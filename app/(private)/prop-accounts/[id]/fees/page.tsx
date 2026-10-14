@@ -31,6 +31,7 @@ export default async function Page({
             {data.account.name} · Explicit estimates, never inferred broker
             fees.
           </p>
+          <Link href={`/fees?accountId=${id}`}>Enter actual fee totals & view history →</Link>
         </div>
         <Link className="back-link" href="/prop-accounts">
           Back to accounts

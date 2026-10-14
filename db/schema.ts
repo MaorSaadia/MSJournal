@@ -21,6 +21,43 @@ import {
   foreignKey,
 } from "drizzle-orm/pg-core";
 
+export const feeReconciliations = pgTable("fee_reconciliations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ownerId: text("owner_id").notNull(),
+  tradingAccountId: uuid("trading_account_id").notNull(),
+  importBatchId: uuid("import_batch_id"),
+  total: numeric("total", { precision: 38, scale: 8 }).notNull(),
+  gross: numeric("gross", { precision: 38, scale: 8 }).notNull(),
+  start: date("start_date").notNull(),
+  end: date("end_date").notNull(),
+  timezone: text("timezone").notNull(),
+  note: text("note").notNull().default(""),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("fee_reconciliations_scope").on(t.id, t.ownerId, t.tradingAccountId),
+  index("fee_reconciliations_owner_account").on(t.ownerId, t.tradingAccountId, t.createdAt),
+  foreignKey({ columns: [t.tradingAccountId, t.ownerId], foreignColumns: [tradingAccounts.id, tradingAccounts.ownerId] }).onDelete("restrict"),
+  foreignKey({ columns: [t.importBatchId, t.ownerId, t.tradingAccountId], foreignColumns: [importBatches.id, importBatches.ownerId, importBatches.tradingAccountId] }).onDelete("restrict"),
+  check("fee_reconciliations_total", sql`${t.total} >= 0`),
+  check("fee_reconciliations_dates", sql`${t.end} >= ${t.start}`),
+]);
+export const feeReconciliationSources = pgTable("fee_reconciliation_sources", {
+  reconciliationId: uuid("reconciliation_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  tradingAccountId: uuid("trading_account_id").notNull(),
+  sourceId: uuid("source_id").notNull(),
+  amount: numeric("amount", { precision: 38, scale: 8 }).notNull(),
+  active: boolean("active").notNull().default(true),
+}, (t) => [
+  primaryKey({ columns: [t.reconciliationId, t.sourceId] }),
+  uniqueIndex("fee_reconciliation_sources_active").on(t.sourceId).where(sql`${t.active} = true`),
+  index("fee_reconciliation_sources_owner").on(t.ownerId, t.tradingAccountId),
+  foreignKey({ columns: [t.reconciliationId, t.ownerId, t.tradingAccountId], foreignColumns: [feeReconciliations.id, feeReconciliations.ownerId, feeReconciliations.tradingAccountId] }).onDelete("restrict"),
+  foreignKey({ columns: [t.sourceId, t.ownerId, t.tradingAccountId], foreignColumns: [tradovatePerformance.id, tradovatePerformance.ownerId, tradovatePerformance.tradingAccountId] }).onDelete("restrict"),
+  check("fee_reconciliation_sources_amount", sql`${t.amount} >= 0`),
+]);
+
 export const processGoals = pgTable("process_goals", {
   id: uuid("id").primaryKey().defaultRandom(),
   ownerId: text("owner_id").notNull().references(() => user.id, { onDelete: "restrict" }),
@@ -644,7 +681,7 @@ export const journalRecords = pgTable(
     grossPnl: numeric("gross_pnl", { precision: 38, scale: 8 }).notNull(),
     fees: numeric("fees", { precision: 38, scale: 8 }),
     feeKind: text("fee_kind")
-      .$type<"Unknown" | "Estimated" | "Manual" | "Mixed">()
+      .$type<"Unknown" | "Estimated" | "Manual" | "Allocated" | "Mixed">()
       .notNull(),
     version: text("processing_version").notNull(),
     current: boolean("current").notNull().default(true),
@@ -727,7 +764,7 @@ export const journalPortionFees = pgTable(
     ...sourceScope(),
     sourceId: uuid("source_id").notNull(),
     amount: numeric("amount", { precision: 38, scale: 8 }),
-    kind: text("kind").$type<"Unknown" | "Estimated" | "Manual">().notNull(),
+    kind: text("kind").$type<"Unknown" | "Estimated" | "Manual" | "Allocated">().notNull(),
     perSide: numeric("per_side", { precision: 28, scale: 8 }),
     settingRevision: uuid("setting_revision"),
     updatedAt: timestamp("updated_at", { withTimezone: true })

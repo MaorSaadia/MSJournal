@@ -31,6 +31,8 @@ export async function cleanupUsers() {
       );
       for (const row of rows) {
         for (const table of [
+          "fee_reconciliation_sources",
+          "fee_reconciliations",
           "goal_checkins",
           "process_goals",
           "strategy_templates",

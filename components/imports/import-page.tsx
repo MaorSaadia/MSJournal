@@ -16,6 +16,7 @@ import type { TradingAccount } from "@/lib/accounts/types";
 import { TimezoneSelector } from "@/components/ui/timezone-selector";
 import { journalTimestamp } from "@/lib/timezones";
 import { inspectReportType } from "@/lib/imports/reports";
+import { FeeSummary } from "@/components/fees/summary";
 import {
   MAX_FILE_BYTES,
   type Preview,
@@ -46,6 +47,7 @@ export function ImportPage({
   const [files, setFiles] = useState<Partial<Record<ReportType, File>>>({});
   const [ordersMapped, setOrdersMapped] = useState(false),
     [performanceMapped, setPerformanceMapped] = useState(false);
+  const [feeTotal, setFeeTotal] = useState(""), [feesConfirmed, setFeesConfirmed] = useState(false), [replaceFees, setReplaceFees] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null),
     [busy, setBusy] = useState<"preview" | "confirm" | null>(null),
     [error, setError] = useState("");
@@ -53,6 +55,7 @@ export function ImportPage({
   function invalidate() {
     setPreview(null);
     setError("");
+    setReplaceFees(false);
   }
   async function choose(type: ReportType, file?: File) {
     const revision = ++fileRevision.current[type];
@@ -61,7 +64,11 @@ export function ImportPage({
     setFileIssues((old) => ({ ...old, [type]: undefined }));
     setChecking((old) => ({ ...old, [type]: false }));
     if (type === "orders") setOrdersMapped(false);
-    else setPerformanceMapped(false);
+    else {
+      setPerformanceMapped(false);
+      setFeeTotal("");
+      setFeesConfirmed(false);
+    }
     if (!file) return;
     if (file && (!file.size || file.size > MAX_FILE_BYTES)) {
       setFileIssues((old) => ({
@@ -95,6 +102,12 @@ export function ImportPage({
       body.set("timezone", timezone);
       body.set("confirmOrders", String(ordersMapped));
       body.set("confirmPerformance", String(performanceMapped));
+      if (files.performance && feeTotal.trim()) {
+        if (!feesConfirmed) throw new Error("Confirm that this fee total applies to the Performance records in this file.");
+        body.set("feeTotal", feeTotal.trim());
+        body.set("replaceFees", String(replaceFees));
+        if (action === "confirm" && preview?.feeReview) body.set("feeFingerprint", preview.feeReview.fingerprint);
+      }
       for (const type of ["orders", "performance"] as ReportType[])
         if (files[type]) body.set(type, files[type]!);
       if (action === "confirm") body.set("token", preview?.token ?? "");
@@ -191,6 +204,8 @@ export function ImportPage({
                     );
                     setOrdersMapped(false);
                     setPerformanceMapped(false);
+                    setFeeTotal("");
+                    setFeesConfirmed(false);
                     invalidate();
                   }}
                 >
@@ -209,6 +224,7 @@ export function ImportPage({
                   value={timezone}
                   onChange={(value) => {
                     setTimezone(value);
+                    setFeesConfirmed(false);
                     invalidate();
                   }}
                 />
@@ -294,6 +310,7 @@ export function ImportPage({
                   </label>
                 )}
             </fieldset>
+            {files.performance && <details className="import-fees"><summary>Trading fees & commissions (optional)</summary><label className="field-label">Total fees for this Performance report (USD)<input inputMode="decimal" value={feeTotal} disabled={!!busy} placeholder="Leave blank if unknown" onChange={(e) => { setFeeTotal(e.target.value); setFeesConfirmed(false); setReplaceFees(false); invalidate(); }} /></label><p className="small muted">Copy the all-in trading fees for these same report records from Tradovate. Include commissions, exchange, clearing and regulatory fees. Exclude deposits, withdrawals and subscription costs. Enter 0 only if fees are actually zero.</p>{feeTotal.trim() && <label className="import-confirm"><input type="checkbox" disabled={!!busy} checked={feesConfirmed} onChange={(e) => { setFeesConfirmed(e.target.checked); invalidate(); }} />I confirm these fees apply to all closed Performance records in this file, including duplicates—not only the newly imported rows. Fees for unrelated records or open positions are excluded.</label>}<p className="small muted">You can also add or correct totals later in <Link href="/fees">Fees</Link>. Leaving this blank preserves existing fees and account estimates.</p></details>}
             {error && (
               <div role="alert" className="import-error">
                 {error}
@@ -351,6 +368,7 @@ export function ImportPage({
                   timezone={displayTimezone}
                 />
               ))}
+              {preview.feeReview && <><FeeSummary quote={preview.feeReview} />{preview.feeReview.replaceRequired && <label className="import-confirm"><input type="checkbox" checked={replaceFees} disabled={!!busy} onChange={(e) => setReplaceFees(e.target.checked)} />Replace the existing fees shown above with this total. Keep the previous totals in history.</label>}</>}
               <p className="small muted">
                 Confirmation reparses your files and rechecks the database.
                 Duplicates are skipped; any invalid or conflicting records block
@@ -359,7 +377,7 @@ export function ImportPage({
               <Button
                 onClick={() => send("confirm")}
                 disabled={
-                  !!busy || checkingFile || fileBlocked || !preview.canConfirm
+                  !!busy || checkingFile || fileBlocked || !preview.canConfirm || (!!preview.feeReview?.replaceRequired && !replaceFees)
                 }
               >
                 {busy === "confirm" ? (
