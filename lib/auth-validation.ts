@@ -5,7 +5,7 @@ export const emailInput = z
   .email("Enter a valid email address.");
 export const passwordInput = z
   .string()
-  .min(12, "Use at least 12 characters.")
+  .min(8, "Use at least 8 characters.")
   .max(128, "Use no more than 128 characters.");
 export const signupInput = z
   .object({

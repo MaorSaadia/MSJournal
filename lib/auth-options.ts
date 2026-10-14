@@ -22,7 +22,7 @@ export function createAuth() {
       enabled: true,
       disableSignUp: false,
       autoSignIn: true,
-      minPasswordLength: 12,
+      minPasswordLength: 8,
       maxPasswordLength: 128,
       requireEmailVerification: requireVerification,
       resetPasswordTokenExpiresIn: 3600,

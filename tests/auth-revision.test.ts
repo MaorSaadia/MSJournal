@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { authError } from "@/lib/auth-messages";
-import { signupInput } from "@/lib/auth-validation";
+import { signupInput, resetInput } from "@/lib/auth-validation";
 import { readConfig } from "@/lib/config";
 const email = vi.hoisted(() => ({ send: vi.fn() }));
 vi.mock("resend", () => ({
@@ -10,6 +10,15 @@ vi.mock("resend", () => ({
 }));
 import { sendAuthEmail, EmailDeliveryError } from "@/lib/auth-email";
 describe("standard authentication", () => {
+  it("accepts 8–128 character passwords for signup and reset, rejecting values outside that range", () => {
+    for (const length of [7, 8, 128, 129]) {
+      const password = "a".repeat(length);
+      const fields = { password, confirmPassword: password };
+      const expected = length >= 8 && length <= 128;
+      expect(resetInput.safeParse(fields).success).toBe(expected);
+      expect(signupInput.safeParse({ ...fields, name: "Trader", email: "trader@example.com" }).success).toBe(expected);
+    }
+  });
   it("does not require an owner allowlist and refuses a verification gate without email delivery", () => {
     const config = {
       DATABASE_URL: "postgresql://user:placeholder@localhost/journal",

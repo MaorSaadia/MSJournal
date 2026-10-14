@@ -96,7 +96,7 @@ export function SignupForm({
             autoComplete="new-password"
             error={errors.password?.message}
           />
-          <small className="muted">Use 12–128 characters.</small>
+          <small className="muted">Use 8–128 characters.</small>
           <PasswordField
             {...register("confirmPassword")}
             label="Confirm password"
