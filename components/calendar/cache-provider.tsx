@@ -11,6 +11,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   workspaceSearch,
   workspaceFilterKeys,
+  rememberWorkspacePage,
+  type WorkspaceFilterState,
   type WorkspaceFilters,
 } from "@/lib/accounts/workspace-filters";
 import { CalendarQueryCache } from "@/lib/calendar/client-cache";
@@ -31,7 +33,8 @@ const Context = createContext<{
   rememberProgress: (href: string) => void;
   scrollPositions: Map<string, number>;
   workspaceFilters: WorkspaceFilters;
-  rememberWorkspaceFilters: (filters: WorkspaceFilters) => void;
+  pageFilters: Record<string, WorkspaceFilters>;
+  rememberPageFilters: (path: string, filters: WorkspaceFilters) => void;
 } | null>(null);
 export function CalendarCacheProvider({
   userId,
@@ -54,17 +57,14 @@ export function CalendarCacheProvider({
   const [tradesHref, rememberTrades] = useState("/trade-view");
   const [reportsHref, rememberReports] = useState("/reports");
   const [progressHref, rememberProgress] = useState("/progress-tracker");
-  const [workspaceFilters, setWorkspaceFilters] = useState<WorkspaceFilters>({
-    basis: "net",
+  const [filterState, setFilterState] = useState<WorkspaceFilterState>({
+    defaults: { basis: "net" },
+    pages: {},
   });
-  const rememberWorkspaceFilters = useMemo(
-    () => (next: WorkspaceFilters) => {
-      setWorkspaceFilters((previous) => {
-        const merged = { ...previous, ...next };
-        return workspaceFilterKeys.every((key) => merged[key] === previous[key])
-          ? previous
-          : merged;
-      });
+  const { defaults: workspaceFilters, pages: pageFilters } = filterState;
+  const rememberPageFilters = useMemo(
+    () => (path: string, next: WorkspaceFilters) => {
+      setFilterState((previous) => rememberWorkspacePage(previous, path, next));
     },
     [],
   );
@@ -141,7 +141,7 @@ export function CalendarCacheProvider({
     const clear = () => {
       cache.clear();
       scrollPositions.clear();
-      setWorkspaceFilters({ basis: "net" });
+      setFilterState({ defaults: { basis: "net" }, pages: {} });
     };
     const authChanged = (event: StorageEvent) => {
       if (event.key === "msjournal:auth-change") {
@@ -178,7 +178,8 @@ export function CalendarCacheProvider({
         rememberProgress,
         scrollPositions,
         workspaceFilters,
-        rememberWorkspaceFilters,
+        pageFilters,
+        rememberPageFilters,
       }}
     >
       {children}
@@ -191,14 +192,19 @@ export function useCalendarCache() {
   return value;
 }
 // Explicit links and browser history remain usable; missing scope inherits the
-// user's latest choice. Keep the inherited scope in the URL for reloads too.
+// Dashboard default, or this page's override. Keep the scope in the URL too.
 export function useWorkspaceSearch(enabled = true) {
   const raw = useSearchParams(),
     pathname = usePathname();
-  const { workspaceFilters, rememberWorkspaceFilters } = useCalendarCache();
+  const { workspaceFilters, pageFilters, rememberPageFilters } =
+    useCalendarCache();
+  const filters =
+    pathname === "/"
+      ? workspaceFilters
+      : (pageFilters[pathname] ?? workspaceFilters);
   const active = enabled && raw.get("mode") !== "demo";
   const query = active
-    ? workspaceSearch(raw.toString(), workspaceFilters).toString()
+    ? workspaceSearch(raw.toString(), filters).toString()
     : raw.toString();
   const search = useMemo(() => new URLSearchParams(query), [query]);
   useEffect(() => {
@@ -207,14 +213,14 @@ export function useWorkspaceSearch(enabled = true) {
     for (const key of workspaceFilterKeys) {
       if (search.has(key)) next[key] = search.get(key)!;
     }
-    rememberWorkspaceFilters(next);
+    rememberPageFilters(pathname, next);
     if (raw.toString() !== query)
       window.history.replaceState(
         null,
         "",
         `${pathname}?${query}${window.location.hash}`,
       );
-  }, [active, raw, search, query, pathname, rememberWorkspaceFilters]);
+  }, [active, raw, search, query, pathname, rememberPageFilters]);
   return search;
 }
 export function useCalendarRequest<

@@ -104,6 +104,7 @@ export function Shell({
     reportsHref,
     progressHref,
     workspaceFilters,
+    pageFilters,
   } = useCalendarCache();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -138,6 +139,7 @@ export function Shell({
                       ? progressHref
                       : item.href,
               workspaceFilters,
+              pageFilters,
             )}
             title={compact ? item.title : undefined}
             aria-current={pathname === item.href ? "page" : undefined}

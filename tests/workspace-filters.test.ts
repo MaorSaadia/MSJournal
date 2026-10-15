@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   workspaceHref,
   workspaceSearch,
+  rememberWorkspacePage,
+  type WorkspaceFilterState,
 } from "@/lib/accounts/workspace-filters";
 import {
   viewSchema,
@@ -11,6 +13,33 @@ import {
 import { reportSchema } from "@/lib/reports/model";
 
 describe("shared private financial scope", () => {
+  it("keeps page overrides separate from the Dashboard default", () => {
+    let state: WorkspaceFilterState = {
+      defaults: { accounts: "a", basis: "net" },
+      pages: {},
+    };
+    state = rememberWorkspacePage(state, "/trade-view", { accounts: "a,b" });
+    expect(workspaceHref("/", state.defaults, state.pages)).toContain(
+      "accounts=a&",
+    );
+    expect(workspaceHref("/trade-view", state.defaults, state.pages)).toContain(
+      "accounts=a%2Cb",
+    );
+    expect(workspaceHref("/calendar", state.defaults, state.pages)).toContain(
+      "accounts=a&",
+    );
+    state = rememberWorkspacePage(state, "/reports", { accounts: "" });
+    expect(state.pages["/trade-view"].accounts).toBe("a,b");
+    expect(state.defaults.accounts).toBe("a");
+    expect(workspaceHref("/reports", state.defaults, state.pages)).toContain(
+      "accounts=&",
+    );
+    state = rememberWorkspacePage(state, "/", { accounts: "b" });
+    expect(state.pages).toEqual({});
+    expect(
+      workspaceHref("/trade-view?accounts=a", state.defaults, state.pages),
+    ).toContain("accounts=b&");
+  });
   it("inherits accounts, keeps none distinct from all, and respects explicit links", () => {
     expect(
       workspaceSearch("", { accounts: "a", archived: "1" }).get("accounts"),

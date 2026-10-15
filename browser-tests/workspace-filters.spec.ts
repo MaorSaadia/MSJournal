@@ -6,7 +6,7 @@ const origin = process.env.MSJOURNAL_BROWSER_ORIGIN ?? "http://127.0.0.1:3100";
 test.use({ baseURL: origin });
 test.afterEach(() => cleanupUsers());
 
-test("selected accounts and net P&L follow private navigation", async ({
+test("Dashboard defaults and independent page overrides preserve net P&L", async ({
   page,
 }) => {
   test.skip(
@@ -145,17 +145,24 @@ test("selected accounts and net P&L follow private navigation", async ({
   await expect(page.locator(".tv-summary")).not.toContainText(
     "Partial net P&L",
   );
+  await page.getByLabel("Scope Beta").check();
   await accountMenu.locator("summary").click();
   await nav.getByRole("link", { name: "Dashboard", exact: true }).click();
   await expect
     .poll(() => new URL(page.url()).searchParams.get("accounts"))
     .toBe(ids[0]);
   await nav.getByRole("link", { name: "Trade View", exact: true }).click();
+  await expect
+    .poll(() =>
+      new URL(page.url()).searchParams.get("accounts")?.split(",").sort(),
+    )
+    .toEqual([...ids].sort());
   await page
     .locator(".tv-menu")
     .filter({ has: page.locator("summary", { hasText: /^Accounts/ }) })
     .locator("summary")
     .click();
+  await page.getByLabel("Scope Beta").uncheck();
   await page.getByLabel("Scope Alpha").uncheck();
   await expect
     .poll(() => new URL(page.url()).searchParams.get("accounts"))
@@ -163,8 +170,12 @@ test("selected accounts and net P&L follow private navigation", async ({
   await nav.getByRole("link", { name: "Calendar", exact: true }).click();
   await expect
     .poll(() => new URL(page.url()).searchParams.get("accounts"))
-    .toBe("");
+    .toBe(ids[0]);
   await nav.getByRole("link", { name: "Reports", exact: true }).click();
+  await expect
+    .poll(() => new URL(page.url()).searchParams.get("accounts"))
+    .toBe(ids[0]);
+  await nav.getByRole("link", { name: "Trade View", exact: true }).click();
   await expect
     .poll(() => new URL(page.url()).searchParams.get("accounts"))
     .toBe("");

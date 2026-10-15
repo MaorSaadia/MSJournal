@@ -94,9 +94,17 @@ export function StrategyComparison({
   );
 }
 export function StrategyResults({ strategyId }: { strategyId: string }) {
-  const { timezone, workspaceFilters, rememberWorkspaceFilters } =
-      useCalendarCache(),
+  const {
+      timezone,
+      workspaceFilters: defaults,
+      pageFilters,
+      rememberPageFilters,
+    } = useCalendarCache(),
     today = todayIn(timezone);
+  const pagePath = `/strategies/${strategyId}`;
+  const workspaceFilters = pageFilters[pagePath] ?? defaults;
+  const rememberWorkspaceFilters = (values: typeof defaults) =>
+    rememberPageFilters(pagePath, values);
   const [localFilters, setFilters] = useState({
     start: shiftDay(today, -89),
     end: today,
