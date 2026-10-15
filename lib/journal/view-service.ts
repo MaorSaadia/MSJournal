@@ -289,6 +289,9 @@ export async function tradeView(
         select jsonb_agg("sourceValues") as "sourceValues", count(*)::int as count, 0 as trades, count(*)::int as portions,
           coalesce(sum(gross::numeric),0)::text as gross,
           case when count(net)=count(*) then coalesce(sum(net::numeric),0)::text else null end as net,
+          sum(net::numeric)::text as "knownNet",
+          coalesce(sum(gross::numeric) filter (where net is null),0)::text as "missingFeeGross",
+          coalesce(jsonb_agg(distinct "accountId") filter (where net is null),'[]'::jsonb) as "missingFeeAccountIds",
           count(net)::int as covered, coalesce(bool_or(estimated),false) as estimated, null::text as "winRate" from filtered
       ) select row_to_json(totals) as summary,
         coalesce((select json_agg(page_rows order by position) from (

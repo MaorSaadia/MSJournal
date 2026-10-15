@@ -13,7 +13,8 @@ test("selected accounts and net P&L follow private navigation", async ({
     process.env.MSJOURNAL_TEST_DISPOSABLE !== "true",
     "Disposable fixtures only",
   );
-  test.setTimeout(180000);
+  test.setTimeout(90000);
+  page.setDefaultTimeout(15000);
   const headers = { Origin: origin };
   expect(
     (
@@ -85,6 +86,27 @@ test("selected accounts and net P&L follow private navigation", async ({
       })
     ).status(),
   ).toBe(200);
+  const unknownFees = {
+    accountId: ids[1],
+    timezone: upload.timezone,
+    confirmPerformance: upload.confirmPerformance,
+    confirmOrders: upload.confirmOrders,
+    performance: upload.performance,
+  };
+  const unknownPreview = await page.request.post("/api/imports/preview", {
+    headers,
+    multipart: unknownFees,
+  });
+  expect(unknownPreview.status()).toBe(200);
+  const unknownQuote = await unknownPreview.json();
+  expect(
+    (
+      await page.request.post("/api/imports/confirm", {
+        headers,
+        multipart: { ...unknownFees, token: unknownQuote.token },
+      })
+    ).status(),
+  ).toBe(200);
   await page.goto("/?start=2026-10-01&end=2026-10-15");
   await page.getByRole("button", { name: "All accounts", exact: true }).click();
   await page.getByLabel("Scope Beta").uncheck();
@@ -98,9 +120,32 @@ test("selected accounts and net P&L follow private navigation", async ({
   await expect
     .poll(() => new URL(page.url()).searchParams.get("accounts"))
     .toBe(ids[0]);
-  await expect(page.getByRole("combobox", { name: "P&L basis", exact: true })).toHaveValue(
-    "net",
+  await expect(
+    page.getByRole("combobox", { name: "P&L basis", exact: true }),
+  ).toHaveValue("net");
+  const accountMenu = page
+    .locator(".tv-menu")
+    .filter({ has: page.locator("summary", { hasText: /^Accounts/ }) });
+  await accountMenu.locator("summary").click();
+  await page.getByLabel("Scope Beta").check();
+  await expect(page.locator(".tv-summary")).toContainText("Partial net P&L");
+  await expect(page.locator(".tv-summary")).toContainText("+$87.52");
+  await expect(page.locator(".tv-summary")).toContainText(
+    "Gross P&L · remaining 1 record",
   );
+  await expect(page.locator(".tv-summary")).toContainText("+$100.00");
+  await expect(page.locator(".tv-summary")).not.toContainText("Unavailable");
+  await page.getByLabel("Scope Alpha").uncheck();
+  await expect(page.locator(".tv-summary")).toContainText(
+    "Before fees · fees not recorded",
+  );
+  await expect(page.locator(".tv-summary")).not.toContainText("Unavailable");
+  await page.getByLabel("Scope Alpha").check();
+  await page.getByLabel("Scope Beta").uncheck();
+  await expect(page.locator(".tv-summary")).not.toContainText(
+    "Partial net P&L",
+  );
+  await accountMenu.locator("summary").click();
   await nav.getByRole("link", { name: "Dashboard", exact: true }).click();
   await expect
     .poll(() => new URL(page.url()).searchParams.get("accounts"))

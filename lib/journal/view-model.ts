@@ -140,6 +140,9 @@ export type ViewSummary = {
   gross: string;
   net: string | null;
   covered: number;
+  knownNet: string | null;
+  missingFeeGross: string;
+  missingFeeAccountIds: string[];
   estimated: boolean;
   winRate: string | null;
 };
@@ -187,6 +190,15 @@ export function summaryOf(rows: ViewRecord[], q: ViewQuery): ViewSummary {
     gross: sum(rows.map((r) => r.gross)),
     net: covered === rows.length ? sum(rows.map((r) => r.net!)) : null,
     covered,
+    knownNet: covered
+      ? sum(rows.filter((r) => r.net !== null).map((r) => r.net!))
+      : null,
+    missingFeeGross: sum(
+      rows.filter((r) => r.net === null).map((r) => r.gross),
+    ),
+    missingFeeAccountIds: [
+      ...new Set(rows.filter((r) => r.net === null).map((r) => r.accountId)),
+    ],
     estimated: rows.some((r) => r.estimated),
     winRate:
       rows.length &&

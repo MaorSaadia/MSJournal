@@ -53,6 +53,7 @@ describe("shared private financial scope", () => {
   it("uses exact net amounts and leaves a partially unknown total unknown", () => {
     const rows = [
       {
+        accountId: "known-account",
         gross: "261.5",
         net: "249.02",
         type: "portion",
@@ -64,5 +65,35 @@ describe("shared private financial scope", () => {
     expect(
       summaryOf([...rows, { ...rows[0], net: null }], viewSchema.parse({})).net,
     ).toBeNull();
+    expect(
+      summaryOf(
+        [
+          ...rows,
+          {
+            ...rows[0],
+            accountId: "missing-account",
+            gross: "95.5",
+            net: null,
+          },
+        ],
+        viewSchema.parse({}),
+      ),
+    ).toMatchObject({
+      net: null,
+      knownNet: "249.02",
+      missingFeeGross: "95.5",
+      missingFeeAccountIds: ["missing-account"],
+      covered: 1,
+      count: 2,
+      gross: "357",
+    });
+    expect(
+      summaryOf([{ ...rows[0], net: null }], viewSchema.parse({})),
+    ).toMatchObject({
+      net: null,
+      knownNet: null,
+      missingFeeGross: "261.5",
+      covered: 0,
+    });
   });
 });

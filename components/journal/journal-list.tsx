@@ -321,20 +321,49 @@ export function JournalList() {
             <div>
               <small>
                 {q.dateBasis === "activity" ? "P&L in range · " : ""}
-                {q.basis === "gross"
+                {q.basis === "gross" ||
+                (summary.net === null && !summary.covered)
                   ? "Gross P&L"
-                  : summary.estimated
-                    ? "Estimated net P&L"
-                    : "Net P&L"}{" "}
+                  : summary.net === null
+                    ? summary.estimated
+                      ? "Partial estimated net P&L"
+                      : "Partial net P&L"
+                    : summary.estimated
+                      ? "Estimated net P&L"
+                      : "Net P&L"}{" "}
                 · USD
               </small>
               <strong>
                 {journalMoney(
-                  q.basis === "gross" ? summary.gross : summary.net,
+                  q.basis === "gross" ||
+                    (summary.net === null && !summary.covered)
+                    ? summary.gross
+                    : (summary.net ?? summary.knownNet),
                   true,
                 )}
               </strong>
+              {q.basis === "net" && summary.net === null && (
+                <small>
+                  {summary.covered
+                    ? `${summary.covered} of ${summary.count} records with known fees`
+                    : "Before fees · fees not recorded"}
+                </small>
+              )}
             </div>
+            {q.basis === "net" &&
+              summary.net === null &&
+              summary.covered > 0 && (
+                <div>
+                  <small>
+                    Gross P&L · remaining {summary.count - summary.covered}{" "}
+                    {summary.count - summary.covered === 1
+                      ? "record"
+                      : "records"}
+                  </small>
+                  <strong>{journalMoney(summary.missingFeeGross, true)}</strong>
+                  <small>Fees not recorded</small>
+                </div>
+              )}
             <div>
               <small>Complete trades</small>
               <strong>{summary.trades}</strong>
@@ -353,9 +382,15 @@ export function JournalList() {
             )}
             {summary.net === null && (
               <p className="small muted">
-                Incomplete fee coverage ({summary.covered}/{summary.count}{" "}
-                records). Gross {journalMoney(summary.gross, true)} remains
-                available.
+                Fees are missing for {summary.count - summary.covered} of{" "}
+                {summary.count} records. Full net P&L needs those fees. Gross
+                P&L for all selected records:{" "}
+                {journalMoney(summary.gross, true)}.{" "}
+                <Link
+                  href={`/fees${summary.missingFeeAccountIds?.length === 1 ? `?accountId=${summary.missingFeeAccountIds[0]}` : ""}`}
+                >
+                  Add missing fees →
+                </Link>
               </p>
             )}
           </>
