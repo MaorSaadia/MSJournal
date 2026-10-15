@@ -30,7 +30,7 @@ export const viewSchema = z
       .optional(),
     outcomeBasis: z.enum(["complete", "portions"]).default("complete"),
     dateBasis: z.enum(["closed", "activity"]).default("closed"),
-    basis: z.enum(["gross", "net"]).default("gross"),
+    basis: z.enum(["gross", "net"]).default("net"),
     search: z.string().trim().max(100).default(""),
     symbol: z.string().max(80).optional(),
     root: z

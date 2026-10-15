@@ -1,4 +1,5 @@
 "use client";
+import { workspaceHref } from "@/lib/accounts/workspace-filters";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -97,7 +98,13 @@ export function Shell({
   displayName: string;
 }) {
   const pathname = usePathname();
-  const { returnHref, tradesHref, reportsHref, progressHref } = useCalendarCache();
+  const {
+    returnHref,
+    tradesHref,
+    reportsHref,
+    progressHref,
+    workspaceFilters,
+  } = useCalendarCache();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const links = (compact: boolean) => (
@@ -120,7 +127,7 @@ export function Shell({
         {navigation.map((item, index) => (
           <Link
             key={item.href}
-            href={
+            href={workspaceHref(
               item.href === "/calendar"
                 ? returnHref
                 : item.href === "/trade-view"
@@ -129,8 +136,9 @@ export function Shell({
                     ? reportsHref
                     : item.href === "/progress-tracker"
                       ? progressHref
-                      : item.href
-            }
+                      : item.href,
+              workspaceFilters,
+            )}
             title={compact ? item.title : undefined}
             aria-current={pathname === item.href ? "page" : undefined}
             onClick={() => setMobileOpen(false)}
@@ -161,7 +169,11 @@ export function Shell({
         Skip to content
       </a>
       <aside className="utility-rail" aria-label="Workspace utilities">
-        <Link href="/" aria-label="MSJournal dashboard" className="monogram">
+        <Link
+          href={workspaceHref("/", workspaceFilters)}
+          aria-label="MSJournal dashboard"
+          className="monogram"
+        >
           m<span>j</span>
           <i />
         </Link>

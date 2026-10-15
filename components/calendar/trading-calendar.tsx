@@ -1,6 +1,7 @@
 "use client";
+import { useWorkspaceSearch } from "@/components/calendar/cache-provider";
 import { useEffect, useRef, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -74,7 +75,7 @@ export function TradingCalendar({
   filters,
   onArchivedChange,
   includeArchived = false,
-  defaultBasis = "gross",
+  defaultBasis = "net",
 }: {
   accounts: CalendarAccount[];
   mode?: "real" | "demo";
@@ -87,7 +88,7 @@ export function TradingCalendar({
   includeArchived?: boolean;
   defaultBasis?: "gross" | "net";
 }) {
-  const search = useSearchParams(),
+  const search = useWorkspaceSearch(!compact),
     pathname = usePathname();
   const monthKey = compact ? "calMonth" : "month",
     basisKey = "basis",
@@ -102,8 +103,9 @@ export function TradingCalendar({
       ? search.get("accounts")!.split(",").filter(Boolean)
       : available.map((a) => a.id);
   const requestedBasis =
-    (search.get(basisKey) ?? (compact ? search.get("calBasis") : null) ?? defaultBasis) ===
-    "net"
+    (search.get(basisKey) ??
+      (compact ? search.get("calBasis") : null) ??
+      defaultBasis) === "net"
       ? "net"
       : "gross";
   const dayValue = search.get(dayKey),
@@ -266,8 +268,7 @@ export function TradingCalendar({
                     : "Each grouped journal record counts as one trade per active day. Related partial exits are combined; complete position coverage depends on the imported history."
                 }
               >
-                {d.count}{" "}
-                {d.count === 1 ? "trade" : "trades"}
+                {d.count} {d.count === 1 ? "trade" : "trades"}
               </span>
             </span>
             <span
@@ -414,7 +415,12 @@ export function TradingCalendar({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => update({ accounts: null, [dayKey]: null })}
+                      onClick={() =>
+                        update({
+                          accounts: available.map((a) => a.id).join(","),
+                          [dayKey]: null,
+                        })
+                      }
                     >
                       Select all
                     </Button>
@@ -468,8 +474,16 @@ export function TradingCalendar({
                       onArchivedChange
                         ? onArchivedChange(e.target.checked)
                         : update({
-                            archived: e.target.checked ? "1" : null,
-                            accounts: null,
+                            archived: e.target.checked ? "1" : "0",
+                            accounts: ids
+                              .filter((id) =>
+                                accounts.some(
+                                  (a) =>
+                                    a.id === id &&
+                                    (e.target.checked || !a.archived),
+                                ),
+                              )
+                              .join(","),
                             [dayKey]: null,
                           })
                     }
@@ -726,19 +740,22 @@ export function TradingCalendar({
                 </div>
               </div>
               {mode === "real" && (
-                <h3 className="calendar-closed-heading">Trades active this day</h3>
+                <h3 className="calendar-closed-heading">
+                  Trades active this day
+                </h3>
               )}
               <Link
                 className="back-link"
-                href={`/trade-view?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, outcomeBasis: mode === "real" ? "portions" : "complete", dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}) })}`}
+                href={`/trade-view?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis: requestedBasis, outcomeBasis: mode === "real" ? "portions" : "complete", dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}) })}`}
               >
                 Open this day in Trade View →
               </Link>
               {mode === "real" && (
                 <p className="calendar-scope-note">
-                  Related report portions are combined into one journal trade. A trade
-                  with exits on different days counts once on each active day;
-                  amounts and win percentages reflect only this day&apos;s exits.
+                  Related report portions are combined into one journal trade. A
+                  trade with exits on different days counts once on each active
+                  day; amounts and win percentages reflect only this day&apos;s
+                  exits.
                 </p>
               )}
               {details.data.records.length ? (
@@ -783,12 +800,12 @@ export function TradingCalendar({
                       {r.href && (
                         <>
                           <Link
-                            href={`/trade-view/${r.id}?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, outcomeBasis: mode === "real" ? "portions" : "complete", dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}), from: `${pathname}?${search}` })}`}
+                            href={`/trade-view/${r.id}?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis: requestedBasis, outcomeBasis: mode === "real" ? "portions" : "complete", dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}), from: `${pathname}?${search}` })}`}
                           >
                             View full record →
                           </Link>
                           <Link
-                            href={`/trade-view/${r.id}?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis, tab: "review", dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}), from: `${pathname}?${search}` })}`}
+                            href={`/trade-view/${r.id}?${new URLSearchParams({ mode, accounts: ids.join(","), archived: archived ? "1" : "0", basis: requestedBasis, tab: "review", dateBasis: "activity", start: selectedDay!, end: selectedDay!, ...(filters?.symbol && filters.symbol !== "all" ? { symbol: filters.symbol } : {}), ...(filters?.direction ? { direction: filters.direction } : {}), from: `${pathname}?${search}` })}`}
                           >
                             Review →
                           </Link>

@@ -94,17 +94,24 @@ export function StrategyComparison({
   );
 }
 export function StrategyResults({ strategyId }: { strategyId: string }) {
-  const { timezone } = useCalendarCache(),
+  const { timezone, workspaceFilters, rememberWorkspaceFilters } =
+      useCalendarCache(),
     today = todayIn(timezone);
-  const [filters, setFilters] = useState({
+  const [localFilters, setFilters] = useState({
     start: shiftDay(today, -89),
     end: today,
     accounts: "all",
     archived: "0",
-    basis: "gross",
+    basis: "net",
     analysis: "portions",
     revision: "all",
   });
+  const filters = {
+    ...localFilters,
+    accounts: workspaceFilters.accounts ?? "all",
+    archived: workspaceFilters.archived ?? "0",
+    basis: workspaceFilters.basis ?? "net",
+  };
   const query = new URLSearchParams({
     start: filters.start,
     end: filters.end,
@@ -123,8 +130,13 @@ export function StrategyResults({ strategyId }: { strategyId: string }) {
     data = state.data,
     group = data?.strategyGroups?.find((g) => g.id === strategyId),
     summary = data?.summary;
-  const update = (key: keyof typeof filters, value: string) =>
-    setFilters({ ...filters, [key]: value });
+  const update = (key: keyof typeof filters, value: string) => {
+    if (key === "accounts" || key === "archived" || key === "basis") {
+      rememberWorkspaceFilters({
+        [key]: key === "accounts" && value === "all" ? undefined : value,
+      });
+    } else setFilters({ ...localFilters, [key]: value });
+  };
   return (
     <section className="playbook-card">
       <h2>Assigned historical results</h2>
@@ -155,6 +167,14 @@ export function StrategyResults({ strategyId }: { strategyId: string }) {
             onChange={(e) => update("accounts", e.target.value)}
           >
             <option value="all">All available accounts</option>
+            {filters.accounts !== "all" &&
+              !data?.accounts.some((a) => a.id === filters.accounts) && (
+                <option value={filters.accounts}>
+                  {filters.accounts
+                    ? "Selected accounts"
+                    : "No accounts selected"}
+                </option>
+              )}
             {data?.accounts
               .filter((a) => filters.archived === "1" || !a.archived)
               .map((a) => (
@@ -206,10 +226,20 @@ export function StrategyResults({ strategyId }: { strategyId: string }) {
             type="checkbox"
             checked={filters.archived === "1"}
             onChange={(e) =>
-              setFilters({
-                ...filters,
+              rememberWorkspaceFilters({
                 archived: e.target.checked ? "1" : "0",
-                accounts: "all",
+                accounts:
+                  workspaceFilters.accounts === undefined
+                    ? undefined
+                    : workspaceFilters.accounts
+                        .split(",")
+                        .filter((id) =>
+                          data?.accounts.some(
+                            (a) =>
+                              a.id === id && (e.target.checked || !a.archived),
+                          ),
+                        )
+                        .join(","),
               })
             }
           />

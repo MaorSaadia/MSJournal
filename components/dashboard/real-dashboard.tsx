@@ -1,6 +1,7 @@
 "use client";
+import { useWorkspaceSearch } from "@/components/calendar/cache-provider";
 import { useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { ShieldCheck } from "lucide-react";
@@ -45,7 +46,7 @@ export function RealDashboard({
   initialRange: { start: string; end: string };
   initialSymbols: string[];
 }) {
-  const search = useSearchParams(),
+  const search = useWorkspaceSearch(),
     router = useRouter(),
     { userId, scrollPositions } = useCalendarCache();
   const ids = authorizedSelection(
@@ -127,9 +128,9 @@ export function RealDashboard({
     "Closed portions count each matched exit portion once, including breakevens. Several portions may belong to one position. Complete trades require verified flat-to-flat coverage. Daily realized P&L always follows local exit dates.";
 
   const dayHref = (date: string) =>
-    `/trade-view?${new URLSearchParams({ accounts: ids.join(","), archived: q.archived, start: date, end: date, dateBasis: "activity", basis, outcomeBasis: "portions", dashboardFrom: href, ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`;
+    `/trade-view?${new URLSearchParams({ accounts: ids.join(","), archived: q.archived, start: date, end: date, dateBasis: "activity", basis: q.basis, outcomeBasis: "portions", dashboardFrom: href, ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`;
   const detailHref = (id: string) =>
-    `/trade-view/${id}?${new URLSearchParams({ from: href, accounts: ids.join(","), archived: q.archived, start: q.start, end: q.end, dateBasis: "activity", basis, outcomeBasis: q.outcomeBasis, ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`;
+    `/trade-view/${id}?${new URLSearchParams({ from: href, accounts: ids.join(","), archived: q.archived, start: q.start, end: q.end, dateBasis: "activity", basis: q.basis, outcomeBasis: q.outcomeBasis, ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`;
   const inspect = (target: string) => {
     save();
     router.push(target);
@@ -214,7 +215,14 @@ export function RealDashboard({
                 onChange={(e) =>
                   update({
                     archived: e.target.checked ? "1" : "0",
-                    accounts: undefined,
+                    accounts: ids
+                      .filter((id) =>
+                        accounts.some(
+                          (a) =>
+                            a.id === id && (e.target.checked || !a.archivedAt),
+                        ),
+                      )
+                      .join(","),
                   })
                 }
               />
@@ -260,7 +268,7 @@ export function RealDashboard({
               </span>
             </details>
             <Link
-              href={`/reports?${new URLSearchParams({ start: q.start, end: q.end, accounts: ids.join(","), archived: q.archived, basis, analysis: complete ? "complete" : "portions", ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`}
+              href={`/reports?${new URLSearchParams({ start: q.start, end: q.end, accounts: ids.join(","), archived: q.archived, basis: q.basis, analysis: complete ? "complete" : "portions", ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`}
               onClick={save}
             >
               Inspect in Reports →
@@ -273,13 +281,32 @@ export function RealDashboard({
             </p>
           )}
           <RealMetricCards data={data} complete={complete} />
-          {basis === "gross" && data.netPnl != null && data.feeTotal != null && (
+          {basis === "gross" &&
+            data.netPnl != null &&
+            data.feeTotal != null && (
+              <p className="dashboard-scope-note">
+                Viewing gross P&L before fees. Saved fees:{" "}
+                {journalMoney(data.feeTotal)} · Net P&L:{" "}
+                {journalMoney(data.netPnl, true)}.{" "}
+                <button
+                  onClick={() => update({ basis: "net", calBasis: "net" })}
+                >
+                  Show net P&L →
+                </button>
+              </p>
+            )}
+          {basis === "net" && data.allocatedFees > 0 && (
             <p className="dashboard-scope-note">
-              Viewing gross P&L before fees. Saved fees: {journalMoney(data.feeTotal)} · Net P&L: {journalMoney(data.netPnl, true)}.{" "}
-              <button onClick={() => update({ basis: "net", calBasis: "net" })}>Show net P&L →</button>
+              Fees for {data.allocatedFees} records are allocated from entered
+              broker-report totals. Full report totals reconcile; individual
+              records and partial selections use quantity-weighted allocations.{" "}
+              <Link
+                href={`/fees${ids.length === 1 ? `?accountId=${ids[0]}` : ""}`}
+              >
+                Manage fees →
+              </Link>
             </p>
           )}
-          {basis === "net" && data.allocatedFees > 0 && <p className="dashboard-scope-note">Fees for {data.allocatedFees} records are allocated from entered broker-report totals. Full report totals reconcile; individual records and partial selections use quantity-weighted allocations. <Link href={`/fees${ids.length === 1 ? `?accountId=${ids[0]}` : ""}`}>Manage fees →</Link></p>}
           {complete && data.completeCount === 0 && (
             <p className="dashboard-scope-note">
               Performance matching does not verify complete positions.{" "}
@@ -485,7 +512,16 @@ export function RealDashboard({
               timezone={displayTimezone}
               includeArchived={q.archived === "1"}
               onArchivedChange={(include) =>
-                update({ archived: include ? "1" : "0", accounts: undefined })
+                update({
+                  archived: include ? "1" : "0",
+                  accounts: ids
+                    .filter((id) =>
+                      accounts.some(
+                        (a) => a.id === id && (include || !a.archivedAt),
+                      ),
+                    )
+                    .join(","),
+                })
               }
             />
             <div className="lower-stack">

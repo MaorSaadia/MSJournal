@@ -1,7 +1,8 @@
 "use client";
+import { useWorkspaceSearch } from "@/components/calendar/cache-provider";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { TradeCsvExport } from "@/components/exports/download-controls";
 import {
@@ -162,7 +163,7 @@ function Search({
   );
 }
 export function JournalList() {
-  const search = useSearchParams(),
+  const search = useWorkspaceSearch(),
     router = useRouter(),
     { userId, timezone, rememberTrades, scrollPositions } = useCalendarCache();
   const query = search.toString(),
@@ -194,17 +195,28 @@ export function JournalList() {
   }, [scrollKey, data, scrollPositions]);
   function update(key: string, value: string) {
     const next = new URLSearchParams(query);
-    if (value) next.set(key, value);
+    if (value || key === "accounts") next.set(key, value);
     else next.delete(key);
     if (key !== "page") next.delete("page");
-    if (key === "archived") next.delete("accounts");
+    if (key === "archived" && q.accounts !== undefined)
+      next.set(
+        "accounts",
+        q.accounts
+          .split(",")
+          .filter((id) =>
+            data?.accounts.some(
+              (a) => a.id === id && (value === "1" || !a.archived),
+            ),
+          )
+          .join(","),
+      );
     window.history.pushState(null, "", `/trade-view?${next}`);
   }
   function clear() {
     window.history.pushState(
       null,
       "",
-      `/trade-view${q.mode === "demo" ? "?mode=demo" : ""}`,
+      `/trade-view?${new URLSearchParams({ mode: q.mode, basis: q.basis, archived: q.archived, ...(q.accounts !== undefined ? { accounts: q.accounts } : {}) })}`,
     );
   }
   function detailHref(id: string) {
@@ -289,7 +301,15 @@ export function JournalList() {
         </div>
         <div className="export-actions">
           <TradeCsvExport query={query} disabled={!parsed.success || !data} />
-          {q.mode === "real" && <Button asChild variant="outline"><Link href={`/fees${q.accounts?.split(",").filter(Boolean).length === 1 ? `?accountId=${q.accounts}` : ""}`}>Fees & net P&L</Link></Button>}
+          {q.mode === "real" && (
+            <Button asChild variant="outline">
+              <Link
+                href={`/fees${q.accounts?.split(",").filter(Boolean).length === 1 ? `?accountId=${q.accounts}` : ""}`}
+              >
+                Fees & net P&L
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline">
             <Link href="/imports">Import trades</Link>
           </Button>
@@ -396,7 +416,17 @@ export function JournalList() {
               />{" "}
               Include archived accounts
             </label>
-            <button onClick={() => update("accounts", "")}>
+            <button
+              onClick={() =>
+                update(
+                  "accounts",
+                  data?.accounts
+                    .filter((a) => q.archived === "1" || !a.archived)
+                    .map((a) => a.id)
+                    .join(",") ?? "",
+                )
+              }
+            >
               All available accounts
             </button>
             {data?.accounts
@@ -647,7 +677,17 @@ export function JournalList() {
           .map(([key, value]) => (
             <button
               key={key}
-              onClick={() => update(key, "")}
+              onClick={() =>
+                update(
+                  key,
+                  key === "accounts"
+                    ? (data?.accounts
+                        .filter((a) => q.archived === "1" || !a.archived)
+                        .map((a) => a.id)
+                        .join(",") ?? "")
+                    : "",
+                )
+              }
               aria-label={`Remove ${chipLabels[key]} filter`}
             >
               {chipLabels[key]}:{" "}

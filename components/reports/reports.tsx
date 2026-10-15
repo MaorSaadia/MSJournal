@@ -1,6 +1,7 @@
 "use client";
+import { useWorkspaceSearch } from "@/components/calendar/cache-provider";
 import { useEffect, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChartNoAxesCombined, ArrowUpRight } from "lucide-react";
 import {
@@ -106,7 +107,7 @@ function Table({
   );
 }
 export function Reports() {
-  const search = useSearchParams(),
+  const search = useWorkspaceSearch(),
     router = useRouter(),
     { timezone, userId, rememberReports, scrollPositions } = useCalendarCache();
   const demo = search.get("mode") === "demo",
@@ -164,7 +165,18 @@ export function Reports() {
         next.set("end", DEMO_PERIOD.end);
       }
     }
-    if (values.archived !== undefined) next.delete("accounts");
+    if (values.archived !== undefined && q.accounts !== undefined)
+      next.set(
+        "accounts",
+        q.accounts
+          .split(",")
+          .filter((id) =>
+            data?.accounts.some(
+              (a) => a.id === id && (values.archived === "1" || !a.archived),
+            ),
+          )
+          .join(","),
+      );
     window.history.pushState(null, "", `/reports?${next}`);
   }
   const portions = q.analysis === "portions" && q.tab !== "behavior";
@@ -320,8 +332,22 @@ export function Reports() {
             <label>
               <input
                 type="checkbox"
-                checked={q.accounts === undefined}
-                onChange={() => update({ accounts: undefined })}
+                checked={
+                  q.accounts === undefined ||
+                  data?.accounts
+                    .filter((a) => q.archived === "1" || !a.archived)
+                    .every((a) => q.accounts!.split(",").includes(a.id))
+                }
+                onChange={(e) =>
+                  update({
+                    accounts: e.target.checked
+                      ? (data?.accounts
+                          .filter((a) => q.archived === "1" || !a.archived)
+                          .map((a) => a.id)
+                          .join(",") ?? "")
+                      : "",
+                  })
+                }
               />{" "}
               All available accounts
             </label>

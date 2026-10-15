@@ -45,7 +45,7 @@ export const requestSchema = z
     mode: z.enum(["real", "demo"]).default("real"),
     accounts: z.string().max(8000).optional(),
     archived: z.enum(["0", "1"]).default("0"),
-    basis: z.enum(["gross", "net"]).default("gross"),
+    basis: z.enum(["gross", "net"]).default("net"),
     start: daySchema.optional(),
     end: daySchema.optional(),
     day: daySchema.optional(),

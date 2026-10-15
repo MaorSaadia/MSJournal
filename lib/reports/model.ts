@@ -31,7 +31,7 @@ export const reportSchema = z
     accounts: z.string().max(8000).optional(),
     archived: z.enum(["0", "1"]).default("0"),
     direction: z.enum(["all", "long", "short", "unknown"]).default("all"),
-    basis: z.enum(["gross", "net"]).default("gross"),
+    basis: z.enum(["gross", "net"]).default("net"),
     analysis: z.enum(["activity", "complete", "portions"]).default("activity"),
     root: z
       .string()

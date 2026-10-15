@@ -14,7 +14,13 @@ import {
 import { emptyFields } from "@/lib/reviews/model";
 import { D, type Portion, type PortionFee } from "@/lib/journal/processing";
 const timezone = "Asia/Jerusalem";
-const base = { start: "2026-10-01", end: "2026-10-03", accounts: "a" };
+// These fixtures assert gross arithmetic; net defaults are covered separately.
+const base = {
+  start: "2026-10-01",
+  end: "2026-10-03",
+  accounts: "a",
+  basis: "gross",
+};
 const structured = {
   status: "reviewed" as const,
   mistakes: ["chased", "overtraded"],

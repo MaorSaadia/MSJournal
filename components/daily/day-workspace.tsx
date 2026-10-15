@@ -1,7 +1,8 @@
 "use client";
+import { useWorkspaceSearch } from "@/components/calendar/cache-provider";
 import { confirmAction } from "@/components/ui/confirm-action";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SaveController } from "@/lib/reviews/save-controller";
 import { requestJson } from "@/lib/client-api";
@@ -60,7 +61,7 @@ export function DayWorkspace({
   accounts: CalendarAccount[];
 }) {
   const router = useRouter(),
-    search = useSearchParams();
+    search = useWorkspaceSearch();
   const [controller] = useState(
     () =>
       new SaveController<DailyFields, DailyData>(initial, (draft, revision) => {
@@ -145,6 +146,7 @@ export function DayWorkspace({
     : available.map((a) => a.id);
   const query = new URLSearchParams({
     date: initial.date,
+    basis: search.get("basis") ?? "net",
     accounts: ids.join(","),
     archived: archived ? "1" : "0",
     ...(search.get("symbol") ? { symbol: search.get("symbol")! } : {}),
@@ -170,7 +172,15 @@ export function DayWorkspace({
     const next = new URLSearchParams(search.toString());
     next.set("date", initial.date);
     next.set(key, value);
-    if (key === "archived") next.delete("accounts");
+    if (key === "archived")
+      next.set(
+        "accounts",
+        ids
+          .filter((id) =>
+            accounts.some((a) => a.id === id && (value === "1" || !a.archived)),
+          )
+          .join(","),
+      );
     window.history.replaceState(null, "", `/day-view?${next}`);
   }
   async function compare() {
@@ -735,9 +745,11 @@ export function DayWorkspace({
               }
             >
               <option value="all">All available accounts</option>
-              {ids.length > 1 && ids.length !== available.length && (
+              {ids.length !== 1 && ids.length !== available.length && (
                 <option value="selected" disabled>
-                  Selected accounts
+                  {ids.length === 0
+                    ? "No accounts selected"
+                    : "Selected accounts"}
                 </option>
               )}
               {available.map((a) => (

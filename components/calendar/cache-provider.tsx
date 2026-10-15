@@ -7,7 +7,12 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  workspaceSearch,
+  workspaceFilterKeys,
+  type WorkspaceFilters,
+} from "@/lib/accounts/workspace-filters";
 import { CalendarQueryCache } from "@/lib/calendar/client-cache";
 import { requestJson } from "@/lib/client-api";
 const Context = createContext<{
@@ -25,6 +30,8 @@ const Context = createContext<{
   progressHref: string;
   rememberProgress: (href: string) => void;
   scrollPositions: Map<string, number>;
+  workspaceFilters: WorkspaceFilters;
+  rememberWorkspaceFilters: (filters: WorkspaceFilters) => void;
 } | null>(null);
 export function CalendarCacheProvider({
   userId,
@@ -47,6 +54,20 @@ export function CalendarCacheProvider({
   const [tradesHref, rememberTrades] = useState("/trade-view");
   const [reportsHref, rememberReports] = useState("/reports");
   const [progressHref, rememberProgress] = useState("/progress-tracker");
+  const [workspaceFilters, setWorkspaceFilters] = useState<WorkspaceFilters>({
+    basis: "net",
+  });
+  const rememberWorkspaceFilters = useMemo(
+    () => (next: WorkspaceFilters) => {
+      setWorkspaceFilters((previous) => {
+        const merged = { ...previous, ...next };
+        return workspaceFilterKeys.every((key) => merged[key] === previous[key])
+          ? previous
+          : merged;
+      });
+    },
+    [],
+  );
   const scrollPositions = useMemo(() => {
     void identity;
     return new Map<string, number>();
@@ -120,6 +141,7 @@ export function CalendarCacheProvider({
     const clear = () => {
       cache.clear();
       scrollPositions.clear();
+      setWorkspaceFilters({ basis: "net" });
     };
     const authChanged = (event: StorageEvent) => {
       if (event.key === "msjournal:auth-change") {
@@ -155,6 +177,8 @@ export function CalendarCacheProvider({
         progressHref,
         rememberProgress,
         scrollPositions,
+        workspaceFilters,
+        rememberWorkspaceFilters,
       }}
     >
       {children}
@@ -165,6 +189,33 @@ export function useCalendarCache() {
   const value = useContext(Context);
   if (!value) throw new Error("Calendar requires a private workspace.");
   return value;
+}
+// Explicit links and browser history remain usable; missing scope inherits the
+// user's latest choice. Keep the inherited scope in the URL for reloads too.
+export function useWorkspaceSearch(enabled = true) {
+  const raw = useSearchParams(),
+    pathname = usePathname();
+  const { workspaceFilters, rememberWorkspaceFilters } = useCalendarCache();
+  const active = enabled && raw.get("mode") !== "demo";
+  const query = active
+    ? workspaceSearch(raw.toString(), workspaceFilters).toString()
+    : raw.toString();
+  const search = useMemo(() => new URLSearchParams(query), [query]);
+  useEffect(() => {
+    if (!active) return;
+    const next: WorkspaceFilters = {};
+    for (const key of workspaceFilterKeys) {
+      if (search.has(key)) next[key] = search.get(key)!;
+    }
+    rememberWorkspaceFilters(next);
+    if (raw.toString() !== query)
+      window.history.replaceState(
+        null,
+        "",
+        `${pathname}?${query}${window.location.hash}`,
+      );
+  }, [active, raw, search, query, pathname, rememberWorkspaceFilters]);
+  return search;
 }
 export function useCalendarRequest<
   T extends { timezone: string; userId: string },
