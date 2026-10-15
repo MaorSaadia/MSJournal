@@ -347,6 +347,10 @@ export async function getFees(input: unknown, headers: Headers) {
               ),
             )
         : [];
+      const feeTotal = parts.length > 0 && current.filter((f) => f.amount !== null).length === parts.length
+        ? current.reduce((n, f) => n.plus(f.amount!), new D(0)).toFixed()
+        : null;
+      const gross = parts.reduce((n, p) => n.plus(p.grossPnl), new D(0)).toFixed();
       return {
         userId: user.id,
         timezone,
@@ -356,10 +360,13 @@ export async function getFees(input: unknown, headers: Headers) {
           currency: account.currency,
         },
         count: parts.length,
-        gross: parts.reduce((n, p) => n.plus(p.grossPnl), new D(0)).toFixed(),
+        gross,
+        feeTotal,
+        net: feeTotal === null ? null : new D(gross).minus(feeTotal).toFixed(),
         covered: current.filter((f) => f.amount !== null).length,
         history: history.map((r) => ({
           ...r,
+          net: new D(r.gross).minus(r.total).toFixed(),
           createdAt: r.createdAt.toISOString(),
         })),
       };

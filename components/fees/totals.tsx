@@ -90,7 +90,7 @@ export function FeeTotals({ accountId }: { accountId: string }) {
       setNote("");
       setConfirmed(false);
       setMessage(
-        "Fee total saved. Net P&L is updated across your journal. Select Net on the dashboard.",
+        "Fee total saved. Open the net dashboard below to see P&L after these fees.",
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save fee total.");
@@ -161,7 +161,7 @@ export function FeeTotals({ accountId }: { accountId: string }) {
           {state.data && (
             <p className="muted">
               {state.data.count} Performance records · gross{" "}
-              {journalMoney(state.data.gross, true)} · fees available for{" "}
+              {journalMoney(state.data.gross, true)} · fees {journalMoney(state.data.feeTotal ?? null)} · net {journalMoney(state.data.net ?? null, true)} · fees available for{" "}
               {state.data.covered}/{state.data.count} records · {timezone}.{" "}
               {scope.id
                 ? "Editing this total’s original records."
@@ -240,6 +240,7 @@ export function FeeTotals({ accountId }: { accountId: string }) {
       {message && (
         <p role="status" className="positive">
           {message}
+          {" "}<Link href={`/?${new URLSearchParams({ accounts: accountId, archived: "1", start: scope.start, end: scope.end, basis: "net", outcomeBasis: "portions" })}`}>View net P&L on dashboard →</Link>
         </p>
       )}
       {state.pending && (
@@ -269,7 +270,7 @@ export function FeeTotals({ accountId }: { accountId: string }) {
                 {r.note && <p>{r.note}</p>}
               </div>
               <div>
-                <span>Gross {journalMoney(r.gross, true)}</span>
+                <span>Gross {journalMoney(r.gross, true)} · Net {journalMoney(r.net ?? null, true)}</span>
                 {r.active && (
                   <Button
                     type="button"

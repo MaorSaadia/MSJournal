@@ -58,7 +58,7 @@ export function RealDashboard({
     end: search.get("end") ?? initialRange.end,
     accounts: ids.sort().join(","),
     archived: search.get("archived") ?? "0",
-    basis: search.get("basis") ?? search.get("calBasis") ?? "gross",
+    basis: search.get("basis") ?? search.get("calBasis") ?? "net",
     outcomeBasis: search.get("outcomeBasis") ?? "portions",
     ...(search.get("symbol") && search.get("symbol") !== "all"
       ? { symbol: search.get("symbol") }
@@ -273,6 +273,12 @@ export function RealDashboard({
             </p>
           )}
           <RealMetricCards data={data} complete={complete} />
+          {basis === "gross" && data.netPnl != null && data.feeTotal != null && (
+            <p className="dashboard-scope-note">
+              Viewing gross P&L before fees. Saved fees: {journalMoney(data.feeTotal)} · Net P&L: {journalMoney(data.netPnl, true)}.{" "}
+              <button onClick={() => update({ basis: "net", calBasis: "net" })}>Show net P&L →</button>
+            </p>
+          )}
           {basis === "net" && data.allocatedFees > 0 && <p className="dashboard-scope-note">Fees for {data.allocatedFees} records are allocated from entered broker-report totals. Full report totals reconcile; individual records and partial selections use quantity-weighted allocations. <Link href={`/fees${ids.length === 1 ? `?accountId=${ids[0]}` : ""}`}>Manage fees →</Link></p>}
           {complete && data.completeCount === 0 && (
             <p className="dashboard-scope-note">
@@ -468,6 +474,7 @@ export function RealDashboard({
           <div className="lower-grid">
             <TradingCalendar
               compact
+              defaultBasis={q.basis}
               accounts={accounts.map((a) => ({
                 id: a.id,
                 name: a.displayName,

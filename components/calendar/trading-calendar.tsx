@@ -74,6 +74,7 @@ export function TradingCalendar({
   filters,
   onArchivedChange,
   includeArchived = false,
+  defaultBasis = "gross",
 }: {
   accounts: CalendarAccount[];
   mode?: "real" | "demo";
@@ -84,6 +85,7 @@ export function TradingCalendar({
   onAccountsChange?: (ids: string[]) => void;
   onArchivedChange?: (include: boolean) => void;
   includeArchived?: boolean;
+  defaultBasis?: "gross" | "net";
 }) {
   const search = useSearchParams(),
     pathname = usePathname();
@@ -100,7 +102,7 @@ export function TradingCalendar({
       ? search.get("accounts")!.split(",").filter(Boolean)
       : available.map((a) => a.id);
   const requestedBasis =
-    (search.get(basisKey) ?? (compact ? search.get("calBasis") : null)) ===
+    (search.get(basisKey) ?? (compact ? search.get("calBasis") : null) ?? defaultBasis) ===
     "net"
       ? "net"
       : "gross";

@@ -136,6 +136,9 @@ describe("Day 8 dashboard statistics and balance boundaries", () => {
     expect(result.accounts.find((a) => a.id === "late")?.entering).toBeNull();
   });
   it("uses the earlier sell for shorts and rejects malformed dashboard ranges", () => {
+    const range = { start: "2026-10-01", end: "2026-10-15" };
+    expect(dashboardSchema.parse(range).basis).toBe("net");
+    expect(dashboardSchema.parse({ ...range, basis: "gross" }).basis).toBe("gross");
     const p = portion("short", "5", "2026-10-02T08:00:00Z");
     p.boughtAt = "2026-10-02T08:05:00Z";
     expect(portionEntry(p)).toBe("2026-10-02T08:00:00.000Z");

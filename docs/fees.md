@@ -37,3 +37,8 @@ Passed **19 focused unit checks** (`fees`, `imports`, `exports`), TypeScript, sc
 The first browser attempt found an existing user-owned development server and could not start a second preview. Verification used that existing localhost server without stopping it. A subsequent assertion was corrected to match the displayed positive P&L sign. Final browser verification passed in about one minute. Disposable fixture data was cleaned up and no private archive was saved or committed.
 
 No full suite, production build, deployment, live broker import or automated fee-report ingestion was performed. Broker totals must match the selected closed-record scope; fees charged for open positions or a different report timezone cannot be reliably assigned from a summary alone. Allocated per-record net results do not claim exact broker per-trade charges.
+
+
+## P&L display after saving fees
+
+The real dashboard defaults to Net when no basis is explicitly selected; its embedded calendar follows that default. Explicit Gross links and selections remain available. When all selected fees are known, Gross mode shows the fee total, the corresponding net P&L and a Show net P&L action. The Fees page shows both gross and net in its current summary and history and offers a View net P&L dashboard link after saving. Unknown fee coverage continues to use the existing honest gross fallback. This display fix required no migration; four focused dashboard checks, TypeScript and scoped lint were used instead of a full suite/build.

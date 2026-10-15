@@ -6,7 +6,7 @@ export const dashboardSchema = z
     end: z.string(),
     accounts: z.string().max(8000).optional(),
     archived: z.enum(["0", "1"]).default("0"),
-    basis: z.enum(["gross", "net"]).default("gross"),
+    basis: z.enum(["gross", "net"]).default("net"),
     outcomeBasis: z.enum(["portions", "complete"]).default("portions"),
     symbol: z.string().max(80).optional(),
     direction: z.enum(["all", "long", "short", "unknown"]).default("all"),

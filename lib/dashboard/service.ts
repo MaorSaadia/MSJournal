@@ -228,6 +228,8 @@ export async function dashboardData(input: unknown, headers?: Headers) {
         count: realized.days.find((d) => d.date === day.date)?.count ?? 0,
       })),
       feeCoverage: realized.feeCoverage,
+      feeTotal: realized.feeAmount,
+      netPnl: realized.net,
       allocatedFees: realized.selected.filter((p) => journal.fees[p.id]?.kind === "Allocated").length,
       portionCount: realized.selected.length,
       completeCount: complete.length,
