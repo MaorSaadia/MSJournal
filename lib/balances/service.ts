@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { tradingAccounts, balanceAdjustments } from "@/db/schema";
+import { tradingAccounts, balanceAdjustments, propPayouts } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { NotFoundError } from "@/lib/accounts/service";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
@@ -74,6 +74,20 @@ export async function saveBalance(input: unknown, headers?: Headers) {
           );
         return { saved: true };
       }
+      const [payout] = await tx
+        .select({ id: propPayouts.id })
+        .from(propPayouts)
+        .where(
+          and(
+            eq(propPayouts.ownerId, user.id),
+            eq(propPayouts.deductionId, q.id),
+          ),
+        );
+      if (payout)
+        throw new ReviewError(
+          "Edit this deduction in the account's Payouts log so its audit history stays consistent.",
+          409,
+        );
       if (q.action === "remove") {
         const removed = await tx
           .delete(balanceAdjustments)

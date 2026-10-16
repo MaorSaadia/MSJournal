@@ -264,7 +264,7 @@ export async function createBackup(
     );
   const manifest = {
     format: "msjournal-portable-archive",
-    version: 3,
+    version: 4,
     createdAt: createdAt.toISOString(),
     databaseSnapshot:
       "repeatable read; metadata from one read-only transaction",
@@ -320,13 +320,13 @@ export async function createBackup(
   entries.push(...images.entries, jsonEntry("manifest.json", manifest), {
     path: "MANIFEST.txt",
     bytes: Buffer.from(
-      `MSJournal portable archive v3\nCreated: ${manifest.createdAt}\n\n${manifest.categories.map((c) => `${c.path}: ${c.count} records`).join("\n")}\n\nImages requested: ${includeImages}; included object files: ${images.entries.length}; missing: ${images.missing.length}.\nSee manifest.json for file paths, hashes and missing-image reasons.\n\n${manifest.limitations.join("\n")}\n`,
+      `MSJournal portable archive v4\nCreated: ${manifest.createdAt}\n\n${manifest.categories.map((c) => `${c.path}: ${c.count} records`).join("\n")}\n\nImages requested: ${includeImages}; included object files: ${images.entries.length}; missing: ${images.missing.length}.\nSee manifest.json for file paths, hashes and missing-image reasons.\n\n${manifest.limitations.join("\n")}\n`,
     ),
   });
   try {
     return {
       bytes: zipArchive(entries, createdAt),
-      filename: `msjournal-data-v3-${createdAt.toISOString().replaceAll(":", "-")}${images.missing.length ? "-partial" : ""}.zip`,
+      filename: `msjournal-data-v4-${createdAt.toISOString().replaceAll(":", "-")}${images.missing.length ? "-partial" : ""}.zip`,
     };
   } catch {
     throw new ReviewError(

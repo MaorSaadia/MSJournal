@@ -8,6 +8,8 @@ import {
   propRuleVersions,
   propSnapshots,
   propEvents,
+  propPayouts,
+  propPayoutEvents,
   balanceAdjustments,
   importBatches,
 } from "@/db/schema";
@@ -24,8 +26,11 @@ import {
   type RuleVersion,
   type Snapshot,
 } from "./model";
-import { PROCESSING_VERSION } from "@/lib/journal/processing";
+import { D, PROCESSING_VERSION } from "@/lib/journal/processing";
 import { propMutation, localInstant } from "./validation";
+import { normalizePreset } from "./presets";
+import { firmSession, trackingProgress } from "./tracking-calculations";
+import type { SnapshotDetails, TrackingRules } from "./tracking-rules";
 
 function serializePhase(p: typeof propPhases.$inferSelect): Phase {
   return {
@@ -47,124 +52,158 @@ export async function propData(accountId?: string, headers?: Headers) {
   const user = await requireUser(headers);
   if (accountId) z.uuid().parse(accountId);
   try {
-    const db = getDb();
-    const [
-      accounts,
-      journal,
-      preferences,
-      phaseRows,
-      ruleRows,
-      snapshotRows,
-      events,
-      cash,
-      imports,
-    ] = await Promise.all([
-      listTradingAccounts(headers),
-      getJournal(headers),
-      getPreferences(headers),
-      db
-        .select()
-        .from(propPhases)
-        .where(eq(propPhases.ownerId, user.id))
-        .orderBy(asc(propPhases.startAt)),
-      db
-        .select()
-        .from(propRuleVersions)
-        .where(eq(propRuleVersions.ownerId, user.id))
-        .orderBy(asc(propRuleVersions.effectiveAt)),
-      db
-        .select()
-        .from(propSnapshots)
-        .where(eq(propSnapshots.ownerId, user.id))
-        .orderBy(desc(propSnapshots.asOf)),
-      db
-        .select()
-        .from(propEvents)
-        .where(eq(propEvents.ownerId, user.id))
-        .orderBy(desc(propEvents.at)),
-      db
-        .select()
-        .from(balanceAdjustments)
-        .where(eq(balanceAdjustments.ownerId, user.id)),
-      db
-        .select({
-          accountId: importBatches.tradingAccountId,
-          at: importBatches.createdAt,
-        })
-        .from(importBatches)
-        .where(eq(importBatches.ownerId, user.id))
-        .orderBy(desc(importBatches.createdAt)),
-    ]);
-    if (accountId && !accounts.some((a) => a.id === accountId))
-      throw new NotFoundError();
-    const versions: RuleVersion[] = ruleRows.map((r) => ({
-      id: r.id,
-      phaseId: r.phaseId,
-      effectiveAt: r.effectiveAt.toISOString(),
-      rules: r.rules,
-    }));
-    const snapshots: Snapshot[] = snapshotRows.map((s) => ({
-      id: s.id,
-      phaseId: s.phaseId,
-      asOf: s.asOf.toISOString(),
-      balance: s.balance,
-      threshold: s.threshold,
-      qualifyingDays: s.qualifyingDays,
-      note: s.note,
-    }));
-    const now = new Date().toISOString();
-    return {
-      userId: user.id,
-      timezone: preferences.displayTimezone,
-      asOf: now,
-      accounts: accounts
-        .filter((a) => !accountId || a.id === accountId)
-        .map((a) => ({
-          account: a,
-          latestActivity:
-            journal.portions
-              .filter((p) => p.tradingAccountId === a.id)
-              .map((p) => (p.boughtAt > p.soldAt ? p.boughtAt : p.soldAt))
-              .sort()
-              .at(-1) ?? null,
-          latestImport:
-            imports.find((i) => i.accountId === a.id)?.at.toISOString() ?? null,
-          phases: phaseRows
-            .filter((p) => p.tradingAccountId === a.id)
-            .map((p) =>
-              phaseProgress(
-                serializePhase(p),
-                versions.filter((v) => v.phaseId === p.id),
-                journal.portions,
-                journal.fees,
-                cash.map((c) => ({
-                  ...c,
-                  effectiveAt: c.effectiveAt.toISOString(),
-                })),
-                snapshots,
-                now,
-                journal.unprocessedAccounts.includes(a.id) ||
-                  journal.states.some(
-                    (s) =>
-                      s.accountId === a.id &&
-                      (s.status !== "Ready" ||
-                        s.version !== PROCESSING_VERSION),
+    const accounts = await listTradingAccounts(headers),
+      preferences = await getPreferences(headers);
+    return await getDb().transaction(
+      async (db) => {
+        const [
+          journal,
+          phaseRows,
+          ruleRows,
+          snapshotRows,
+          events,
+          cash,
+          imports,
+          payouts,
+          payoutAudit,
+        ] = await Promise.all([
+          getJournal(headers, db),
+          db
+            .select()
+            .from(propPhases)
+            .where(eq(propPhases.ownerId, user.id))
+            .orderBy(asc(propPhases.startAt)),
+          db
+            .select()
+            .from(propRuleVersions)
+            .where(eq(propRuleVersions.ownerId, user.id))
+            .orderBy(asc(propRuleVersions.effectiveAt)),
+          db
+            .select()
+            .from(propSnapshots)
+            .where(eq(propSnapshots.ownerId, user.id))
+            .orderBy(desc(propSnapshots.asOf)),
+          db
+            .select()
+            .from(propEvents)
+            .where(eq(propEvents.ownerId, user.id))
+            .orderBy(desc(propEvents.at)),
+          db
+            .select()
+            .from(balanceAdjustments)
+            .where(eq(balanceAdjustments.ownerId, user.id)),
+          db
+            .select({
+              accountId: importBatches.tradingAccountId,
+              at: importBatches.createdAt,
+            })
+            .from(importBatches)
+            .where(eq(importBatches.ownerId, user.id))
+            .orderBy(desc(importBatches.createdAt)),
+          db.select().from(propPayouts).where(eq(propPayouts.ownerId, user.id)),
+          db
+            .select()
+            .from(propPayoutEvents)
+            .where(eq(propPayoutEvents.ownerId, user.id))
+            .orderBy(desc(propPayoutEvents.createdAt)),
+        ]);
+        if (accountId && !accounts.some((a) => a.id === accountId))
+          throw new NotFoundError();
+        const versions: RuleVersion[] = ruleRows.map((r) => ({
+          id: r.id,
+          phaseId: r.phaseId,
+          effectiveAt: r.effectiveAt.toISOString(),
+          rules: r.rules,
+        }));
+        const snapshots: Snapshot[] = snapshotRows.map((s) => ({
+          id: s.id,
+          phaseId: s.phaseId,
+          asOf: s.asOf.toISOString(),
+          balance: s.balance,
+          threshold: s.threshold,
+          qualifyingDays: s.qualifyingDays,
+          details: s.details,
+          note: s.note,
+        }));
+        const now = new Date().toISOString();
+        return {
+          userId: user.id,
+          timezone: preferences.displayTimezone,
+          asOf: now,
+          accounts: accounts
+            .filter((a) => !accountId || a.id === accountId)
+            .map((a) => ({
+              account: a,
+              latestActivity:
+                journal.portions
+                  .filter((p) => p.tradingAccountId === a.id)
+                  .map((p) => (p.boughtAt > p.soldAt ? p.boughtAt : p.soldAt))
+                  .sort()
+                  .at(-1) ?? null,
+              latestImport:
+                imports.find((i) => i.accountId === a.id)?.at.toISOString() ??
+                null,
+              phases: phaseRows
+                .filter((p) => p.tradingAccountId === a.id)
+                .map((p) =>
+                  phaseProgress(
+                    serializePhase(p),
+                    versions.filter((v) => v.phaseId === p.id),
+                    journal.portions,
+                    journal.fees,
+                    cash.map((c) => ({
+                      ...c,
+                      effectiveAt: c.effectiveAt.toISOString(),
+                    })),
+                    snapshots,
+                    now,
+                    journal.unprocessedAccounts.includes(a.id) ||
+                      journal.states.some(
+                        (s) =>
+                          s.accountId === a.id &&
+                          (s.status !== "Ready" ||
+                            s.version !== PROCESSING_VERSION),
+                      ),
+                    payouts.map((p) => ({
+                      ...p.fields,
+                      id: p.id,
+                      phaseId: p.phaseId,
+                      revision: p.revision,
+                      deductionId: p.deductionId,
+                    })),
                   ),
-              ),
-            ),
-        })),
-      events: events.map((e) => ({
-        id: e.id,
-        phaseId: e.phaseId,
-        at: e.at.toISOString(),
-        kind: e.kind,
-        note: e.note,
-      })),
-      copySources: ruleRows.map((r) => ({
-        id: r.id,
-        label: `${accounts.find((a) => a.id === phaseRows.find((p) => p.id === r.phaseId)?.tradingAccountId)?.displayName ?? "Account"} · ${r.effectiveAt.toISOString().slice(0, 10)}`,
-      })),
-    };
+                ),
+            })),
+          events: events.map((e) => ({
+            id: e.id,
+            phaseId: e.phaseId,
+            at: e.at.toISOString(),
+            kind: e.kind,
+            note: e.note,
+          })),
+          copySources: ruleRows.map((r) => ({
+            id: r.id,
+            label: `${accounts.find((a) => a.id === phaseRows.find((p) => p.id === r.phaseId)?.tradingAccountId)?.displayName ?? "Account"} · ${r.effectiveAt.toISOString().slice(0, 10)}`,
+          })),
+          payouts: payouts.map((p) => ({
+            ...p.fields,
+            id: p.id,
+            phaseId: p.phaseId,
+            revision: p.revision,
+            deductionId: p.deductionId,
+          })),
+          payoutAudit: payoutAudit.map((e) => ({
+            id: e.id,
+            payoutId: e.payoutId,
+            revision: e.revision,
+            before: e.before,
+            after: e.after,
+            at: e.createdAt.toISOString(),
+          })),
+        };
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
   } catch (e) {
     if (e instanceof NotFoundError || e instanceof ZodError) throw e;
     throw new WorkspaceUnavailableError();
@@ -178,6 +217,27 @@ export async function saveProp(input: unknown, headers?: Headers) {
   const bad = (message: string): never => {
     throw new ReviewError(message, 400);
   };
+  if (q.action === "phase" && q.initialRules?.tracking)
+    q.initialRules.tracking = normalizePreset(q.initialRules.tracking);
+  if (q.action === "rules" && q.rules.tracking)
+    q.rules.tracking = normalizePreset(q.rules.tracking);
+  const openingDetails =
+    q.action === "phase" || q.action === "rules"
+      ? q.openingSnapshot
+      : q.action === "snapshot"
+        ? q.details
+        : null;
+  if (
+    openingDetails?.coverageThrough &&
+    openingDetails.coverageThrough > now.toISOString()
+  )
+    bad("Activity coverage cannot be confirmed into the future.");
+  if (
+    openingDetails &&
+    new Set(openingDetails.daily.map((d) => d.date)).size !==
+      openingDetails.daily.length
+  )
+    bad("Opening daily dates must be unique.");
   try {
     return await getDb().transaction(async (tx) => {
       let previous: typeof propPhases.$inferSelect | undefined;
@@ -214,7 +274,7 @@ export async function saveProp(input: unknown, headers?: Headers) {
       const account = locked.find((a) => a.id === q.accountId);
       if (!account || account.archivedAt || locked.length !== ids.length)
         throw new NotFoundError();
-      if (q.action === "phase" && !account.firm)
+      if (q.action === "phase" && !account.firm && !q.initialRules?.tracking)
         bad(
           "Choose a prop firm and phase in account settings before starting prop tracking.",
         );
@@ -223,6 +283,31 @@ export async function saveProp(input: unknown, headers?: Headers) {
           return localInstant(local, account.reportingTimezone);
         } catch (e) {
           return bad(e instanceof Error ? e.message : "Invalid local time.");
+        }
+      };
+      const validateOpening = (
+        details: SnapshotDetails | undefined,
+        cutoff: string,
+        policy: TrackingRules | undefined,
+      ) => {
+        if (!details) return;
+        if (details.cycleStartedAt && details.cycleStartedAt > cutoff)
+          bad(
+            "The opening payout cycle cannot start after the snapshot cutoff.",
+          );
+        if (policy && details.daily.length) {
+          let date: string;
+          try {
+            date = firmSession(cutoff, policy).date;
+          } catch {
+            return bad(
+              "Confirm a valid firm session before recording opening days.",
+            );
+          }
+          if (details.daily.some((d) => d.date > date))
+            bad(
+              "Opening daily values cannot include sessions after the snapshot cutoff.",
+            );
         }
       };
       const ownedPhases = await tx
@@ -236,7 +321,14 @@ export async function saveProp(input: unknown, headers?: Headers) {
         )
         .for("update");
       if (q.action === "phase") {
+        if (
+          q.initialRules?.tracking &&
+          (q.initialRules.tracking.stage === "Evaluation") !==
+            (q.kind === "Evaluation")
+        )
+          bad("Select the matching phase kind for these rules.");
         const startAt = instant(q.startLocal);
+        validateOpening(q.openingSnapshot, startAt, q.initialRules?.tracking);
         if (startAt > now.toISOString())
           bad("Start a phase at a past or current timestamp.");
         previous = q.previousId
@@ -351,6 +443,25 @@ export async function saveProp(input: unknown, headers?: Headers) {
           kind: previous ? "New phase/reset" : "Tracking started",
           note: q.note,
         });
+        if (q.initialRules)
+          await tx.insert(propRuleVersions).values({
+            ownerId: user.id,
+            phaseId: created.id,
+            effectiveAt: new Date(startAt),
+            rules: q.initialRules,
+          });
+        if (q.openingSnapshot && q.baseline !== null)
+          await tx.insert(propSnapshots).values({
+            ownerId: user.id,
+            phaseId: created.id,
+            asOf: new Date(startAt),
+            balance: q.baseline,
+            threshold:
+              q.initialRules?.tracking?.drawdown.initialThreshold ?? null,
+            details: q.openingSnapshot,
+            qualifyingDays: q.openingSnapshot.qualifyingDays,
+            note: "Initial dashboard anchor; earlier compliance remains unverified.",
+          });
         await tx
           .update(tradingAccounts)
           .set({
@@ -421,6 +532,34 @@ export async function saveProp(input: unknown, headers?: Headers) {
             },
           };
         } else rules = q.rules;
+        if (rules.tracking) {
+          const [priorRule] = await tx
+            .select()
+            .from(propRuleVersions)
+            .where(
+              and(
+                eq(propRuleVersions.phaseId, phase.id),
+                eq(propRuleVersions.ownerId, user.id),
+              ),
+            )
+            .orderBy(desc(propRuleVersions.effectiveAt))
+            .limit(1);
+          if (
+            priorRule?.rules.tracking &&
+            priorRule.rules.tracking.stage !== rules.tracking.stage
+          )
+            bad(
+              "A stage transition starts a new phase; it cannot revise the current phase in place.",
+            );
+        }
+        if (
+          rules.tracking &&
+          (rules.tracking.stage === "Evaluation") !==
+            (phase.kind === "Evaluation")
+        )
+          bad(
+            "A stage transition requires a new phase with its own balance; it cannot correct the current phase.",
+          );
         const [existing] = await tx
           .select({ id: propRuleVersions.id })
           .from(propRuleVersions)
@@ -441,6 +580,25 @@ export async function saveProp(input: unknown, headers?: Headers) {
           effectiveAt: new Date(at),
           rules,
         });
+        if (q.action === "rules" && q.openingSnapshot) {
+          validateOpening(q.openingSnapshot, at, q.rules.tracking);
+          // The existing phase's ledger baseline is never overwritten by a later snapshot.
+          const balance = q.snapshotBalance;
+          if (balance === null || balance === undefined)
+            bad(
+              "Provide the confirmed dashboard balance for the opening snapshot.",
+            );
+          await tx.insert(propSnapshots).values({
+            ownerId: user.id,
+            phaseId: phase.id,
+            asOf: new Date(at),
+            balance: balance!,
+            threshold: q.rules.tracking?.drawdown.initialThreshold ?? null,
+            details: q.openingSnapshot,
+            qualifyingDays: q.openingSnapshot.qualifyingDays,
+            note: "Dashboard tracking anchor; phase baseline/history preserved.",
+          });
+        }
         await tx.insert(propEvents).values({
           ownerId: user.id,
           phaseId: phase.id,
@@ -453,6 +611,102 @@ export async function saveProp(input: unknown, headers?: Headers) {
         within(at);
         if (at > now.toISOString())
           bad("A snapshot cannot be dated in the future.");
+        if (
+          q.details?.coverageThrough &&
+          q.details.coverageThrough > now.toISOString()
+        )
+          bad("Activity coverage cannot be confirmed into the future.");
+        const prior = await tx
+          .select()
+          .from(propSnapshots)
+          .where(
+            and(
+              eq(propSnapshots.phaseId, phase.id),
+              eq(propSnapshots.ownerId, user.id),
+            ),
+          )
+          .orderBy(desc(propSnapshots.asOf));
+        const versionRows = await tx
+          .select()
+          .from(propRuleVersions)
+          .where(
+            and(
+              eq(propRuleVersions.phaseId, phase.id),
+              eq(propRuleVersions.ownerId, user.id),
+            ),
+          )
+          .orderBy(asc(propRuleVersions.effectiveAt));
+        const policy = versionRows
+          .filter((v) => v.effectiveAt.toISOString() <= at)
+          .at(-1)?.rules.tracking;
+        validateOpening(q.details, at, policy);
+        if (q.threshold !== null && policy) {
+          const journal = await getJournal(headers, tx);
+          const movements = await tx
+            .select()
+            .from(balanceAdjustments)
+            .where(
+              and(
+                eq(balanceAdjustments.ownerId, user.id),
+                eq(balanceAdjustments.tradingAccountId, account.id),
+              ),
+            );
+          const payoutRows = await tx
+            .select()
+            .from(propPayouts)
+            .where(eq(propPayouts.ownerId, user.id));
+          const supported = trackingProgress(
+            serializePhase(phase),
+            versionRows.map((v) => ({
+              id: v.id,
+              phaseId: v.phaseId,
+              effectiveAt: v.effectiveAt.toISOString(),
+              rules: v.rules,
+            })),
+            journal.portions,
+            journal.fees,
+            movements.map((c) => ({
+              ...c,
+              effectiveAt: c.effectiveAt.toISOString(),
+            })),
+            prior.map((s) => ({ ...s, asOf: s.asOf.toISOString() })),
+            payoutRows.map((p) => ({
+              ...p.fields,
+              id: p.id,
+              phaseId: p.phaseId,
+              revision: p.revision,
+              deductionId: p.deductionId,
+            })),
+            at,
+            journal.unprocessedAccounts.includes(account.id),
+          );
+          if (
+            supported?.threshold !== null &&
+            supported?.threshold !== undefined &&
+            new D(q.threshold).lt(supported.threshold) &&
+            !(q.details?.thresholdCorrection && q.note.trim())
+          )
+            bad(
+              "A lower threshold than the supported history requires an explicit correction and note.",
+            );
+        }
+        const previousSnapshot = prior.find((s) => s.asOf.toISOString() <= at);
+        if (
+          q.threshold !== null &&
+          previousSnapshot?.threshold !== null &&
+          previousSnapshot?.threshold !== undefined &&
+          new D(q.threshold).lt(previousSnapshot.threshold) &&
+          !(q.details?.thresholdCorrection && q.note.trim())
+        )
+          bad(
+            "A lower confirmed threshold needs an explicit correction and an explanatory note; prior observations remain in history.",
+          );
+        if (
+          q.details &&
+          new Set(q.details.daily.map((d) => d.date)).size !==
+            q.details.daily.length
+        )
+          bad("Opening daily dates must be unique.");
         await tx.insert(propSnapshots).values({
           ownerId: user.id,
           phaseId: phase.id,
@@ -460,6 +714,7 @@ export async function saveProp(input: unknown, headers?: Headers) {
           balance: q.balance!,
           threshold: q.threshold,
           qualifyingDays: q.qualifyingDays,
+          details: q.details ?? null,
           note: q.note,
         });
       } else {

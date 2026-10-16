@@ -400,3 +400,125 @@
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Day 14: compact rule setup, safe writing space and contained dense data. */
+.day14-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 0;
+  margin: 16px 0;
+  list-style: none;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.day14-steps [aria-current="step"] {
+  color: var(--primary);
+  font-weight: 600;
+}
+.day14-setup {
+  min-width: 0;
+}
+.prop-form .daily-check {
+  flex-direction: row;
+  align-items: flex-start;
+  margin: 12px 0;
+  line-height: 1.6;
+}
+.prop-form .daily-check input {
+  width: 17px;
+  height: 17px;
+  min-height: 17px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.prop-form input:not([type="checkbox"]),
+.prop-form select,
+.prop-form textarea {
+  width: 100%;
+  max-width: 100%;
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+}
+.prop-form textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+.prop-form details > summary {
+  min-height: 40px;
+  padding: 10px 0;
+  cursor: pointer;
+  color: var(--violet);
+}
+.prop-form .prop-actions {
+  padding-top: 18px;
+  position: sticky;
+  bottom: 0;
+  background: var(--card);
+  padding-bottom: 10px;
+  z-index: 1;
+}
+.prop-form pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 160px;
+  max-width: 360px;
+  font-size: 11px;
+}
+.prop-form .prop-table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.prop-form table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+}
+.prop-form th,
+.prop-form td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-size: 12px;
+}
+.prop-form a {
+  overflow-wrap: anywhere;
+}
+.prop-tabs {
+  overflow-x: auto;
+}
+.prop-metrics section {
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .day14-steps {
+    gap: 7px 12px;
+  }
+  .prop-form .prop-actions > button {
+    min-height: 44px;
+  }
+}
+
+.prop-rule-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.prop-payout-notice {
+  padding: 14px 16px;
+  margin: 0 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--card);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.prop-payout-notice p {
+  margin-top: 5px;
+  color: var(--muted-foreground);
+}

@@ -1,12 +1,18 @@
 import { z } from "zod";
 import { sourceTimezone, parseSourceTime } from "@/lib/imports/time";
 import { D } from "@/lib/journal/processing";
+import { trackingRulesSchema, snapshotDetailsSchema } from "./tracking-rules";
 export const optionalMoney = z
   .string()
   .trim()
   .regex(/^$|^-?\d{1,16}(?:\.\d{1,2})?$/)
   .transform((v) => (v === "" ? null : new D(v).toFixed()));
-const nonnegative = optionalMoney.refine(
+const ruleMoney = z
+  .string()
+  .trim()
+  .regex(/^$|^-?\d{1,16}(?:\.\d{1,8})?$/)
+  .transform((v) => (v === "" ? null : new D(v).toFixed()));
+const nonnegative = ruleMoney.refine(
   (v) => v === null || new D(v).gte(0),
   "Use zero or a positive amount.",
 );
@@ -17,20 +23,21 @@ const optionalCount = z
 export const rulesSchema = z
   .object({
     basis: z.enum(["gross", "net"]),
+    tracking: trackingRulesSchema.optional(),
     profitTarget: nonnegative,
     minimumDays: optionalCount,
     qualification: z.enum(["activity", "pnl"]),
-    dayThreshold: optionalMoney,
+    dayThreshold: ruleMoney,
     dailyLoss: nonnegative,
     drawdownMode: z.enum([
       "Static",
       "End-of-day trailing",
       "Intraday trailing",
     ]),
-    staticFloor: optionalMoney,
+    staticFloor: ruleMoney,
     trailingDistance: nonnegative,
-    floorCap: optionalMoney,
-    startingHighWater: optionalMoney,
+    floorCap: ruleMoney,
+    startingHighWater: ruleMoney,
     maximumContracts: optionalCount,
     consistencyPercent: z
       .string()
@@ -62,6 +69,7 @@ export const rulesSchema = z
         "Set the qualifying-day P&L threshold, including zero if intended.",
       );
     if (
+      !v.tracking &&
       v.drawdownMode === "End-of-day trailing" &&
       v.trailingDistance !== null &&
       v.startingHighWater === null
@@ -95,11 +103,16 @@ export const emptyRules: RuleInput = {
   notes: "",
   sourceUrl: "",
 };
-export const localTime = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+export const localTime = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/);
 export function localInstant(value: string, timezone: string) {
   const [date, time] = value.split("T"),
     [year, month, day] = date.split("-");
-  return parseSourceTime(`${month}/${day}/${year} ${time}:00`, timezone);
+  return parseSourceTime(
+    `${month}/${day}/${year} ${time.length === 5 ? time + ":00" : time}`,
+    timezone,
+  );
 }
 export const propMutation = z.discriminatedUnion("action", [
   z
@@ -115,6 +128,8 @@ export const propMutation = z.discriminatedUnion("action", [
   z
     .object({
       action: z.literal("phase"),
+      initialRules: rulesSchema.optional(),
+      openingSnapshot: snapshotDetailsSchema.optional(),
       accountId: z.uuid(),
       previousId: z.uuid().nullable(),
       kind: z.enum(["Evaluation", "Funded"]),
@@ -128,6 +143,8 @@ export const propMutation = z.discriminatedUnion("action", [
   z
     .object({
       action: z.literal("rules"),
+      openingSnapshot: snapshotDetailsSchema.optional(),
+      snapshotBalance: optionalMoney.optional(),
       accountId: z.uuid(),
       phaseId: z.uuid(),
       effectiveLocal: localTime,
@@ -156,6 +173,7 @@ export const propMutation = z.discriminatedUnion("action", [
       ),
       threshold: optionalMoney,
       qualifyingDays: optionalCount,
+      details: snapshotDetailsSchema.optional(),
       note: z.string().trim().max(1000),
     })
     .strict(),

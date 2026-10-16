@@ -42,6 +42,8 @@ export async function cleanupUsers() {
           "strategies",
           "daily_entries",
           "daily_templates",
+          "prop_payout_events",
+          "prop_payouts",
           "prop_events",
           "prop_snapshots",
           "prop_rule_versions",

@@ -209,35 +209,38 @@ export function AccountsPage({
                   {account.stage}
                 </span>
               </header>
-              <dl>
-                <div>
-                  <dt>Status</dt>
-                  <dd>{account.status}</dd>
-                </div>
-                <div>
-                  <dt>Platform</dt>
-                  <dd>{account.platform}</dd>
-                </div>
-                <div>
-                  <dt>Nominal size</dt>
-                  <dd>
-                    {decimalUSD(account.nominalSize)} <small>USD</small>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Broker identifier</dt>
-                  <dd
-                    className="broker-identifier"
-                    title={account.brokerIdentifier ?? "Not mapped"}
-                  >
-                    {account.brokerIdentifier ?? "Not mapped"}
-                  </dd>
-                </div>
-                <div className="form-wide">
-                  <dt>Reporting timezone</dt>
-                  <dd>{account.reportingTimezone}</dd>
-                </div>
-              </dl>
+              <details>
+                <summary>Account details</summary>
+                <dl>
+                  <div>
+                    <dt>Status</dt>
+                    <dd>{account.status}</dd>
+                  </div>
+                  <div>
+                    <dt>Platform</dt>
+                    <dd>{account.platform}</dd>
+                  </div>
+                  <div>
+                    <dt>Nominal size</dt>
+                    <dd>
+                      {decimalUSD(account.nominalSize)} <small>USD</small>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Broker identifier</dt>
+                    <dd
+                      className="broker-identifier"
+                      title={account.brokerIdentifier ?? "Not mapped"}
+                    >
+                      {account.brokerIdentifier ?? "Not mapped"}
+                    </dd>
+                  </div>
+                  <div className="form-wide">
+                    <dt>Reporting timezone</dt>
+                    <dd>{account.reportingTimezone}</dd>
+                  </div>
+                </dl>
+              </details>
               {progress.data && (
                 <PropSummary
                   progress={
@@ -260,7 +263,8 @@ export function AccountsPage({
               </p>
               {!account.brokerIdentifier && (
                 <p className="mapping-note">
-                  Map a broker identifier before future imports.
+                  Performance.csv can be imported by explicitly selecting this
+                  account. A broker identifier is optional.
                 </p>
               )}
               {account.openingBalance !== null && (

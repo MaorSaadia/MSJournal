@@ -20,6 +20,10 @@ import {
   CopyRulesForm,
 } from "./forms";
 import { requestJson } from "@/lib/client-api";
+import { TrackingSetup } from "./tracking-setup";
+import { TrackingOverview } from "./tracking-overview";
+import { TrackingSnapshotForm } from "./tracking-snapshot";
+import { PayoutLog } from "./payouts";
 export function PropAccountDetail({
   account: initial,
   ownedAccounts,
@@ -31,7 +35,9 @@ export function PropAccountDetail({
     search = useSearchParams(),
     [settings, setSettings] = useState(false),
     [account, setAccount] = useState(initial),
-    [tab, setTab] = useState<"Overview" | "Rules" | "History">("Overview"),
+    [tab, setTab] = useState<"Overview" | "Rules" | "Payouts" | "History">(
+      "Overview",
+    ),
     [feedback, setFeedback] = useState(""),
     [copiedRules, setCopiedRules] = useState<PropRules | null>(null),
     [copiedEffective, setCopiedEffective] = useState<string | null>(null);
@@ -194,31 +200,45 @@ export function PropAccountDetail({
             </p>
           )}
           {!progress ? (
-            <PhaseForm
-              account={metadata}
-              previous={null}
-              accounts={ownedAccounts}
-              onSaved={saved}
-            />
+            <TrackingSetup account={metadata} progress={null} onSaved={saved} />
           ) : (
             <>
               <nav className="prop-tabs" aria-label="Account detail sections">
-                {(["Overview", "Rules", "History"] as const).map((t) => (
-                  <button
-                    aria-pressed={tab === t}
-                    onClick={() => setTab(t)}
-                    key={t}
-                  >
-                    {t}
-                  </button>
-                ))}
+                {(["Overview", "Rules", "Payouts", "History"] as const).map(
+                  (t) => (
+                    <button
+                      aria-pressed={tab === t}
+                      onClick={() => setTab(t)}
+                      key={t}
+                    >
+                      {t}
+                    </button>
+                  ),
+                )}
               </nav>
               {tab === "Overview" && (
                 <>
-                  <RequirementOverview
-                    progress={progress}
-                    timezone={data.timezone}
-                  />
+                  {progress.tracking ? (
+                    <TrackingOverview
+                      progress={progress}
+                      timezone={data.timezone}
+                    />
+                  ) : (
+                    <>
+                      {!metadata.archivedAt && (
+                        <Button
+                          variant="outline"
+                          onClick={() => setTab("Rules")}
+                        >
+                          Configure progress tracking
+                        </Button>
+                      )}
+                      <RequirementOverview
+                        progress={progress}
+                        timezone={data.timezone}
+                      />
+                    </>
+                  )}
                   <section className="panel prop-balance-panel">
                     <header className="panel-header">
                       <h2>Balance & threshold observations</h2>
@@ -258,71 +278,82 @@ export function PropAccountDetail({
                       </p>
                     </div>
                   )}
-                  <section className="panel prop-days">
-                    <header className="panel-header">
-                      <h2>Prop rule-day realized summaries</h2>
-                    </header>
-                    {progress.current?.rules.daySettingsConfirmed ? (
-                      <div className="prop-table-scroll">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Rule date</th>
-                              <th>Portions</th>
-                              <th>{progress.current.rules.basis} P&L</th>
-                              <th>Qualification</th>
-                              <th>Realized loss crossing</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {progress.current.days.map((d) => (
-                              <tr key={d.date}>
-                                <td>{d.date}</td>
-                                <td>{d.count}</td>
-                                <td>{journalMoney(d.pnl, true)}</td>
-                                <td>
-                                  {!d.complete
-                                    ? "Partial / unfinished"
-                                    : d.qualifying === null
-                                      ? "Incomplete"
-                                      : d.qualifying
-                                        ? "Qualifying"
-                                        : "Not qualifying"}
-                                </td>
-                                <td>
-                                  {d.lossCrossing === null
-                                    ? "Not evaluated"
-                                    : d.lossCrossing
-                                      ? "Observed"
-                                      : "Not observed in imported closes"}
-                                </td>
+                  {!progress.tracking && (
+                    <section className="panel prop-days">
+                      <header className="panel-header">
+                        <h2>Prop rule-day realized summaries</h2>
+                      </header>
+                      {progress.current?.rules.daySettingsConfirmed ? (
+                        <div className="prop-table-scroll">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Rule date</th>
+                                <th>Portions</th>
+                                <th>{progress.current.rules.basis} P&L</th>
+                                <th>Qualification</th>
+                                <th>Realized loss crossing</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        {!progress.current.days.length && (
-                          <p className="prop-setup">
-                            No supported rule-day activity in this version.
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="prop-setup">
-                        Confirm the rule timezone, reset and label convention in
-                        Rules before interpreting daily results.
-                      </p>
-                    )}
-                  </section>
+                            </thead>
+                            <tbody>
+                              {progress.current.days.map((d) => (
+                                <tr key={d.date}>
+                                  <td>{d.date}</td>
+                                  <td>{d.count}</td>
+                                  <td>{journalMoney(d.pnl, true)}</td>
+                                  <td>
+                                    {!d.complete
+                                      ? "Partial / unfinished"
+                                      : d.qualifying === null
+                                        ? "Incomplete"
+                                        : d.qualifying
+                                          ? "Qualifying"
+                                          : "Not qualifying"}
+                                  </td>
+                                  <td>
+                                    {d.lossCrossing === null
+                                      ? "Not evaluated"
+                                      : d.lossCrossing
+                                        ? "Observed"
+                                        : "Not observed in imported closes"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {!progress.current.days.length && (
+                            <p className="prop-setup">
+                              No supported rule-day activity in this version.
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="prop-setup">
+                          Confirm the rule timezone, reset and label convention
+                          in Rules before interpreting daily results.
+                        </p>
+                      )}
+                    </section>
+                  )}
                   {!metadata.archivedAt && (
                     <div className="prop-editor-stack">
                       <details>
-                        <summary>Record a manual dashboard snapshot</summary>
-                        <SnapshotForm
-                          key={data.asOf}
-                          account={metadata}
-                          progress={progress}
-                          onSaved={saved}
-                        />
+                        <summary>Update from firm dashboard</summary>
+                        {progress.tracking ? (
+                          <TrackingSnapshotForm
+                            key={data.asOf}
+                            account={metadata}
+                            phaseId={progress.phase.id}
+                            onSaved={saved}
+                          />
+                        ) : (
+                          <SnapshotForm
+                            key={data.asOf}
+                            account={metadata}
+                            progress={progress}
+                            onSaved={saved}
+                          />
+                        )}
                       </details>
                       <details>
                         <summary>
@@ -370,45 +401,74 @@ export function PropAccountDetail({
                     </p>
                   ) : (
                     <>
-                      <RulesForm
-                        key={
-                          data.asOf +
-                          progress.phase.id +
-                          JSON.stringify(copiedRules)
-                        }
+                      <TrackingSetup
+                        key={data.asOf + progress.phase.id}
                         account={metadata}
                         progress={progress}
-                        draft={copiedRules}
-                        draftEffective={copiedEffective}
-                        onSaved={(result) => {
-                          setCopiedRules(null);
-                          setCopiedEffective(null);
-                          saved(result);
-                        }}
+                        onSaved={saved}
                       />
-                      <details className="prop-editor-stack">
-                        <summary>
-                          Copy configuration from an owned account
-                        </summary>
-                        <CopyRulesForm
-                          key={data.asOf}
-                          account={metadata}
-                          progress={progress}
-                          sources={data.copySources}
-                          onCopied={(rules, effectiveLocal) => {
-                            setCopiedRules(rules);
-                            setCopiedEffective(effectiveLocal);
-                            setFeedback(
-                              "Configuration loaded into Rules. Confirm target day settings and high-water mark, then save a new version.",
-                            );
-                          }}
-                          onSaved={saved}
-                        />
-                      </details>
+                      {!progress.tracking && (
+                        <details>
+                          <summary>Existing custom rule editor / copy</summary>
+                          <RulesForm
+                            key={
+                              data.asOf +
+                              progress.phase.id +
+                              JSON.stringify(copiedRules)
+                            }
+                            account={metadata}
+                            progress={progress}
+                            draft={copiedRules}
+                            draftEffective={copiedEffective}
+                            onSaved={(result) => {
+                              setCopiedRules(null);
+                              setCopiedEffective(null);
+                              saved(result);
+                            }}
+                          />
+                          <details className="prop-editor-stack">
+                            <summary>
+                              Copy configuration from an owned account
+                            </summary>
+                            <CopyRulesForm
+                              key={data.asOf}
+                              account={metadata}
+                              progress={progress}
+                              sources={data.copySources}
+                              onCopied={(rules, effectiveLocal) => {
+                                setCopiedRules(rules);
+                                setCopiedEffective(effectiveLocal);
+                                setFeedback(
+                                  "Configuration loaded into Rules. Confirm target day settings and high-water mark, then save a new version.",
+                                );
+                              }}
+                              onSaved={saved}
+                            />
+                          </details>
+                        </details>
+                      )}
                     </>
                   )}
                 </>
               )}
+              {tab === "Payouts" &&
+                (progress.phase.kind === "Funded" ? (
+                  <PayoutLog
+                    accountId={metadata.id}
+                    phaseId={progress.phase.id}
+                    timezone={metadata.reportingTimezone}
+                    readOnly={!!metadata.archivedAt}
+                    rows={data.payouts}
+                    audit={data.payoutAudit}
+                    onSaved={saved}
+                  />
+                ) : (
+                  <p className="prop-setup">
+                    Payouts belong to a separate Sim Funded or Live phase. Start
+                    that phase with its own balance and rules after recording
+                    the firm?s decision.
+                  </p>
+                ))}
               {tab === "History" && (
                 <div className="prop-history">
                   <section className="panel">

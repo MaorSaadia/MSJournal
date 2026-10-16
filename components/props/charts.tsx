@@ -12,7 +12,7 @@ import {
 import { journalMoney } from "@/lib/journal/calculations";
 import type { PhaseProgress } from "@/lib/props/model";
 export function PropBalanceChart({ progress }: { progress: PhaseProgress }) {
-  const points = progress.current?.points ?? [],
+  const points = progress.tracking?.points ?? progress.current?.points ?? [],
     snapshots = progress.snapshots;
   const rows = [
     ...points.map((p) => ({

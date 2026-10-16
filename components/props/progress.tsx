@@ -29,6 +29,68 @@ export function PropSummary({
   timezone: string;
 }) {
   const p = progress?.current;
+  const tracked = progress?.tracking;
+  if (tracked)
+    return (
+      <div className="prop-card-progress">
+        <p>
+          <strong>
+            {tracked.rules.product} · {tracked.rules.stage}
+          </strong>
+          <span className="badge violet-badge">
+            {tracked.rules.drawdown.mode}
+          </span>
+        </p>
+        <div>
+          <span>
+            {tracked.rules.stage === "Evaluation"
+              ? `${tracked.estimatedFees ? "Estimated net" : "Net"} profit toward target`
+              : `Payout cycle ${tracked.cycleNumber}`}
+          </span>
+          <strong>
+            {tracked.rules.stage === "Evaluation"
+              ? tracked.phaseProfit === null
+                ? "Confirm starting profit"
+                : journalMoney(tracked.phaseProfit, true)
+              : tracked.payout.eligible === null
+                ? "Complete payout inputs"
+                : `${journalMoney(tracked.payout.eligible)} estimated request`}
+          </strong>
+          {tracked.rules.stage === "Evaluation" && (
+            <ProgressBar
+              value={tracked.phaseProfit}
+              target={tracked.rules.evaluation.target}
+            />
+          )}
+        </div>
+        <div>
+          <span>Remaining loss buffer</span>
+          <strong>
+            {tracked.buffer === null
+              ? "Update from firm dashboard"
+              : journalMoney(tracked.buffer)}
+          </strong>
+          <small>
+            {journalTimestamp(tracked.asOf, timezone)} · {tracked.quality}
+          </small>
+        </div>
+        <div>
+          <span>Qualifying days</span>
+          <strong>
+            {tracked.qualifyingDays ?? "Confirm opening days"} /{" "}
+            {tracked.rules.payout.requiredDays ??
+              tracked.rules.evaluation.tradingDays ??
+              "Not configured"}
+          </strong>
+        </div>
+        <p>
+          {tracked.outstanding[0] ??
+            (tracked.rules.stage === "Evaluation"
+              ? tracked.status
+              : (tracked.payout.missing[0] ?? tracked.status))}
+        </p>
+      </div>
+    );
   return (
     <div className="prop-card-progress">
       <div>

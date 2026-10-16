@@ -270,80 +270,83 @@ export async function processAccount(accountId: string, headers?: Headers) {
     throw new WorkspaceUnavailableError();
   }
 }
-export async function getJournal(headers?: Headers) {
+export async function getJournal(headers?: Headers, transaction?: Tx) {
   const user = await requireUser(headers);
+  const read = async (tx: Tx) => {
+    const sources = await tx
+      .select()
+      .from(tradovatePerformance)
+      .where(eq(tradovatePerformance.ownerId, user.id));
+    const records = await tx
+      .select()
+      .from(journalRecords)
+      .where(
+        and(
+          eq(journalRecords.ownerId, user.id),
+          eq(journalRecords.current, true),
+        ),
+      );
+    const links = await tx
+      .select()
+      .from(journalSources)
+      .where(eq(journalSources.ownerId, user.id));
+    const fees = await tx
+      .select()
+      .from(journalPortionFees)
+      .where(eq(journalPortionFees.ownerId, user.id));
+    const states = await tx
+      .select()
+      .from(journalProcessing)
+      .where(eq(journalProcessing.ownerId, user.id));
+    const published = new Set(links.map((l) => l.sourceId));
+    return {
+      portions: sources.filter((p) => published.has(p.id)).map(portion),
+      records: records.map((r) => ({
+        ...r,
+        type: REAL_RECORD_KIND,
+        entryAt: r.entryAt?.toISOString() ?? null,
+        exitAt: r.exitAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
+        sourceIds: links
+          .filter((l) => l.recordId === r.id)
+          .map((l) => l.sourceId),
+      })),
+      fees: Object.fromEntries(
+        fees.map((f) => [
+          f.sourceId,
+          {
+            amount: f.amount,
+            kind: f.kind,
+            perSide: f.perSide,
+            settingRevision: f.settingRevision,
+          },
+        ]),
+      ),
+      states: states.map((s) => ({
+        accountId: s.tradingAccountId,
+        status: s.status,
+        version: s.version,
+        sourceCount: s.sourceCount,
+        updatedAt: s.updatedAt.toISOString(),
+      })),
+      unprocessed: sources.filter((p) => !published.has(p.id)).length,
+      unprocessedAccounts: [
+        ...new Set(
+          sources
+            .filter((p) => !published.has(p.id))
+            .map((p) => p.tradingAccountId),
+        ),
+      ],
+      sourceCount: sources.length,
+    };
+  };
   return safeDatabase(() =>
-    getDb().transaction(
-      async (tx) => {
-        const sources = await tx
-          .select()
-          .from(tradovatePerformance)
-          .where(eq(tradovatePerformance.ownerId, user.id));
-        const records = await tx
-          .select()
-          .from(journalRecords)
-          .where(
-            and(
-              eq(journalRecords.ownerId, user.id),
-              eq(journalRecords.current, true),
-            ),
-          );
-        const links = await tx
-          .select()
-          .from(journalSources)
-          .where(eq(journalSources.ownerId, user.id));
-        const fees = await tx
-          .select()
-          .from(journalPortionFees)
-          .where(eq(journalPortionFees.ownerId, user.id));
-        const states = await tx
-          .select()
-          .from(journalProcessing)
-          .where(eq(journalProcessing.ownerId, user.id));
-        const published = new Set(links.map((l) => l.sourceId));
-        return {
-          portions: sources.filter((p) => published.has(p.id)).map(portion),
-          records: records.map((r) => ({
-            ...r,
-            type: REAL_RECORD_KIND,
-            entryAt: r.entryAt?.toISOString() ?? null,
-            exitAt: r.exitAt.toISOString(),
-            updatedAt: r.updatedAt.toISOString(),
-            sourceIds: links
-              .filter((l) => l.recordId === r.id)
-              .map((l) => l.sourceId),
-          })),
-          fees: Object.fromEntries(
-            fees.map((f) => [
-              f.sourceId,
-              {
-                amount: f.amount,
-                kind: f.kind,
-                perSide: f.perSide,
-                settingRevision: f.settingRevision,
-              },
-            ]),
-          ),
-          states: states.map((s) => ({
-            accountId: s.tradingAccountId,
-            status: s.status,
-            version: s.version,
-            sourceCount: s.sourceCount,
-            updatedAt: s.updatedAt.toISOString(),
-          })),
-          unprocessed: sources.filter((p) => !published.has(p.id)).length,
-          unprocessedAccounts: [
-            ...new Set(
-              sources
-                .filter((p) => !published.has(p.id))
-                .map((p) => p.tradingAccountId),
-            ),
-          ],
-          sourceCount: sources.length,
-        };
-      },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
-    ),
+    transaction
+      ? read(transaction)
+      : getDb().transaction(read, {
+          isolationLevel: "repeatable read",
+          accessMode: "read only",
+        }),
   );
 }
 export type JournalData = Awaited<ReturnType<typeof getJournal>>;

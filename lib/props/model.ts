@@ -10,6 +10,8 @@ import { localDay } from "@/lib/journal/calculations";
 import { shiftDay } from "@/lib/calendar/model";
 import { localInstant, type PropRules } from "./validation";
 import type { CashAdjustment } from "@/lib/balances/model";
+import { trackingProgress } from "./tracking-calculations";
+import type { SnapshotDetails, Payout } from "./tracking-rules";
 export type Phase = {
   id: string;
   tradingAccountId: string;
@@ -31,6 +33,7 @@ export type RuleVersion = {
   rules: PropRules;
 };
 export type Snapshot = {
+  details?: SnapshotDetails | null;
   id: string;
   phaseId: string;
   asOf: string;
@@ -59,9 +62,9 @@ export function ruleDay(instant: string, rules: PropRules) {
   };
 }
 // Display-input helper uses the account's source timezone, independent of journal preferences.
-export function wallInput(instant: string, timezone: string) {
+export function wallInput(instant: string, timezone: string, seconds = false) {
   const date = new TZDate(instant, timezone);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}${seconds ? `:${String(date.getSeconds()).padStart(2, "0")}` : ""}`;
 }
 export function overlaps(
   a: { startAt: string; endAt: string | null },
@@ -81,6 +84,7 @@ export function phaseProgress(
   snapshots: Snapshot[],
   now: string,
   pending = false,
+  payouts: Payout[] = [],
 ) {
   const stop = phase.endAt && phase.endAt < now ? phase.endAt : now;
   const scoped = all.filter(
@@ -562,6 +566,17 @@ export function phaseProgress(
   const current = periods.filter((p) => p.effectiveAt <= stop).at(-1) ?? null;
   return {
     phase,
+    tracking: trackingProgress(
+      phase,
+      versions,
+      all,
+      fees,
+      cash,
+      snapshots,
+      payouts,
+      now,
+      pending,
+    ),
     gross,
     net,
     unknownFees,

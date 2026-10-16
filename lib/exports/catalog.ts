@@ -21,6 +21,8 @@ export const backupTables = [
   schema.propRuleVersions,
   schema.propSnapshots,
   schema.propEvents,
+  schema.propPayouts,
+  schema.propPayoutEvents,
   schema.reviewTags,
   schema.journalReviews,
   schema.reviewSources,

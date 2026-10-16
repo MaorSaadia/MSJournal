@@ -1,4 +1,5 @@
 import type { PropRules } from "@/lib/props/validation";
+import type { SnapshotDetails, PayoutFields } from "@/lib/props/tracking-rules";
 import type { Playbook } from "@/lib/strategies/model";
 import type { DailyFields, ObservationMeta } from "@/lib/daily/model";
 import { sql } from "drizzle-orm";
@@ -641,6 +642,7 @@ export const balanceAdjustments = pgTable(
       t.tradingAccountId,
       t.effectiveAt,
     ),
+    uniqueIndex("balance_adjustments_owner_scope").on(t.id, t.ownerId),
     check(
       "account_balance_adjustments_kind",
       sql`${t.kind} in ('deposit','withdrawal','other')`,
@@ -764,7 +766,9 @@ export const journalPortionFees = pgTable(
     ...sourceScope(),
     sourceId: uuid("source_id").notNull(),
     amount: numeric("amount", { precision: 38, scale: 8 }),
-    kind: text("kind").$type<"Unknown" | "Estimated" | "Manual" | "Allocated">().notNull(),
+    kind: text("kind")
+      .$type<"Unknown" | "Estimated" | "Manual" | "Allocated">()
+      .notNull(),
     perSide: numeric("per_side", { precision: 28, scale: 8 }),
     settingRevision: uuid("setting_revision"),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -1130,6 +1134,7 @@ export const propSnapshots = pgTable(
     balance: numeric("balance", { precision: 18, scale: 2 }).notNull(),
     threshold: numeric("threshold", { precision: 18, scale: 2 }),
     qualifyingDays: integer("qualifying_days"),
+    details: jsonb("details").$type<SnapshotDetails>(),
     note: text("note").notNull().default(""),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -1144,6 +1149,61 @@ export const propSnapshots = pgTable(
     check(
       "prop_snapshots_days",
       sql`${t.qualifyingDays} is null or ${t.qualifyingDays}>=0`,
+    ),
+  ],
+);
+export const propPayouts = pgTable(
+  "prop_payouts",
+  {
+    id: uuid("id").primaryKey(),
+    ownerId: text("owner_id").notNull(),
+    phaseId: uuid("phase_id").notNull(),
+    fields: jsonb("fields").$type<PayoutFields>().notNull(),
+    revision: integer("revision").notNull().default(1),
+    deductionId: uuid("deduction_id").unique(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("prop_payouts_owner_scope").on(t.id, t.ownerId),
+    foreignKey({
+      columns: [t.phaseId, t.ownerId],
+      foreignColumns: [propPhases.id, propPhases.ownerId],
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [t.deductionId, t.ownerId],
+      foreignColumns: [balanceAdjustments.id, balanceAdjustments.ownerId],
+    }).onDelete("restrict"),
+    index("prop_payouts_phase").on(t.ownerId, t.phaseId),
+    check("prop_payouts_revision", sql`${t.revision}>0`),
+  ],
+);
+export const propPayoutEvents = pgTable(
+  "prop_payout_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id").notNull(),
+    payoutId: uuid("payout_id").notNull(),
+    revision: integer("revision").notNull(),
+    before: jsonb("before").$type<PayoutFields | null>(),
+    after: jsonb("after").$type<PayoutFields>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.payoutId, t.ownerId],
+      foreignColumns: [propPayouts.id, propPayouts.ownerId],
+    }).onDelete("restrict"),
+    uniqueIndex("prop_payout_events_revision").on(
+      t.payoutId,
+      t.ownerId,
+      t.revision,
     ),
   ],
 );
