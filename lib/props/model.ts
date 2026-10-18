@@ -11,6 +11,7 @@ import { shiftDay } from "@/lib/calendar/model";
 import { localInstant, type PropRules } from "./validation";
 import type { CashAdjustment } from "@/lib/balances/model";
 import { trackingProgress } from "./tracking-calculations";
+import { activitySummary } from "./setup-model";
 import type { SnapshotDetails, Payout } from "./tracking-rules";
 export type Phase = {
   id: string;
@@ -566,6 +567,13 @@ export function phaseProgress(
   const current = periods.filter((p) => p.effectiveAt <= stop).at(-1) ?? null;
   return {
     phase,
+    sessionStats: activitySummary(
+      portions,
+      fees,
+      ordered.at(-1)?.rules.tracking?.session.timezone ??
+        ordered.at(-1)?.rules.timezone ??
+        "UTC",
+    ),
     tracking: trackingProgress(
       phase,
       versions,

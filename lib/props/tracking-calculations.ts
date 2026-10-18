@@ -360,14 +360,20 @@ export function trackingProgress(
     days.every((d) => d.net !== null) &&
     !partialOpeningSession;
   const completed = days.filter((d) => d.complete && d.net !== null);
+  const countable = completed.filter(
+    (d) =>
+      !r.payout.excludeResetSession ||
+      lastReset === phase.startAt ||
+      !(d.start <= lastReset && lastReset < d.close),
+  );
   const qualifyingDays =
     dayDataKnown && (!openingAggregate || opening?.qualifyingDays !== null)
-      ? completed.filter((d) => d.qualifying).length +
+      ? countable.filter((d) => d.qualifying).length +
         (openingAggregate ? (opening!.qualifyingDays ?? 0) : 0)
       : null;
   const tradingDays =
     dayDataKnown && (!openingAggregate || opening?.tradingDays !== null)
-      ? completed.length + (openingAggregate ? (opening!.tradingDays ?? 0) : 0)
+      ? countable.length + (openingAggregate ? (opening!.tradingDays ?? 0) : 0)
       : null;
   const bestDay =
     dayDataKnown &&
@@ -393,7 +399,7 @@ export function trackingProgress(
   let assessedBest = bestDay;
   if (
     r.stage !== "Evaluation" &&
-    r.consistency.period === "phase" &&
+    (r.consistency.period === "phase" || r.consistency.bestScope === "phase") &&
     r.consistency.percent !== null
   ) {
     const fullDays = new Map<string, string[]>();
@@ -410,7 +416,10 @@ export function trackingProgress(
     }
     const fullProfits = [...fullDays.values()].map(sum);
     assessedBest = supported ? D.max(0, ...fullProfits).toFixed() : null;
-    if (r.consistency.denominator === "positiveDays")
+    if (
+      r.consistency.period === "phase" &&
+      r.consistency.denominator === "positiveDays"
+    )
       consistencyProfit = supported
         ? sum(fullProfits.filter((v) => new D(v).gt(0)))
         : null;
@@ -542,7 +551,8 @@ export function trackingProgress(
     ) {
       high = D.max(high, running).toFixed();
       const value = nextThreshold(threshold, high, policy, locked);
-      if (policy.drawdown.activation === "nextSession") pendingFloor = value;
+      if (policy.drawdown.activation === "nextSession" && !e.reset)
+        pendingFloor = value;
       else threshold = value;
       if (
         policy.drawdown.lockTrigger === "cap" &&
@@ -641,6 +651,8 @@ export function trackingProgress(
     )
       outstanding.push("Complete the required trading days.");
   }
+  if (r.consistency.status === "unknown")
+    outstanding.push("Confirm whether consistency applies to this plan.");
   if (!consistency.met)
     outstanding.push(
       "Meet consistency; additional profit assumes your best day does not increase.",
@@ -730,14 +742,19 @@ export function trackingProgress(
     payoutMissing.push(
       "Configure the required payout-day count; enter zero when none is required.",
     );
+  const payoutDays = p.dayBasis === "trading" ? tradingDays : qualifyingDays;
   if (
     p.requiredDays !== null &&
-    (qualifyingDays === null || qualifyingDays < p.requiredDays)
+    (payoutDays === null || payoutDays < p.requiredDays)
   )
     payoutMissing.push("Complete the required qualifying days.");
+  const minimumCycleProfit =
+    payoutNumber > 1 && p.minimumProfitAfterFirst != null
+      ? p.minimumProfitAfterFirst
+      : p.minimumCycleProfit;
   if (
-    p.minimumCycleProfit !== null &&
-    (cycleProfit === null || new D(cycleProfit).lt(p.minimumCycleProfit))
+    minimumCycleProfit !== null &&
+    (cycleProfit === null || new D(cycleProfit).lt(minimumCycleProfit))
   )
     payoutMissing.push("Reach the required cycle profit.");
   if (p.maxPayouts !== null && completedCycleCount >= p.maxPayouts)
@@ -745,6 +762,10 @@ export function trackingProgress(
       "The configured maximum payout count has been reached; record the firm's next phase separately.",
     );
   if (!consistency.met) payoutMissing.push("Meet cycle consistency.");
+  if (r.consistency.status === "unknown")
+    payoutMissing.push(
+      "Configure or explicitly disable the unconfirmed consistency rule.",
+    );
   if (estimatedFees)
     payoutMissing.push(
       "Replace estimated fees with confirmed fees for payout eligibility.",
@@ -784,6 +805,24 @@ export function trackingProgress(
     payoutMissing.push(
       "A daily profit cap was exceeded. Confirm the firm's forfeiture adjustment and a new dashboard snapshot.",
     );
+  if (
+    p.bufferObservation === "sessionClose" &&
+    p.minimumBalanceToSubmit !== null
+  ) {
+    const floor = p.minimumBalanceToSubmit;
+    const confirmed =
+      !!anchor?.details?.eodBufferConfirmed && new D(anchor.balance).gte(floor);
+    const observedClose = points.some(
+      (point) =>
+        point.reason === "Completed session close" &&
+        point.balance !== null &&
+        new D(point.balance).gte(floor),
+    );
+    if (!confirmed && !observedClose)
+      payoutMissing.push(
+        "Confirm a completed-session EOD balance meeting the payout buffer; an intraday crossing does not qualify.",
+      );
+  }
   const reserved = sum(
     phasePayouts
       .filter(
@@ -864,9 +903,25 @@ export function trackingProgress(
     tradingDays,
     bestDay,
     consistency,
+    effectiveTarget:
+      r.evaluation.target !== null &&
+      r.evaluation.targetAdjustsForConsistency &&
+      phaseProfit !== null &&
+      consistency.additional !== null
+        ? D.max(
+            r.evaluation.target,
+            new D(phaseProfit).plus(consistency.additional),
+          ).toFixed()
+        : r.evaluation.target,
     remainingProfit:
       phaseProfit !== null && r.evaluation.target !== null
-        ? D.max(0, new D(r.evaluation.target).minus(phaseProfit)).toFixed()
+        ? D.max(
+            0,
+            new D(r.evaluation.target).minus(phaseProfit),
+            r.evaluation.targetAdjustsForConsistency
+              ? (consistency.additional ?? "0")
+              : "0",
+          ).toFixed()
         : null,
     balance,
     threshold: currentThreshold,

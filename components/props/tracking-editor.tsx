@@ -15,6 +15,10 @@ export function TrackingRuleEditor({
     for (const key of keys.slice(0, -1))
       object = object[key] as Record<string, unknown>;
     object[keys.at(-1)!] = next;
+    if (path === "consistency.status" && next !== "enabled")
+      draft.consistency.percent = null;
+    if (path === "consistency.percent")
+      draft.consistency.status = next === null ? "unknown" : "enabled";
     if (path !== "manualConfirmed") draft.manualConfirmed = false;
     if (draft.preset) draft.preset.customized = true;
     onChange(draft);
@@ -86,6 +90,10 @@ export function TrackingRuleEditor({
       <div className="prop-form-grid">
         {field("Actual phase initial ledger balance", "ledgerStart")}
         {field("Profit target", "evaluation.target")}
+        {check(
+          "Adjust target for the consistency requirement",
+          "evaluation.targetAdjustsForConsistency",
+        )}
         {field("Required trading days", "evaluation.tradingDays", "count")}
         {select("Drawdown model", "drawdown.mode", [
           "Static",
@@ -234,6 +242,21 @@ export function TrackingRuleEditor({
               }
             />
           </label>
+          <label>
+            Consistency rule status
+            <select
+              aria-label="Consistency rule status"
+              value={
+                value.consistency.status ??
+                (value.consistency.percent !== null ? "enabled" : "unknown")
+              }
+              onChange={(e) => change("consistency.status", e.target.value)}
+            >
+              <option value="unknown">Unknown / needs confirmation</option>
+              <option value="disabled">Disabled / not applicable</option>
+              <option value="enabled">Enabled</option>
+            </select>
+          </label>
           {field("Consistency maximum (%)", "consistency.percent")}
           {select("Consistency comparison", "consistency.comparison", [
             "inclusive",
@@ -246,6 +269,11 @@ export function TrackingRuleEditor({
           {select("Consistency assessed period", "consistency.period", [
             "phase",
             "cycle",
+          ])}
+          {select("Best-day assessed period", "consistency.bestScope", [
+            "",
+            "period",
+            "phase",
           ])}
           {select("Percentage rounding", "consistency.rounding", [
             "exact",
@@ -311,6 +339,23 @@ export function TrackingRuleEditor({
             {field(
               "Minimum net profit this cycle",
               "payout.minimumCycleProfit",
+            )}
+            {select("Required-day basis", "payout.dayBasis", [
+              "qualifying",
+              "trading",
+            ])}
+            {check(
+              "Exclude reset session from required days",
+              "payout.excludeResetSession",
+            )}
+            {field(
+              "Minimum cycle profit after first payout",
+              "payout.minimumProfitAfterFirst",
+            )}
+            {select(
+              "Payout balance-buffer observation",
+              "payout.bufferObservation",
+              ["", "current", "sessionClose"],
             )}
             {field("Daily eligible profit cap", "payout.dailyProfitCap")}
             {field("Waiting time in hours", "payout.waitHours", "count")}

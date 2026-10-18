@@ -29,6 +29,7 @@ import {
 import { D, PROCESSING_VERSION } from "@/lib/journal/processing";
 import { propMutation, localInstant } from "./validation";
 import { normalizePreset } from "./presets";
+import { activitySummary } from "./setup-model";
 import { firmSession, trackingProgress } from "./tracking-calculations";
 import type { SnapshotDetails, TrackingRules } from "./tracking-rules";
 
@@ -134,6 +135,12 @@ export async function propData(accountId?: string, headers?: Headers) {
             .filter((a) => !accountId || a.id === accountId)
             .map((a) => ({
               account: a,
+              activity: activitySummary(
+                journal.portions.filter((p) => p.tradingAccountId === a.id),
+                journal.fees,
+                a.reportingTimezone,
+              ),
+              needsProcessing: journal.unprocessedAccounts.includes(a.id),
               latestActivity:
                 journal.portions
                   .filter((p) => p.tradingAccountId === a.id)
@@ -210,7 +217,11 @@ export async function propData(accountId?: string, headers?: Headers) {
   }
 }
 export type PropData = Awaited<ReturnType<typeof propData>>;
-export async function saveProp(input: unknown, headers?: Headers) {
+export async function saveProp(
+  input: unknown,
+  headers?: Headers,
+  transaction?: import("@/lib/accounts/service").AccountTx,
+) {
   const user = await requireUser(headers),
     q = propMutation.parse(input),
     now = new Date();
@@ -239,7 +250,7 @@ export async function saveProp(input: unknown, headers?: Headers) {
   )
     bad("Opening daily dates must be unique.");
   try {
-    return await getDb().transaction(async (tx) => {
+    const work = async (tx: import("@/lib/accounts/service").AccountTx) => {
       let previous: typeof propPhases.$inferSelect | undefined;
       if (q.action === "phase" && q.previousId) {
         [previous] = await tx
@@ -787,7 +798,8 @@ export async function saveProp(input: unknown, headers?: Headers) {
           );
       }
       return { saved: true, phaseId: phase.id, accountId: account.id };
-    });
+    };
+    return await (transaction ? work(transaction) : getDb().transaction(work));
   } catch (e) {
     if (
       e instanceof NotFoundError ||

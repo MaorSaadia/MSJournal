@@ -1,17 +1,8 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { motion } from "motion/react";
-import {
-  Plus,
-  Search,
-  WalletCards,
-  Pencil,
-  Archive,
-  ArchiveRestore,
-  LoaderCircle,
-} from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
+import { Plus, Search, WalletCards, Archive, LoaderCircle } from "lucide-react";
 import type { TradingAccount } from "@/lib/accounts/types";
 import { STAGES, STATUSES } from "@/lib/accounts/validation";
 import { requestJson } from "@/lib/client-api";
@@ -25,7 +16,10 @@ import {
 import { AccountForm } from "./account-form";
 import { usePrivateRequest } from "@/components/calendar/cache-provider";
 import type { PropData } from "@/lib/props/service";
-import { PropSummary } from "@/components/props/progress";
+import { AccountSetupDialog } from "@/components/props/account-setup-dialog";
+import { PropAccountCard } from "@/components/props/account-card";
+import { firmKey, firmTiles } from "@/lib/props/setup-model";
+import type { TrackingRules } from "@/lib/props/tracking-rules";
 export function decimalUSD(value: string) {
   const [whole, fraction = "00"] = value.split(".");
   return `${whole.startsWith("-") ? "-" : ""}$${whole.replace(/^-/, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${fraction.padEnd(2, "0")}`;
@@ -37,12 +31,33 @@ export function AccountsPage({
 }) {
   const router = useRouter();
   const progress = usePrivateRequest<PropData>("", "/api/prop-progress");
-  const [accounts, setAccounts] = useState(initialAccounts),
-    [search, setSearch] = useState(""),
-    [firm, setFirm] = useState("all"),
-    [stage, setStage] = useState("all"),
-    [status, setStatus] = useState("all"),
-    [archived, setArchived] = useState(false);
+  const filters = useSearchParams();
+  const [accounts, setAccounts] = useState(initialAccounts);
+  const search = filters.get("search") ?? "",
+    firm = filters.get("firm") ?? "all",
+    stage = filters.get("stage") ?? "all",
+    status = filters.get("status") ?? "all",
+    archived = filters.get("archived") === "1";
+  const setFilter = (key: string, value: string) => {
+    const p = new URLSearchParams(filters.toString());
+    if (!value || value === "all") p.delete(key);
+    else p.set(key, value);
+    window.history.replaceState(
+      null,
+      "",
+      `/prop-accounts${p.size ? `?${p}` : ""}`,
+    );
+  };
+  const setSearch = (v: string) => setFilter("search", v),
+    setFirm = (v: string) => setFilter("firm", v),
+    setStage = (v: string) => setFilter("stage", v),
+    setStatus = (v: string) => setFilter("status", v),
+    setArchived = (v: boolean) => setFilter("archived", v ? "1" : "");
+  const [setup, setSetup] = useState<TradingAccount | "new" | null>(null),
+    [setupFirm, setSetupFirm] = useState<TrackingRules["firm"] | undefined>(
+      undefined,
+    ),
+    [collapsed, setCollapsed] = useState<string[]>([]);
   const [editing, setEditing] = useState<TradingAccount | "new" | null>(null),
     [confirm, setConfirm] = useState<TradingAccount | null>(null),
     [busy, setBusy] = useState<string | null>(null),
@@ -107,7 +122,8 @@ export function AccountsPage({
         </div>
         <Button
           onClick={() => {
-            setEditing("new");
+            setSetup("new");
+            setSetupFirm(undefined);
             setFeedback("");
             setError("");
           }}
@@ -190,166 +206,127 @@ export function AccountsPage({
         </p>
       )}
       {visible.length ? (
-        <div className="managed-account-grid">
-          {visible.map((account) => (
-            <article className="managed-account-card" key={account.id}>
-              <header>
-                <span className="account-glyph">{account.displayName[0]}</span>
-                <div>
-                  <h2>
-                    <Link href={`/prop-accounts/${account.id}`}>
-                      {account.displayName}
-                    </Link>
-                  </h2>
-                  <p>{account.firm ?? "Personal account"}</p>
-                </div>
-                <span
-                  className={`stage-badge ${account.stage === "Funded" ? "funded" : ""}`}
-                >
-                  {account.stage}
-                </span>
-              </header>
-              <details>
-                <summary>Account details</summary>
-                <dl>
-                  <div>
-                    <dt>Status</dt>
-                    <dd>{account.status}</dd>
-                  </div>
-                  <div>
-                    <dt>Platform</dt>
-                    <dd>{account.platform}</dd>
-                  </div>
-                  <div>
-                    <dt>Nominal size</dt>
-                    <dd>
-                      {decimalUSD(account.nominalSize)} <small>USD</small>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Broker identifier</dt>
-                    <dd
-                      className="broker-identifier"
-                      title={account.brokerIdentifier ?? "Not mapped"}
-                    >
-                      {account.brokerIdentifier ?? "Not mapped"}
-                    </dd>
-                  </div>
-                  <div className="form-wide">
-                    <dt>Reporting timezone</dt>
-                    <dd>{account.reportingTimezone}</dd>
-                  </div>
-                </dl>
-              </details>
-              {progress.data && (
-                <PropSummary
-                  progress={
-                    progress.data.accounts
-                      .find((a) => a.account.id === account.id)
-                      ?.phases.at(-1) ?? null
-                  }
-                  timezone={progress.data.timezone}
-                />
-              )}
-              <p className="prop-card-freshness">
-                Latest import:{" "}
-                {progress.data?.accounts
-                  .find((a) => a.account.id === account.id)
-                  ?.latestImport?.slice(0, 10) ?? "None"}{" "}
-                · Last activity:{" "}
-                {progress.data?.accounts
-                  .find((a) => a.account.id === account.id)
-                  ?.latestActivity?.slice(0, 10) ?? "None"}
-              </p>
-              {!account.brokerIdentifier && (
-                <p className="mapping-note">
-                  Performance.csv can be imported by explicitly selecting this
-                  account. A broker identifier is optional.
-                </p>
-              )}
-              {account.openingBalance !== null && (
-                <p className="baseline-note">
-                  Entered baseline: {decimalUSD(account.openingBalance)} ·{" "}
-                  {account.openingBalanceDate}. Journal baseline; prop phase
-                  baseline is configured separately.
-                </p>
-              )}
-              <footer>
-                <Button asChild variant="outline">
-                  <Link href={`/prop-accounts/${account.id}`}>Overview</Link>
-                </Button>
-                {account.archivedAt ? (
-                  <Button
-                    variant="outline"
-                    disabled={busy === account.id}
-                    onClick={() => archive(account, false)}
-                  >
-                    {busy === account.id ? (
-                      <LoaderCircle size={14} className="pending-spinner" />
-                    ) : (
-                      <ArchiveRestore size={14} />
-                    )}
-                    Restore
-                  </Button>
-                ) : (
-                  <>
+        <div className="prop-firm-groups">
+          {[...new Set(visible.map((a) => a.firm ?? "Personal accounts"))].map(
+            (group) => {
+              const entries = visible.filter(
+                  (a) => (a.firm ?? "Personal accounts") === group,
+                ),
+                closed = collapsed.includes(group),
+                firm = firmTiles.find((f) => f.id === firmKey(group));
+              return (
+                <section key={group} className="prop-firm-group">
+                  <header>
+                    <span className="prop-firm-monogram">
+                      {firm?.initials ?? group.slice(0, 2)}
+                    </span>
+                    <div>
+                      <h2>{group}</h2>
+                      <p>
+                        {entries.length} accounts /{" "}
+                        {entries.filter((a) => a.status === "Active").length}{" "}
+                        active
+                      </p>
+                    </div>
                     <Button
                       variant="outline"
                       onClick={() => {
-                        setEditing(account);
-                        setFeedback("");
-                        setError("");
+                        setSetup("new");
+                        setSetupFirm(firmKey(group));
                       }}
                     >
-                      <Pencil size={14} />
-                      Edit
+                      + Add account
                     </Button>
-                    <Button asChild variant="outline">
-                      <Link href={`/prop-accounts/${account.id}/fees`}>
-                        Fees
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      disabled={busy === account.id}
-                      onClick={() => {
-                        setConfirm(account);
-                        setError("");
-                      }}
+                    <button
+                      className="prop-group-toggle"
+                      aria-expanded={!closed}
+                      aria-label={`Toggle ${group}`}
+                      onClick={() =>
+                        setCollapsed(
+                          closed
+                            ? collapsed.filter((g) => g !== group)
+                            : [...collapsed, group],
+                        )
+                      }
                     >
-                      <Archive size={14} />
-                      Archive
-                    </Button>
-                  </>
-                )}
-              </footer>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <div className="accounts-empty panel">
-          <div className="dialog-symbol">
-            <WalletCards size={25} />
-          </div>
-          <h2>
-            {accounts.length === 0
-              ? "Add your first account"
-              : archived
-                ? "No archived accounts match"
-                : "No active accounts match"}
-          </h2>
-          <p>
-            {accounts.length === 0
-              ? "Create an account, configure its tracking phase and custom rules, then import Performance.csv."
-              : "Adjust your search or filters to find an account."}
-          </p>
-          {accounts.length === 0 && (
-            <Button onClick={() => setEditing("new")}>
-              <Plus size={15} />
-              Add Account
-            </Button>
+                      {closed ? "+" : "-"}
+                    </button>
+                  </header>
+                  <AnimatePresence initial={false}>
+                    {!closed && (
+                      <motion.div
+                        key="accounts"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <div className="prop-group-card-grid">
+                          {entries.map((account) => (
+                            <PropAccountCard
+                              key={account.id}
+                              account={account}
+                              item={progress.data?.accounts.find(
+                                (a) => a.account.id === account.id,
+                              )}
+                              busy={busy === account.id}
+                              onSetup={() => setSetup(account)}
+                              onEdit={() => setEditing(account)}
+                              onArchive={() => {
+                                if (account.archivedAt)
+                                  void archive(account, false);
+                                else {
+                                  setConfirm(account);
+                                  setError("");
+                                }
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </section>
+              );
+            },
           )}
         </div>
+      ) : (
+        <div className="accounts-empty">
+          <WalletCards size={28} />
+          <h2>
+            {accounts.length
+              ? "No accounts match"
+              : "Your next phase starts here"}
+          </h2>
+          <p>
+            {accounts.length
+              ? "Adjust your filters to find an account."
+              : "Choose a firm and plan, review your rules, and start tracking in one setup."}
+          </p>
+          {!accounts.length && (
+            <Button onClick={() => setSetup("new")}>Add account</Button>
+          )}
+        </div>
+      )}
+      {setup && (
+        <AccountSetupDialog
+          key={setup === "new" ? `new-${setupFirm}` : setup.id}
+          account={setup === "new" ? undefined : setup}
+          item={
+            setup === "new"
+              ? undefined
+              : progress.data?.accounts.find((a) => a.account.id === setup.id)
+          }
+          initialFirm={setupFirm}
+          onClose={() => setSetup(null)}
+          onSaved={(account) => {
+            update(account);
+            progress.refresh();
+            setSetup(null);
+            setFeedback(`${account.displayName} and tracking saved.`);
+          }}
+        />
       )}
       <p className="account-page-note">
         Nominal sizes and entered baselines are not verified balances. Archiving

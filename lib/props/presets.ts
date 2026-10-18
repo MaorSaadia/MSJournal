@@ -1,6 +1,7 @@
 import { D } from "@/lib/journal/processing";
 import { customTrackingRules, type TrackingRules } from "./tracking-rules";
 import { emptyRules, type RuleInput } from "./validation";
+import { expandPresets } from "./preset-expansion";
 export const VERIFIED_ON = "2026-10-16";
 const apex = "https://apextraderfunding.com/help-center/";
 const mff = "https://help.myfundedfutures.com/en/articles/";
@@ -29,15 +30,17 @@ function add(
   const rules = customTrackingRules();
   Object.assign(rules, { firm, product, stage, size });
   rules.ledgerStart = ledger;
+  rules.platform = firm === "Apex" ? "Tradovate" : "Unknown";
   rules.drawdown.initialThreshold =
     ledger === null ? null : new D(ledger).minus("2000").toFixed();
   rules.drawdown.highWater = ledger;
   rules.preset = {
     id,
-    version: `observed-${VERIFIED_ON}`,
+    version: `observed-${VERIFIED_ON}-setup2`,
     verifiedOn: VERIFIED_ON,
     effectiveDate: null,
     sources,
+    platforms: firm === "Apex" ? ["Tradovate"] : [],
     customized: false,
     gaps: [
       "Confirm the exact session cutoff and restrictions in your account agreement.",
@@ -48,6 +51,18 @@ function add(
     "Position concurrency, news restrictions, overnight holdings and prohibited trading require manual verification. A CSV does not certify compliance.",
   ];
   configure(rules);
+  rules.consistency.status =
+    rules.consistency.percent !== null
+      ? "enabled"
+      : (firm === "Apex" &&
+            stage === "Evaluation" &&
+            ["EOD", "Intraday"].includes(product)) ||
+          firm === "MyFundedFutures" ||
+          (firm === "Lucid" &&
+            stage === "Sim Funded" &&
+            ["Flex", "Daily"].includes(product))
+        ? "disabled"
+        : "unknown";
   propPresets.push({
     id,
     label: `${product} · ${stage} · ${Number(size) / 1000}K${legacy ? " · Legacy" : ""}`,
@@ -520,6 +535,8 @@ for (const product of ["Test", "PRO", "PRO+"] as const) {
     ],
   );
 }
+
+expandPresets(propPresets);
 
 export function toLegacyRules(r: TrackingRules): RuleInput {
   return {

@@ -47,7 +47,7 @@ export function TrackingOverview({
               : `Cycle ${p.cycleNumber} · best day ${money(p.bestDay)}`}
           </small>
           {r.stage === "Evaluation" && (
-            <ProgressBar value={p.phaseProfit} target={r.evaluation.target} />
+            <ProgressBar value={p.phaseProfit} target={p.effectiveTarget} />
           )}
         </section>
         <section>
@@ -126,10 +126,12 @@ export function TrackingOverview({
             <dt>
               {r.stage === "Evaluation"
                 ? "Trading days"
-                : "Qualifying payout days"}
+                : r.payout.dayBasis === "trading"
+                  ? "Trading days this payout cycle"
+                  : "Qualifying payout days"}
             </dt>
             <dd>
-              {r.stage === "Evaluation"
+              {r.stage === "Evaluation" || r.payout.dayBasis === "trading"
                 ? (p.tradingDays ?? "Confirm opening days")
                 : (p.qualifyingDays ?? "Confirm opening days")}{" "}
               /{" "}
@@ -137,6 +139,8 @@ export function TrackingOverview({
                 ? (r.evaluation.tradingDays ?? "Not configured")
                 : (r.payout.requiredDays ?? "Not configured")}
               {r.stage !== "Evaluation" &&
+                r.payout.dayBasis !== "trading" &&
+                r.payout.dailyProfit !== null &&
                 ` · daily net minimum ${money(r.payout.dailyProfit)}`}
             </dd>
           </div>

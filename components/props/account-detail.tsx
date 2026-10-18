@@ -21,6 +21,7 @@ import {
 } from "./forms";
 import { requestJson } from "@/lib/client-api";
 import { TrackingSetup } from "./tracking-setup";
+import { AccountSetupDialog } from "./account-setup-dialog";
 import { TrackingOverview } from "./tracking-overview";
 import { TrackingSnapshotForm } from "./tracking-snapshot";
 import { PayoutLog } from "./payouts";
@@ -34,6 +35,7 @@ export function PropAccountDetail({
   const router = useRouter(),
     search = useSearchParams(),
     [settings, setSettings] = useState(false),
+    [setupOpen, setSetupOpen] = useState(false),
     [account, setAccount] = useState(initial),
     [tab, setTab] = useState<"Overview" | "Rules" | "Payouts" | "History">(
       "Overview",
@@ -200,7 +202,17 @@ export function PropAccountDetail({
             </p>
           )}
           {!progress ? (
-            <TrackingSetup account={metadata} progress={null} onSaved={saved} />
+            <section className="prop-setup">
+              <h2>Choose your account plan</h2>
+              <p>
+                {item?.activity.count ?? 0} existing source records are ready to
+                reuse. No tracking phase or rules have been saved; no reupload
+                is needed.
+              </p>
+              {!metadata.archivedAt && (
+                <Button onClick={() => setSetupOpen(true)}>Finish setup</Button>
+              )}
+            </section>
           ) : (
             <>
               <nav className="prop-tabs" aria-label="Account detail sections">
@@ -337,8 +349,12 @@ export function PropAccountDetail({
                   )}
                   {!metadata.archivedAt && (
                     <div className="prop-editor-stack">
-                      <details>
-                        <summary>Update from firm dashboard</summary>
+                      <details
+                        open={search.get("snapshot") === "1" ? true : undefined}
+                      >
+                        <summary id="firm-dashboard">
+                          Update from firm dashboard
+                        </summary>
                         {progress.tracking ? (
                           <TrackingSnapshotForm
                             key={data.asOf}
@@ -576,6 +592,20 @@ export function PropAccountDetail({
             </>
           )}
         </>
+      )}
+      {setupOpen && (
+        <AccountSetupDialog
+          account={metadata}
+          item={item}
+          onClose={() => setSetupOpen(false)}
+          onSaved={(a) => {
+            setAccount(a);
+            setSetupOpen(false);
+            state.refresh();
+            router.refresh();
+            setFeedback("Account and tracking saved.");
+          }}
+        />
       )}
       {settings && (
         <AccountForm

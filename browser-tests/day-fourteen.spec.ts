@@ -352,7 +352,7 @@ test("Day 14 private phases, snapshot cutoffs, payout revisions, archive and foc
   );
   expect(unzipped.status).toBe(0);
   const files = JSON.parse(unzipped.stdout);
-  expect(files["manifest.json"].version).toBe(4);
+  expect(files["manifest.json"].version).toBe(5);
   expect(files["data/prop_payouts.json"]).toHaveLength(1);
   expect(files["data/prop_payout_events.json"]).toHaveLength(4);
   expect(

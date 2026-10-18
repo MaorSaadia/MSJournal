@@ -14,6 +14,8 @@ export const trackingRulesSchema = z
       "MyFundedFutures",
       "Lucid",
       "Take Profit Trader",
+      "Topstep",
+      "FundedNext Futures",
       "Custom",
     ]),
     product: z.string().trim().min(1).max(120),
@@ -43,6 +45,7 @@ export const trackingRulesSchema = z
           .max(20),
         gaps: z.array(z.string().max(400)).max(30),
         customized: z.boolean(),
+        platforms: z.array(z.string().max(80)).max(12).optional(),
       })
       .nullable()
       .default(null),
@@ -97,11 +100,14 @@ export const trackingRulesSchema = z
     }),
     evaluation: z.object({
       target: money,
+      targetAdjustsForConsistency: z.boolean().default(false),
       tradingDays: count,
       expiry: utc.nullable(),
       activationDays: count,
     }),
     consistency: z.object({
+      status: z.enum(["enabled", "disabled", "unknown"]).optional(),
+      bestScope: z.enum(["period", "phase"]).optional(),
       percent: money.refine(
         (v) => v === null || (Number(v) > 0 && Number(v) <= 100),
       ),
@@ -118,6 +124,7 @@ export const trackingRulesSchema = z
       caps: z.array(exactAmount).max(50),
       maxPayouts: count,
       minimumBalanceToSubmit: money,
+      bufferObservation: z.enum(["current", "sessionClose"]).optional(),
       minimumBalanceAfter: money,
       protectedBuffer: money,
       profitPercent: money.refine(
@@ -126,6 +133,9 @@ export const trackingRulesSchema = z
       percentBasis: z.enum(["cycleProfit", "ledgerProfit"]),
       split: exactAmount.refine((v) => Number(v) >= 0 && Number(v) <= 100),
       requiredDays: count,
+      dayBasis: z.enum(["qualifying", "trading"]).default("qualifying"),
+      excludeResetSession: z.boolean().default(false),
+      minimumProfitAfterFirst: money,
       dailyProfit: money,
       minimumCycleProfit: money,
       dailyProfitCap: money,
@@ -244,6 +254,7 @@ export const snapshotDetailsSchema = z
     tradingDays: count,
     qualifyingDays: count,
     openingConfirmed: z.boolean().default(false),
+    eodBufferConfirmed: z.boolean().default(false),
     coverageThrough: utc.nullable().default(null),
     daily: z
       .array(

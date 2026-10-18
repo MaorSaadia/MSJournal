@@ -388,6 +388,154 @@ describe("Day 14 financial and session boundaries", () => {
     expect(result.cycleProfit).toBe("100");
     expect(result.consistency).toMatchObject({ percent: "50", met: true });
   });
+  it("limits expanded size/stage combinations and preserves distinct purchased payout options", () => {
+    const standard = propPresets.filter(
+      (p) => p.rules.firm === "Topstep" && p.rules.product === "XFA Standard",
+    );
+    expect([...new Set(standard.map((p) => p.rules.size))].sort()).toEqual([
+      "100000",
+      "150000",
+      "50000",
+    ]);
+    expect(
+      standard.every((p) => p.rules.stage === "Sim Funded" && p.ledger === "0"),
+    ).toBe(true);
+    const base = standard.find(
+      (p) =>
+        p.rules.size === "50000" && p.rules.options[0] === "No purchased DLL",
+    )!;
+    const addOn = standard.find(
+      (p) => p.rules.size === "50000" && p.rules.options[0] === "Purchased DLL",
+    )!;
+    const promo = standard.find(
+      (p) =>
+        p.rules.size === "50000" &&
+        p.rules.options[0] === "Qualifying Combine DLL promotion",
+    )!;
+    expect(base.rules.payout.caps).toEqual(["2000"]);
+    expect(addOn.rules.payout.caps).toEqual(["2000"]);
+    expect(promo.rules.payout.caps).toEqual(["4000"]);
+    expect(
+      propPresets.some(
+        (p) => p.rules.firm === "Topstep" && p.rules.size === "25000",
+      ),
+    ).toBe(false);
+    const flex = propPresets.find(
+      (p) =>
+        p.rules.firm === "FundedNext Futures" &&
+        p.rules.product === "Flex" &&
+        p.rules.stage === "Evaluation" &&
+        p.rules.size === "50000",
+    )!;
+    expect(flex.rules.evaluation.target).toBe("2500");
+    expect(flex.rules.drawdown.distance).toBe("1500");
+    expect(
+      propPresets.find((p) => p.id === "fundednext-direct-50000")!.rules
+        .consistency,
+    ).toMatchObject({ percent: "20", period: "cycle", bestScope: "phase" });
+  });
+  it("uses Topstep trading-day rather than winning-day counts and an inclusive adjusted target", () => {
+    const preset = propPresets.find(
+      (p) =>
+        p.rules.firm === "Topstep" &&
+        p.rules.product === "XFA Consistency" &&
+        p.rules.size === "50000" &&
+        p.rules.options[0] === "No purchased DLL",
+    )!;
+    const r = structuredClone(preset.rules);
+    r.manualConfirmed = true;
+    r.session.confirmed = true;
+    const parts = ["300", "300", "-1", "300"].map((p, i) =>
+      part(`top-${i}`, p, `2026-10-0${i + 2}T16:00:00.000Z`),
+    );
+    const p = run(r, parts, {
+      phase: { ...phase, baseline: "0" },
+      now: "2026-10-10T23:00:00.000Z",
+    });
+    expect(p.tradingDays).toBe(4);
+    expect(p.qualifyingDays).toBe(3);
+    expect(p.payout.eligible).toBe("449.5");
+    const combine = structuredClone(
+      propPresets.find(
+        (p) =>
+          p.rules.firm === "Topstep" &&
+          p.rules.product === "Trading Combine" &&
+          p.rules.size === "50000",
+      )!.rules,
+    );
+    combine.session.confirmed = true;
+    combine.manualConfirmed = true;
+    expect(
+      run(combine, [
+        part("one", "2000"),
+        part("two", "1000", "2026-10-03T16:00:00.000Z"),
+      ]),
+    ).toMatchObject({ effectiveTarget: "3636.37", remainingProfit: "636.37" });
+  });
+  it("keeps the phase best day while assessing FundedNext Direct against current-cycle profit", () => {
+    const r = rules();
+    r.consistency = {
+      ...r.consistency,
+      percent: "20",
+      period: "cycle",
+      bestScope: "phase",
+    };
+    r.payout.resetEvent = "approved";
+    const parts = [
+      part("old", "400"),
+      part("new", "400", "2026-10-04T16:00:00.000Z"),
+    ];
+    const result = run(r, parts, {
+      now: "2026-10-06T23:00:00.000Z",
+      payouts: [
+        payout({
+          status: "Approved",
+          approvedAt: "2026-10-03T19:00:00.000Z",
+          approvedAmount: "100",
+        }),
+      ],
+    });
+    expect(result.cycleProfit).toBe("400");
+    expect(result.consistency).toMatchObject({
+      percent: "100",
+      additional: "1600",
+    });
+  });
+  it("activates an EOD floor at a coincident session reset and refuses intraday-only buffer qualification", () => {
+    const r = rules();
+    r.session = {
+      ...r.session,
+      timezone: "America/Chicago",
+      reset: "17:00",
+      close: "17:00",
+    };
+    r.drawdown.mode = "End-of-day trailing";
+    expect(
+      run(r, [part("one", "100")], { now: "2026-10-02T22:01:00.000Z" })
+        .threshold,
+    ).toBe("48100");
+    Object.assign(r.payout, {
+      enabled: true,
+      verified: true,
+      minimum: "100",
+      requiredDays: 0,
+      resetEvent: "approved",
+      minimumBalanceToSubmit: "50100",
+      bufferObservation: "sessionClose",
+    });
+    const intraday = run(r, [part("one", "200")], {
+      now: "2026-10-02T20:00:00.000Z",
+    });
+    expect(intraday.payout.eligible).toBeNull();
+    expect(intraday.payout.missing.join(" ")).toContain(
+      "completed-session EOD",
+    );
+    expect(
+      run(r, [part("one", "200")], {
+        now: "2026-10-02T22:01:00.000Z",
+      }).payout.missing.join(" "),
+    ).not.toContain("completed-session EOD");
+  });
   it("keeps source/version metadata and zero-ledger Studio stages distinct", () => {
     const p = propPresets.find((p) => p.id === "mff-studio-001-Sim Funded")!;
     expect(p.ledger).toBe("0");

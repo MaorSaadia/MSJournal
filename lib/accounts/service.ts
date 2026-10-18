@@ -21,6 +21,9 @@ export class DuplicateAccountError extends Error {
     );
   }
 }
+export type AccountTx = Parameters<
+  Parameters<ReturnType<typeof getDb>["transaction"]>[0]
+>[0];
 const accountId = z.uuid();
 function serialize(row: typeof tradingAccounts.$inferSelect): TradingAccount {
   const { ownerId: _ownerId, createdAt, updatedAt, archivedAt, ...data } = row;
@@ -87,12 +90,13 @@ export async function saveTradingAccount(
   input: unknown,
   id?: string,
   headers?: Headers,
+  options?: { transaction: AccountTx; createId?: string },
 ) {
   const owner = await requireUser(headers);
   const values = accountValues(tradingAccountSchema.parse(input));
   try {
     const db = getDb();
-    const [row] = await db.transaction(async (tx) => {
+    const work = async (tx: AccountTx) => {
       if (id) {
         const [existing] = await tx
           .select()
@@ -137,9 +141,18 @@ export async function saveTradingAccount(
       }
       return tx
         .insert(tradingAccounts)
-        .values({ ...values, ownerId: owner.id })
+        .values({
+          ...values,
+          ownerId: owner.id,
+          ...(options?.createId
+            ? { id: accountId.parse(options.createId) }
+            : {}),
+        })
         .returning();
-    });
+    };
+    const [row] = await (options?.transaction
+      ? work(options.transaction)
+      : db.transaction(work));
     if (!row) throw new NotFoundError();
     return serialize(row);
   } catch (error) {

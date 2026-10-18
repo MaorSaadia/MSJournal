@@ -45,7 +45,7 @@ function initialValues(account?: TradingAccount): AccountFormValues {
     startDate: account.startDate ?? "",
     firmChoice: account.stage === "Personal" ? "" : (known ?? "Other"),
     customFirm: known ? "" : (account.firm ?? ""),
-    platform: "Tradovate",
+    platform: account.platform,
     brokerIdentifier: account.brokerIdentifier ?? "",
     stage: account.stage,
     status: account.status,
@@ -252,7 +252,7 @@ export function AccountForm({
             )}
             <label className="form-field">
               Platform
-              <input {...register("platform")} readOnly aria-readonly="true" />
+              <input {...register("platform")} />
             </label>
             <label className="form-field form-wide">
               Broker account identifier{" "}

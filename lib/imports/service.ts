@@ -65,10 +65,9 @@ async function selectedAccount(
   if (!account) throw new NotFoundError();
   if (
     account.archivedAt ||
-    account.status !== "Active" ||
-    account.platform !== "Tradovate"
+    account.status !== "Active"
   )
-    throw new ImportError("Choose an active, unarchived Tradovate account.");
+    throw new ImportError("Choose an active, unarchived destination account. Only supported Tradovate CSV formats can be imported.");
   return account;
 }
 async function evaluate(

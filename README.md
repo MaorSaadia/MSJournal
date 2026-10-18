@@ -438,7 +438,7 @@ Reviewed additive migrations `drizzle/0008_overconfident_wild_pack.sql` (strateg
 
 Use **Trade View → Export CSV** to download every record matching the current filters, up to 20,000 records; pagination does not restrict the export. The file preserves decimal financial values and unknown amounts, safely escapes spreadsheet text, and labels selected-filter amounts separately from full-record totals. It retains account/date/strategy/review/outcome/type and gross/net selections and includes UTC/local timestamps.
 
-Use **Settings → Data & backups → Download my data** for a version 4 ZIP containing structured JSON and readable/structured manifests. It includes owned journal preferences/accounts/imports/sources/fees/balances/prop progress/reviews/daily entries/strategies/private templates/revisions/assignments and attachment metadata. Authentication credentials, sessions/tokens, environment secrets and other users' records are excluded. Structured records use one consistent read-only snapshot and are checked for ownership and relationship completeness.
+Use **Settings → Data & backups → Download my data** for a version 5 ZIP containing structured JSON and readable/structured manifests. It includes owned journal preferences/accounts/imports/sources/fees/balances/prop progress/reviews/daily entries/strategies/private templates/revisions/assignments and attachment metadata. Authentication credentials, sessions/tokens, environment secrets and other users' records are excluded. Structured records use one consistent read-only snapshot and are checked for ownership and relationship completeness.
 
 **Include screenshots and playbook images** adds private originals and thumbnails as actual ZIP files. If retrieval fails, retry or explicitly confirm **Download partial archive**; missing files are recorded in the manifest. Structured export works without configured storage. Limits are 100,000 records, 16 MiB structured JSON, 200 image object files and 64 MiB per ZIP. No private archive is hosted at a public URL or persisted on local disk.
 
@@ -453,7 +453,7 @@ This milestone does not deploy or provision anything, apply production migration
 
 Open **Progress Tracker** for preparation checklist completion, explicit trade-review coverage, assessed plan adherence, daily review coverage, a daily heatmap, weighted weekly trends and recorded mistakes. The overview spans all owned accounts; saved personal journal dates remain unchanged. Closed-portion parent records are counted once, with their record basis explained. Missing assessments stay missing.
 
-Create automatic preparation/review goals or a custom daily habit with dated Done / Not done / Not assessed check-ins. Goals use their own windows, can be edited or archived, and protect stale edits. Settings backups now use format version 4 and include goals and check-ins. Keep this archive for your records. In-app restoration is not available yet.
+Create automatic preparation/review goals or a custom daily habit with dated Done / Not done / Not assessed check-ins. Goals use their own windows, can be edited or archived, and protect stale edits. Settings backups now use format version 5 and include goals and check-ins. Keep this archive for your records. In-app restoration is not available yet.
 
 See [Day 13 details](docs/day-thirteen.md) for metric denominators, limits, privacy, migration `0010_windy_luminals.sql`, and verification. Apply reviewed migrations in other environments with `npm run db:migrate -- --reviewed`; no deployment is performed by this milestone.
 
@@ -464,7 +464,7 @@ Use **Trade View ? Fees & net P&L** (also available in Settings and account fee 
 
 Totals reconcile once against immutable source records. Identical re-uploads do not add fees again; cumulative reports replace complete earlier totals only after confirmation, and partial overlaps are rejected. Per-record fees are labeled **Allocated**, because a report total does not establish individual broker charges. Estimates remain a fallback and preserve entered totals.
 
-[Fee totals guide](docs/fees.md) explains scope, allocation, limits, privacy and checks. Apply reviewed migration `0011_illegal_korg.sql` in other environments with `npm run db:migrate -- --reviewed`; it is already applied to the configured development database. Archive format v4 includes fee-total history, source allocations and prop payout history. No new environment variables are required.
+[Fee totals guide](docs/fees.md) explains scope, allocation, limits, privacy and checks. Apply reviewed migration `0011_illegal_korg.sql` in other environments with `npm run db:migrate -- --reviewed`; it is already applied to the configured development database. Archive format v5 includes fee-total history, source allocations and prop payout history. No new environment variables are required.
 
 
 ## Prop account rules and progress (Day 14)
@@ -473,4 +473,13 @@ Use **Prop Accounts > account > Configure progress tracking / Rules** to select 
 
 Official preset research covers selected exact combinations for Apex, MyFundedFutures, Lucid and Take Profit Trader; it is not universal coverage. [Preset coverage and specific gaps](docs/prop-preset-coverage.md) documents unsupported versions and rules needing manual confirmation. Performance.csv does not establish intraday equity highs or complete compliance; missing fees and opening history remain explicit.
 
-Review/apply migration `0012_unusual_random.sql` in other environments with `npm.cmd run db:migrate -- --reviewed`. It is applied to the configured development database only. Settings data archives now use **v4**, including payout audit events and extended rule/snapshot/phase relationships. No new environment configuration or deployment was performed. See [Day 14 operation, calculations, migration and checks](docs/day-fourteen.md).
+Review/apply migration `0012_unusual_random.sql` in other environments with `npm.cmd run db:migrate -- --reviewed`. It is applied to the configured development database only. Settings data archives now use **v5**, including payout audit events and extended rule/snapshot/phase relationships. No new environment configuration or deployment was performed. See [Day 14 operation, calculations, migration and checks](docs/day-fourteen.md).
+
+
+### Simplified prop setup (Day 14 refinement)
+
+Prop Accounts groups compact progress cards by firm. **Add Account** and **Finish setup** open the same three-section guide: select exact product/stage/size, review or customize rules, and choose an actual starting balance or dated dashboard snapshot. Account, phase, rules and opening data save together. Existing imports are reused after an explicit cutoff preview; saved historical rules remain unchanged.
+
+Topstep and FundedNext **Futures** presets join the existing firms, plus additional Apex EOD and Lucid Flex evaluation sizes. Unsupported combinations remain Custom. See [preset coverage](docs/prop-preset-coverage.md) and [setup, limitations and verification](docs/prop-setup-refinement.md).
+
+No new migration or environment variables are needed for this refinement; original Day 14 migrations still apply. Backup format **v5** includes the added rule/snapshot metadata. In-app restoration remains unavailable. No deployment was performed.

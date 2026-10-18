@@ -4,6 +4,8 @@ export const FIRMS = [
   "MyFundedFutures",
   "Lucid Trading",
   "Take Profit Trader",
+  "Topstep",
+  "FundedNext Futures",
 ] as const;
 export const STAGES = ["Evaluation", "Funded", "Personal"] as const;
 export const STATUSES = [
@@ -67,7 +69,11 @@ export const tradingAccountSchema = z
       .optional(),
     firmChoice: z.enum([...FIRMS, "Other", ""]),
     customFirm: z.string().trim().max(100),
-    platform: z.literal("Tradovate"),
+    platform: z
+      .string()
+      .trim()
+      .min(1, "Select a platform or enter Unknown.")
+      .max(80),
     brokerIdentifier: z.string().trim().max(160),
     stage: z.enum(STAGES),
     status: z.enum(STATUSES),

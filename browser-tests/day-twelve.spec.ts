@@ -239,7 +239,7 @@ test("private complete filtered CSV and consistent portable archive; responsive 
   const bytes = await archive.body(),
     zip = openZip(bytes),
     manifest = zip["manifest.json"];
-  expect(manifest.version).toBe(4);
+  expect(manifest.version).toBe(5);
   expect(manifest.images.requested).toBe(false);
   expect(manifest.images.includedObjectCount).toBe(0);
   for (const category of manifest.categories) {
@@ -425,6 +425,6 @@ test("private complete filtered CSV and consistent portable archive; responsive 
     .getByRole("button", { name: "Download my data", exact: true })
     .click();
   expect((await backupDownload).suggestedFilename()).toMatch(
-    /msjournal-data-v4.*\.zip/,
+    /msjournal-data-v5.*\.zip/,
   );
 });

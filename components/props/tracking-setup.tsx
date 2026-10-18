@@ -98,6 +98,16 @@ export function OpeningDetails({
       <label className="daily-check">
         <input
           type="checkbox"
+          checked={value.eodBufferConfirmed ?? false}
+          onChange={(e) =>
+            onChange({ ...value, eodBufferConfirmed: e.target.checked })
+          }
+        />
+        Firm confirmed the required EOD payout buffer was met (if applicable)
+      </label>
+      <label className="daily-check">
+        <input
+          type="checkbox"
           checked={value.openingConfirmed}
           onChange={(e) =>
             onChange({ ...value, openingConfirmed: e.target.checked })
