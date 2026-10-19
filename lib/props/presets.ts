@@ -1,6 +1,7 @@
 import { D } from "@/lib/journal/processing";
 import { customTrackingRules, type TrackingRules } from "./tracking-rules";
 import { emptyRules, type RuleInput } from "./validation";
+import { expandTptPresets } from "./tpt-presets";
 import { expandPresets } from "./preset-expansion";
 export const VERIFIED_ON = "2026-10-16";
 const apex = "https://apextraderfunding.com/help-center/";
@@ -537,6 +538,7 @@ for (const product of ["Test", "PRO", "PRO+"] as const) {
 }
 
 expandPresets(propPresets);
+expandTptPresets(propPresets);
 
 export function toLegacyRules(r: TrackingRules): RuleInput {
   return {

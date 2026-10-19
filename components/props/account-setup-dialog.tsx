@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, Search } from "lucide-react";
+import { Check, Search, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -608,8 +608,11 @@ export function AccountSetupDialog({
                       </>
                     )}
                   <Button
-                    variant="ghost"
+                    variant="outline"
+                    className="prop-custom-account-option"
+                    aria-pressed={custom && selected === null}
                     onClick={() => {
+                      if (custom && selected === null) return;
                       setSelected(null);
                       setCustom(true);
                       setEditingRules(true);
@@ -621,10 +624,26 @@ export function AccountSetupDialog({
                         stage: rules.stage,
                       });
                       setRules(next);
+                      setDirty(true);
+                      setConfirmActivity(false);
+                      if (!account && origin === "start") setBalance("");
+                      if (!nameEdited) setName("");
                     }}
                   >
-                    Custom / unsupported plan
+                    <Plus size={18} />
+                    <span>
+                      <strong>Custom account</strong>
+                      <small>
+                        Enter any account size and your own rules for this firm.
+                      </small>
+                    </span>
+                    {custom && selected === null && <Check size={16} />}
                   </Button>
+                  {custom && selected === null && available.length > 0 && (
+                    <Button variant="ghost" onClick={() => pick(available[0])}>
+                      Use firm presets
+                    </Button>
+                  )}
                   <div className="prop-form-grid">
                     <label>
                       Account label
@@ -681,6 +700,8 @@ export function AccountSetupDialog({
                         Custom account size
                         <input
                           aria-label="Custom account size"
+                          inputMode="decimal"
+                          placeholder="For example, 150000"
                           value={rules.size}
                           onChange={(e) =>
                             changeRules({ ...rules, size: e.target.value })

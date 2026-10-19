@@ -393,3 +393,123 @@ test("guided prop setup is atomic, private, reuses imports and fits both themes"
     }
   }
 });
+
+test("custom TPT account accepts an unlisted size and persists its own rules", async ({
+  page,
+}, info) => {
+  test.skip(
+    process.env.MSJOURNAL_TEST_DISPOSABLE !== "true",
+    "Disposable accounts only",
+  );
+  test.setTimeout(180000);
+  page.setDefaultTimeout(30000);
+  const headers = { Origin: origin };
+  expect(
+    (
+      await page.request.post("/api/auth/sign-up/email", {
+        headers,
+        data: disposableUser(),
+      })
+    ).status(),
+  ).toBe(200);
+  expect(
+    (
+      await page.request.post("/api/prop-firms", {
+        headers,
+        data: { name: "Take Profit Trader" },
+      })
+    ).status(),
+  ).toBe(200);
+  const hydrated = page.waitForResponse(
+    (r) => r.url().includes("/api/prop-progress?") && r.status() === 200,
+  );
+  await page.goto("/prop-accounts");
+  await hydrated;
+  await page
+    .getByRole("button", { name: "+ Add account", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator(".prop-size-grid button")).toHaveCount(5);
+  await dialog
+    .locator(".prop-size-grid button")
+    .filter({ hasText: "$150,000" })
+    .click();
+  await expect(
+    dialog.locator(".prop-size-grid button[aria-pressed=true]"),
+  ).toContainText("$4,500");
+  await dialog.getByRole("button", { name: /Custom account/ }).click();
+  await dialog
+    .getByLabel("Custom account size", { exact: true })
+    .fill("200000");
+  await dialog
+    .getByLabel("Custom product", { exact: true })
+    .fill("My purchased agreement");
+  await dialog
+    .getByLabel("Account label", { exact: true })
+    .fill("Custom TPT fixture");
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate(
+      (t) => document.documentElement.classList.toggle("dark", t === "dark"),
+      theme,
+    );
+    await page.setViewportSize({
+      width: theme === "light" ? 1440 : 390,
+      height: 950,
+    });
+    await dialog
+      .getByLabel("Custom account size", { exact: true })
+      .scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: info.outputPath(`custom-account-${theme}.png`),
+    });
+    expect(
+      await dialog.evaluate((e) => e.scrollWidth <= e.clientWidth + 1),
+    ).toBe(true);
+  }
+  await dialog.getByRole("button", { name: "Continue", exact: true }).click();
+  await dialog.getByLabel("Profit target", { exact: true }).fill("10000");
+  await dialog.getByLabel("Drawdown distance", { exact: true }).fill("5000");
+  await dialog
+    .getByLabel("Initial / confirmed loss threshold", { exact: true })
+    .fill("195000");
+  await dialog
+    .getByLabel("Confirmed high-water mark", { exact: true })
+    .fill("200000");
+  await dialog
+    .getByRole("checkbox", { name: /I reviewed and explicitly confirmed/ })
+    .check();
+  await dialog.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(
+    dialog.getByLabel("Starting balance", { exact: true }),
+  ).toHaveValue("");
+  await dialog.getByLabel("Starting balance", { exact: true }).fill("200000");
+  await dialog.getByLabel("Confirm activity preview").check();
+  const saved = page.waitForResponse(
+    (r) =>
+      r.url().endsWith("/api/prop-progress/setup") &&
+      r.request().method() === "POST",
+  );
+  await dialog
+    .getByRole("button", { name: "Save account & tracking", exact: true })
+    .click();
+  const response = await saved;
+  expect(response.status(), await response.text()).toBe(200);
+  const account = (await response.json()).account;
+  expect(account).toMatchObject({
+    firm: "Take Profit Trader",
+    nominalSize: "200000.00",
+  });
+  const progress = (
+    await (
+      await page.request.get(`/api/prop-progress?accountId=${account.id}`)
+    ).json()
+  ).accounts[0];
+  expect(progress.phases[0].phase.baseline).toBe("200000.00");
+  expect(progress.phases[0].tracking.rules).toMatchObject({
+    firm: "Take Profit Trader",
+    size: "200000",
+    product: "My purchased agreement",
+    preset: null,
+    drawdown: { distance: "5000", initialThreshold: "195000" },
+  });
+});

@@ -490,3 +490,6 @@ No new migration or environment variables are needed for this refinement; origin
 Use **Prop Accounts ? Add Firm** to save a firm group, then **Add account** inside that group. The account setup starts with its firm already selected. Existing accounts are grouped automatically; empty saved firm groups persist across visits. Summary tiles show firms, active accounts, passed accounts and failed accounts. This does not add subscriptions or alter account history.
 
 Reviewed additive migration `0013_orange_madripoor.sql` adds a firm-name preference with an empty default; apply it in other environments using `npm.cmd run db:migrate -- --reviewed`. It was applied to the configured development database. Firm names are private per user and included in the existing v5 data archive under `user_preferences.prop_firm_names`. No deployment was performed.
+
+
+In **Add account**, choose **Custom account** to enter an unlisted size, product, stage and rules under any selected firm. TPT Test and PRO presets now include 25K, 50K, 75K, 100K and 150K with stage-specific verified parameters; agreement-specific gaps remain explicit. See [preset coverage](docs/prop-preset-coverage.md). No additional migration or deployment is needed for this size/custom-entry update.

@@ -547,3 +547,62 @@ describe("Day 14 financial and session boundaries", () => {
       ).not.toThrow();
   });
 });
+
+describe("TPT exact-size presets", () => {
+  it("uses stage-specific thresholds, targets and buffers without cloning a 50K ledger", () => {
+    for (const [size, target, dd, minis] of [
+      [25000, 1500, 1500, 3],
+      [50000, 3000, 2000, 6],
+      [75000, 4500, 2500, 9],
+      [100000, 6000, 3000, 12],
+      [150000, 9000, 4500, 15],
+    ]) {
+      const test = propPresets.find((p) => p.id === `tpt-test-${size / 1000}`)!;
+      expect(test.ledger).toBe(String(size));
+      expect(test.rules.drawdown).toMatchObject({
+        mode: "End-of-day trailing",
+        distance: String(dd),
+        initialThreshold: String(size - dd),
+        highWater: String(size),
+        cap: String(size),
+        breachBasis: "equity",
+      });
+      expect(test.rules.evaluation).toMatchObject({
+        target: String(target),
+        tradingDays: 3,
+        targetAdjustsForConsistency: true,
+      });
+      expect(test.rules.consistency).toMatchObject({
+        percent: "50",
+        comparison: "strict",
+      });
+      expect(test.rules.positions).toMatchObject({ minis, micros: minis * 10 });
+      const pro = propPresets.find((p) => p.id === `tpt-pro-${size / 1000}`)!;
+      expect(pro.rules.drawdown).toMatchObject({
+        mode: "Intraday trailing",
+        basis: "equity",
+        initialThreshold: String(size - dd),
+        distance: String(dd),
+      });
+      expect(pro.rules.payout).toMatchObject({
+        split: "80",
+        minimumBalanceToSubmit: String(size + dd),
+        minimumBalanceAfter: String(size + dd),
+      });
+      expect(rulesSchema.safeParse(toLegacyRules(test.rules)).success).toBe(
+        true,
+      );
+      expect(rulesSchema.safeParse(toLegacyRules(pro.rules)).success).toBe(
+        true,
+      );
+    }
+    expect(
+      propPresets.some(
+        (p) =>
+          p.rules.firm === "Take Profit Trader" &&
+          p.rules.product === "PRO+" &&
+          p.rules.size === "150000",
+      ),
+    ).toBe(false);
+  });
+});
