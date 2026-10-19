@@ -740,3 +740,156 @@
   background: var(--background);
   color: var(--foreground);
 }
+.prop-account-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 4px 0 22px;
+}
+.prop-account-totals > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 12px 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.prop-account-totals strong {
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1;
+}
+.prop-account-totals span {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.prop-firm-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 30px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--muted-foreground);
+}
+.prop-firm-empty h3 {
+  font-size: 14px;
+  color: var(--foreground);
+  margin: 0 0 5px;
+}
+.prop-firm-empty p {
+  font-size: 12px;
+  margin: 0;
+  line-height: 1.7;
+}
+.prop-add-firm-dialog[data-slot="dialog-content"] {
+  width: min(620px, calc(100vw - 24px));
+  max-width: 620px;
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  gap: 20px;
+  background: var(--card);
+}
+.prop-add-firm-dialog .prop-firm-tiles {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+.prop-add-firm-dialog .prop-firm-tiles button {
+  min-height: 76px;
+}
+.prop-add-firm-dialog .prop-firm-tiles button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.prop-add-firm-dialog .prop-firm-tiles small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+.prop-add-firm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+.prop-custom-firm-label {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+}
+.prop-custom-firm-label input {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 12px;
+  background: var(--background);
+}
+.prop-setup-firm-context {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--primary) 5%, var(--card));
+  border-radius: 9px;
+  margin-bottom: 20px;
+}
+.prop-setup-firm-context strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+}
+@media (max-width: 600px) {
+  .prop-account-totals {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .prop-account-totals > div {
+    padding: 12px;
+    min-width: 0;
+  }
+  .prop-add-firm-dialog[data-slot="dialog-content"] {
+    padding: 22px 16px 16px;
+  }
+  .prop-add-firm-dialog .prop-firm-tiles button {
+    padding: 10px;
+    font-size: 12px;
+    gap: 8px;
+  }
+  .prop-add-firm-dialog .prop-firm-monogram {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+  }
+  .prop-add-firm-dialog button {
+    min-height: 44px;
+  }
+  .prop-add-firm-dialog input {
+    font-size: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prop-add-firm-dialog * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+.prop-add-firm-dialog .prop-firm-search input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--foreground);
+}
+.prop-add-firm-dialog .prop-firm-search input::placeholder {
+  color: var(--muted-foreground);
+  opacity: 1;
+}

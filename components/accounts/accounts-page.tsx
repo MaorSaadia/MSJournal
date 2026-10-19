@@ -17,6 +17,7 @@ import { AccountForm } from "./account-form";
 import { usePrivateRequest } from "@/components/calendar/cache-provider";
 import type { PropData } from "@/lib/props/service";
 import { AccountSetupDialog } from "@/components/props/account-setup-dialog";
+import { AddFirmDialog } from "@/components/props/add-firm-dialog";
 import { PropAccountCard } from "@/components/props/account-card";
 import { firmKey, firmTiles } from "@/lib/props/setup-model";
 import type { TrackingRules } from "@/lib/props/tracking-rules";
@@ -26,13 +27,18 @@ export function decimalUSD(value: string) {
 }
 export function AccountsPage({
   initialAccounts,
+  initialFirms = [],
 }: {
   initialAccounts: TradingAccount[];
+  initialFirms?: string[];
 }) {
   const router = useRouter();
   const progress = usePrivateRequest<PropData>("", "/api/prop-progress");
   const filters = useSearchParams();
   const [accounts, setAccounts] = useState(initialAccounts);
+  const [savedFirms, setSavedFirms] = useState(initialFirms);
+  const [addingFirm, setAddingFirm] = useState(false);
+  const [setupFirmName, setSetupFirmName] = useState<string>();
   const search = filters.get("search") ?? "",
     firm = filters.get("firm") ?? "all",
     stage = filters.get("stage") ?? "all",
@@ -64,7 +70,7 @@ export function AccountsPage({
     [feedback, setFeedback] = useState(""),
     [error, setError] = useState("");
   const firmChoices = [
-    ...new Set(accounts.map((a) => a.firm ?? "Personal")),
+    ...new Set([...savedFirms, ...accounts.map((a) => a.firm ?? "Personal")]),
   ].sort();
   const visible = accounts.filter(
     (a) =>
@@ -76,6 +82,19 @@ export function AccountsPage({
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
+  const groups = [
+    ...new Set([
+      ...visible.map((a) => a.firm ?? "Personal accounts"),
+      ...(!archived && !search && stage === "all" && status === "all"
+        ? savedFirms.filter((name) => firm === "all" || name === firm)
+        : []),
+    ]),
+  ];
+  const activeAccounts = accounts.filter((a) => !a.archivedAt);
+  const totalFirms = new Set([
+    ...savedFirms,
+    ...accounts.filter((a) => a.firm).map((a) => a.firm!),
+  ]).size;
   const update = (account: TradingAccount) => {
     setAccounts((prev) =>
       prev.some((a) => a.id === account.id)
@@ -117,21 +136,45 @@ export function AccountsPage({
             Prop Accounts<span className="title-dot">.</span>
           </h1>
           <p className="page-description">
-            Manage your evaluation, funded, and personal trading accounts.
+            Track your account rules and progress across all firms.
           </p>
         </div>
         <Button
           onClick={() => {
-            setSetup("new");
-            setSetupFirm(undefined);
+            setAddingFirm(true);
             setFeedback("");
             setError("");
           }}
         >
           <Plus size={16} />
-          Add Account
+          Add Firm
         </Button>
       </header>
+      <div className="prop-account-totals" aria-label="Account summary">
+        {[
+          [totalFirms, totalFirms === 1 ? "Firm" : "Firms", ""],
+          [
+            activeAccounts.filter((a) => a.status === "Active").length,
+            "Active accounts",
+            "",
+          ],
+          [
+            activeAccounts.filter((a) => a.status === "Passed").length,
+            "Passed",
+            "positive",
+          ],
+          [
+            activeAccounts.filter((a) => a.status === "Failed").length,
+            "Failed",
+            "negative",
+          ],
+        ].map(([value, label, tone]) => (
+          <div key={label}>
+            <strong className={String(tone)}>{value}</strong>
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
       <div className="account-toolbar">
         <div className="account-tabs" aria-label="Account archive view">
           <button
@@ -205,91 +248,106 @@ export function AccountsPage({
           <button onClick={progress.refresh}>Retry</button>
         </p>
       )}
-      {visible.length ? (
+      {groups.length ? (
         <div className="prop-firm-groups">
-          {[...new Set(visible.map((a) => a.firm ?? "Personal accounts"))].map(
-            (group) => {
-              const entries = visible.filter(
-                  (a) => (a.firm ?? "Personal accounts") === group,
-                ),
-                closed = collapsed.includes(group),
-                firm = firmTiles.find((f) => f.id === firmKey(group));
-              return (
-                <section key={group} className="prop-firm-group">
-                  <header>
-                    <span className="prop-firm-monogram">
-                      {firm?.initials ?? group.slice(0, 2)}
-                    </span>
-                    <div>
-                      <h2>{group}</h2>
-                      <p>
-                        {entries.length} accounts /{" "}
-                        {entries.filter((a) => a.status === "Active").length}{" "}
-                        active
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSetup("new");
-                        setSetupFirm(firmKey(group));
-                      }}
-                    >
-                      + Add account
-                    </Button>
-                    <button
-                      className="prop-group-toggle"
-                      aria-expanded={!closed}
-                      aria-label={`Toggle ${group}`}
-                      onClick={() =>
-                        setCollapsed(
-                          closed
-                            ? collapsed.filter((g) => g !== group)
-                            : [...collapsed, group],
-                        )
+          {groups.map((group) => {
+            const entries = visible.filter(
+                (a) => (a.firm ?? "Personal accounts") === group,
+              ),
+              closed = collapsed.includes(group),
+              firm = firmTiles.find((f) => f.id === firmKey(group));
+            return (
+              <section key={group} className="prop-firm-group">
+                <header>
+                  <span className="prop-firm-monogram">
+                    {firm?.initials ?? group.slice(0, 2)}
+                  </span>
+                  <div>
+                    <h2>{group}</h2>
+                    <p>
+                      {entries.length} accounts /{" "}
+                      {entries.filter((a) => a.status === "Active").length}{" "}
+                      active
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (group === "Personal accounts") {
+                        setEditing("new");
+                        return;
                       }
+                      setSetup("new");
+                      setSetupFirm(firmKey(group));
+                      setSetupFirmName(group);
+                    }}
+                  >
+                    + Add account
+                  </Button>
+                  <button
+                    className="prop-group-toggle"
+                    aria-expanded={!closed}
+                    aria-label={`Toggle ${group}`}
+                    onClick={() =>
+                      setCollapsed(
+                        closed
+                          ? collapsed.filter((g) => g !== group)
+                          : [...collapsed, group],
+                      )
+                    }
+                  >
+                    {closed ? "+" : "-"}
+                  </button>
+                </header>
+                <AnimatePresence initial={false}>
+                  {!closed && (
+                    <motion.div
+                      key="accounts"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      {closed ? "+" : "-"}
-                    </button>
-                  </header>
-                  <AnimatePresence initial={false}>
-                    {!closed && (
-                      <motion.div
-                        key="accounts"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <div className="prop-group-card-grid">
-                          {entries.map((account) => (
-                            <PropAccountCard
-                              key={account.id}
-                              account={account}
-                              item={progress.data?.accounts.find(
-                                (a) => a.account.id === account.id,
-                              )}
-                              busy={busy === account.id}
-                              onSetup={() => setSetup(account)}
-                              onEdit={() => setEditing(account)}
-                              onArchive={() => {
-                                if (account.archivedAt)
-                                  void archive(account, false);
-                                else {
-                                  setConfirm(account);
-                                  setError("");
-                                }
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </section>
-              );
-            },
-          )}
+                      <div className="prop-group-card-grid">
+                        {!entries.length && (
+                          <div className="prop-firm-empty">
+                            <WalletCards size={23} />
+                            <div>
+                              <h3>Your first account starts here</h3>
+                              <p>
+                                Add an evaluation or funded account to start
+                                tracking {group}.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {entries.map((account) => (
+                          <PropAccountCard
+                            key={account.id}
+                            account={account}
+                            item={progress.data?.accounts.find(
+                              (a) => a.account.id === account.id,
+                            )}
+                            busy={busy === account.id}
+                            onSetup={() => setSetup(account)}
+                            onEdit={() => setEditing(account)}
+                            onArchive={() => {
+                              if (account.archivedAt)
+                                void archive(account, false);
+                              else {
+                                setConfirm(account);
+                                setError("");
+                              }
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </section>
+            );
+          })}
         </div>
       ) : (
         <div className="accounts-empty">
@@ -302,12 +360,29 @@ export function AccountsPage({
           <p>
             {accounts.length
               ? "Adjust your filters to find an account."
-              : "Choose a firm and plan, review your rules, and start tracking in one setup."}
+              : "Add your first firm, then keep all of its accounts in one place."}
           </p>
           {!accounts.length && (
-            <Button onClick={() => setSetup("new")}>Add account</Button>
+            <Button onClick={() => setAddingFirm(true)}>
+              <Plus size={16} />
+              Add your first firm
+            </Button>
           )}
         </div>
+      )}
+      {addingFirm && (
+        <AddFirmDialog
+          existing={firmChoices}
+          onClose={() => setAddingFirm(false)}
+          onSaved={(names, added) => {
+            setSavedFirms(names);
+            setAddingFirm(false);
+            setCollapsed((prev) => prev.filter((name) => name !== added));
+            window.history.replaceState(null, "", "/prop-accounts");
+            setFeedback(`${added} added. Add its first account below.`);
+            router.refresh();
+          }}
+        />
       )}
       {setup && (
         <AccountSetupDialog
@@ -318,7 +393,8 @@ export function AccountsPage({
               ? undefined
               : progress.data?.accounts.find((a) => a.account.id === setup.id)
           }
-          initialFirm={setupFirm}
+          initialFirm={setup === "new" ? setupFirm : undefined}
+          initialFirmName={setup === "new" ? setupFirmName : undefined}
           onClose={() => setSetup(null)}
           onSaved={(account) => {
             update(account);

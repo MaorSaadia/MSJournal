@@ -483,3 +483,10 @@ Prop Accounts groups compact progress cards by firm. **Add Account** and **Finis
 Topstep and FundedNext **Futures** presets join the existing firms, plus additional Apex EOD and Lucid Flex evaluation sizes. Unsupported combinations remain Custom. See [preset coverage](docs/prop-preset-coverage.md) and [setup, limitations and verification](docs/prop-setup-refinement.md).
 
 No new migration or environment variables are needed for this refinement; original Day 14 migrations still apply. Backup format **v5** includes the added rule/snapshot metadata. In-app restoration remains unavailable. No deployment was performed.
+
+
+### Firm-first account organization
+
+Use **Prop Accounts ? Add Firm** to save a firm group, then **Add account** inside that group. The account setup starts with its firm already selected. Existing accounts are grouped automatically; empty saved firm groups persist across visits. Summary tiles show firms, active accounts, passed accounts and failed accounts. This does not add subscriptions or alter account history.
+
+Reviewed additive migration `0013_orange_madripoor.sql` adds a firm-name preference with an empty default; apply it in other environments using `npm.cmd run db:migrate -- --reviewed`. It was applied to the configured development database. Firm names are private per user and included in the existing v5 data archive under `user_preferences.prop_firm_names`. No deployment was performed.

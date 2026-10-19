@@ -77,16 +77,22 @@ export function AccountSetupDialog({
   account,
   item,
   initialFirm,
+  initialFirmName,
   onClose,
   onSaved,
 }: {
   account?: TradingAccount;
   item?: PropData["accounts"][number];
   initialFirm?: TrackingRules["firm"];
+  initialFirmName?: string;
   onClose: () => void;
   onSaved: (a: TradingAccount) => void;
 }) {
   const phase = item?.phases.at(-1) ?? null;
+  const initialPreset =
+    !account && initialFirm
+      ? propPresets.find((p) => p.rules.firm === initialFirm && !p.legacy)
+      : undefined;
   const dialogRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const viewport = window.visualViewport;
@@ -114,33 +120,44 @@ export function AccountSetupDialog({
   const [rules, setRules] = useState<TrackingRules>(() =>
     phase?.tracking?.rules
       ? structuredClone(phase.tracking.rules)
-      : {
-          ...customTrackingRules(),
-          firm: initialFirm ?? (account ? firmKey(account.firm) : "Apex"),
-          size: account?.nominalSize ?? "50000",
-          platform: account?.platform ?? "Unknown",
-          stage: account?.stage === "Funded" ? "Sim Funded" : "Evaluation",
-        },
+      : initialPreset
+        ? structuredClone(initialPreset.rules)
+        : {
+            ...customTrackingRules(),
+            firm: initialFirm ?? (account ? firmKey(account.firm) : "Apex"),
+            size: account?.nominalSize ?? "50000",
+            platform: account?.platform ?? "Unknown",
+            stage: account?.stage === "Funded" ? "Sim Funded" : "Evaluation",
+          },
   );
   const [selected, setSelected] = useState<string | null>(
-      phase?.tracking?.rules.preset?.id ?? null,
+      phase?.tracking?.rules.preset?.id ?? initialPreset?.id ?? null,
     ),
     [custom, setCustom] = useState(
-      !!phase?.tracking &&
-        (!phase.tracking.rules.preset ||
-          phase.tracking.rules.preset.customized),
+      initialFirm === "Custom" ||
+        (!!phase?.tracking &&
+          (!phase.tracking.rules.preset ||
+            phase.tracking.rules.preset.customized)),
     ),
     [editingRules, setEditingRules] = useState(
-      !!phase?.tracking &&
-        (!phase.tracking.rules.preset ||
-          phase.tracking.rules.preset.customized),
+      initialFirm === "Custom" ||
+        (!!phase?.tracking &&
+          (!phase.tracking.rules.preset ||
+            phase.tracking.rules.preset.customized)),
     );
-  const [name, setName] = useState(account?.displayName ?? ""),
+  const [name, setName] = useState(
+      account?.displayName ??
+        (initialPreset
+          ? `${initialFirmName ?? initialPreset.rules.firm} ${Number(initialPreset.rules.size) / 1000}K ${initialPreset.rules.product} ${initialPreset.rules.stage}`
+          : ""),
+    ),
     [nameEdited, setNameEdited] = useState(!!account);
   const [customFirmName, setCustomFirmName] = useState(
-    account?.firm ?? "Custom prop firm",
+    account?.firm ?? initialFirmName ?? "Custom prop firm",
   );
-  const [platform, setPlatform] = useState(account?.platform ?? "Unknown"),
+  const [platform, setPlatform] = useState(
+      account?.platform ?? initialPreset?.rules.platform ?? "Unknown",
+    ),
     [broker, setBroker] = useState(account?.brokerIdentifier ?? "");
   const [zone, setZone] = useState(
     account?.reportingTimezone ?? "Asia/Jerusalem",
@@ -157,7 +174,10 @@ export function AccountSetupDialog({
     );
   const [origin, setOrigin] = useState<"start" | "snapshot">("start"),
     [balance, setBalance] = useState(
-      phase?.phase.baseline ?? account?.openingBalance ?? "",
+      phase?.phase.baseline ??
+        account?.openingBalance ??
+        initialPreset?.ledger ??
+        "",
     ),
     [threshold, setThreshold] = useState("");
   const [history, setHistory] = useState(
@@ -406,53 +426,70 @@ export function AccountSetupDialog({
             >
               {step === 0 && (
                 <>
-                  <label className="prop-firm-search">
-                    <Search size={16} />
-                    <input
-                      aria-label="Search prop firms"
-                      placeholder="Search prop firms"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                    />
-                  </label>
-                  <div className="prop-firm-tiles">
-                    {firmTiles
-                      .filter((f) =>
-                        f.name.toLowerCase().includes(query.toLowerCase()),
-                      )
-                      .map((f) => (
-                        <motion.button
-                          key={f.id}
-                          whileTap={{ scale: 0.99 }}
-                          className={rules.firm === f.id ? "selected" : ""}
-                          aria-pressed={rules.firm === f.id}
-                          onClick={() => {
-                            const first = propPresets.find(
-                              (p) => p.rules.firm === f.id && !p.legacy,
-                            );
-                            if (first) pick(first);
-                            else {
-                              setRules({
-                                ...customTrackingRules(),
-                                firm: f.id,
-                                platform: "Unknown",
-                              });
-                              setSelected(null);
-                              setCustom(true);
-                              setEditingRules(true);
-                              setPlatform(account?.platform ?? "Unknown");
-                            }
-                            setDirty(true);
-                          }}
-                        >
-                          <span className="prop-firm-monogram">
-                            {f.initials}
-                          </span>
-                          {f.name}
-                          {rules.firm === f.id && <Check size={14} />}
-                        </motion.button>
-                      ))}
-                  </div>
+                  {initialFirmName ? (
+                    <div className="prop-setup-firm-context">
+                      <span className="prop-firm-monogram">
+                        {firmTiles.find((f) => f.id === initialFirm)
+                          ?.initials ?? "+"}
+                      </span>
+                      <div>
+                        <span className="small muted">
+                          Adding an account to
+                        </span>
+                        <strong>{initialFirmName}</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <label className="prop-firm-search">
+                        <Search size={16} />
+                        <input
+                          aria-label="Search prop firms"
+                          placeholder="Search prop firms"
+                          value={query}
+                          onChange={(e) => setQuery(e.target.value)}
+                        />
+                      </label>
+                      <div className="prop-firm-tiles">
+                        {firmTiles
+                          .filter((f) =>
+                            f.name.toLowerCase().includes(query.toLowerCase()),
+                          )
+                          .map((f) => (
+                            <motion.button
+                              key={f.id}
+                              whileTap={{ scale: 0.99 }}
+                              className={rules.firm === f.id ? "selected" : ""}
+                              aria-pressed={rules.firm === f.id}
+                              onClick={() => {
+                                const first = propPresets.find(
+                                  (p) => p.rules.firm === f.id && !p.legacy,
+                                );
+                                if (first) pick(first);
+                                else {
+                                  setRules({
+                                    ...customTrackingRules(),
+                                    firm: f.id,
+                                    platform: "Unknown",
+                                  });
+                                  setSelected(null);
+                                  setCustom(true);
+                                  setEditingRules(true);
+                                  setPlatform(account?.platform ?? "Unknown");
+                                }
+                                setDirty(true);
+                              }}
+                            >
+                              <span className="prop-firm-monogram">
+                                {f.initials}
+                              </span>
+                              {f.name}
+                              {rules.firm === f.id && <Check size={14} />}
+                            </motion.button>
+                          ))}
+                      </div>
+                    </>
+                  )}
                   {rules.firm !== "Custom" &&
                     (!custom || selected !== null) && (
                       <>
@@ -675,6 +712,7 @@ export function AccountSetupDialog({
                       <input
                         aria-label="Custom firm name"
                         value={customFirmName}
+                        readOnly={!!initialFirmName}
                         onChange={(e) => setCustomFirmName(e.target.value)}
                       />
                     </label>

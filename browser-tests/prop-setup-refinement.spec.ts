@@ -33,15 +33,63 @@ test("guided prop setup is atomic, private, reuses imports and fits both themes"
     timeout: 60000,
   });
   await hydrated;
-  await page
-    .getByRole("button", { name: "Add Account", exact: true })
-    .first()
-    .click();
+  await page.getByRole("button", { name: "Add Firm", exact: true }).click();
   let dialog = page.getByRole("dialog");
   await dialog
     .locator(".prop-firm-tiles button")
     .filter({ hasText: "Topstep" })
     .click();
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate(
+      (t) => document.documentElement.classList.toggle("dark", t === "dark"),
+      theme,
+    );
+    await page.setViewportSize({
+      width: theme === "light" ? 1440 : 390,
+      height: 950,
+    });
+    await page.screenshot({ path: info.outputPath(`add-firm-${theme}.png`) });
+    expect(
+      await dialog.evaluate((e) => e.scrollWidth <= e.clientWidth + 1),
+    ).toBe(true);
+  }
+  const firmSaved = page.waitForResponse(
+    (r) =>
+      r.url().endsWith("/api/prop-firms") && r.request().method() === "POST",
+  );
+  await dialog.getByRole("button", { name: "Add Firm", exact: true }).click();
+  const firmResponse = await firmSaved;
+  expect(firmResponse.status(), await firmResponse.text()).toBe(200);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByText("Your first account starts here", { exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Topstep", exact: true }),
+  ).toBeVisible();
+  expect(
+    (
+      await (
+        await page.request.post("/api/prop-firms", {
+          headers,
+          data: { name: "Topstep" },
+        })
+      ).json()
+    ).firms,
+  ).toEqual(["Topstep"]);
+  await page
+    .locator(".prop-firm-group")
+    .filter({
+      has: page.getByRole("heading", { name: "Topstep", exact: true }),
+    })
+    .getByRole("button", { name: "+ Add account", exact: true })
+    .click();
+  dialog = page.getByRole("dialog");
+  await expect(dialog.locator(".prop-firm-tiles")).toHaveCount(0);
+  await expect(dialog.locator(".prop-setup-firm-context")).toContainText(
+    "Topstep",
+  );
   await dialog
     .getByRole("button", { name: "XFA Standard", exact: true })
     .click();
@@ -148,6 +196,22 @@ test("guided prop setup is atomic, private, reuses imports and fits both themes"
         })
       ).status(),
     ).toBe(200);
+    expect((await (await other.get("/api/prop-firms")).json()).firms).toEqual(
+      [],
+    );
+    expect(
+      (
+        await (
+          await other.post("/api/prop-firms", {
+            headers,
+            data: { name: "Lucid Trading" },
+          })
+        ).json()
+      ).firms,
+    ).toEqual(["Lucid Trading"]);
+    expect(
+      (await (await page.request.get("/api/prop-firms")).json()).firms,
+    ).toEqual(["Topstep"]);
     expect(
       (
         await other.get(

@@ -27,3 +27,12 @@ No new SQL migration, infrastructure, environment variable or deployment is need
 Focused unit checks: 27 passed across prop tracking, account validation and export utilities. Strict TypeScript passed. A disposable-account browser scenario verifies product/size restrictions, atomic save/rollback, identical-save retry, cross-user rejection, existing-import reuse and saved net progress. It also captures evaluation, funded and incomplete-account layouts at 1440px and 390px in both themes. Scoped ESLint and git whitespace checks passed. The final browser scenario passed in 39.8 seconds; desktop/mobile captures in both themes were visually reviewed, including the reachable sticky dialog footer and no page-wide horizontal overflow.
 
 No full test suite or repeated production build was run for this refinement. No production migration, deployment, live firm API, email or object-storage verification was performed. Real customer data and private captures are not committed.
+
+
+## Firm-first follow-up (2026-10-19)
+
+The page-level action is now Add Firm. Selecting a known or custom firm saves an empty group; Add account inside the group opens the existing guide with the firm already selected. Existing account-based groups are retained automatically. Firm/active/passed/failed totals sit above the filters. Duplicate saved names are prevented under a locked per-user preference row; existing settings are preserved. Empty groups survive reloads and remain private to their owner.
+
+Migration `0013_orange_madripoor.sql` only adds `user_preferences.prop_firm_names` with an empty-array default. It was reviewed and applied to the configured development database; other environments need `npm.cmd run db:migrate -- --reviewed` before releasing this change. The existing v5 backup catalog automatically includes the new preference column. No account/import/rule data is migrated or reassigned.
+
+Checks: TypeScript and scoped ESLint passed; five focused export tests passed. The updated disposable browser scenario passed, checking persistence, idempotent firm adds, cross-user isolation, firm-specific setup and existing-import reuse. Desktop/mobile captures in both themes were reviewed. A contrast issue in the new dialog search input was corrected after that review. No full suite, production build or deployment was performed.

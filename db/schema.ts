@@ -1044,6 +1044,7 @@ export const userPreferences = pgTable(
       .notNull(),
     currency: text("currency").default("USD").notNull(),
     weekStartsOn: integer("week_starts_on").default(0).notNull(),
+    propFirmNames: jsonb("prop_firm_names").$type<string[]>().default([]).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
