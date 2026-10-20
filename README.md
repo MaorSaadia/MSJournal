@@ -493,3 +493,12 @@ Reviewed additive migration `0013_orange_madripoor.sql` adds a firm-name prefere
 
 
 In **Add account**, choose **Custom account** to enter an unlisted size, product, stage and rules under any selected firm. TPT Test and PRO presets now include 25K, 50K, 75K, 100K and 150K with stage-specific verified parameters; agreement-specific gaps remain explicit. See [preset coverage](docs/prop-preset-coverage.md). No additional migration or deployment is needed for this size/custom-entry update.
+
+
+### Visual prop account overview
+
+Open an account name from **Prop Accounts** for a compact account/phase switcher, five summary metrics, a balance-versus-loss-threshold chart, proportional account-position markers, expandable requirements and an account-specific session calendar. Chart ranges include the full phase, 30 days and custom dates. Calendar months, selected dates, chart ranges and detail tabs remain in the URL and are remembered per user/account for the browser session.
+
+Balances and buffers use the same calculation results as the account cards. The chart uses linear balance segments, stepped supported thresholds and isolated dashboard observations; it does not reconstruct intraday equity highs. Payout requests, approvals, deductions and receipts keep their own timestamps. Calendar amounts use saved firm-session rules, preserve gross/net/estimated labels, and link to the owned source journal records. Opening aggregate/daily facts remain in the progress requirements; the calendar's activity rows show imported source records.
+
+See [overview behavior and checks](docs/prop-account-overview.md). No schema migration, new configuration, backup-format change or deployment is required for this presentation update.

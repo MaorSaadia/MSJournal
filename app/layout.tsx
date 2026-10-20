@@ -12,6 +12,7 @@ import "./day-eight.css";
 import "./day-eight-dashboard.css";
 import "./day-nine.css";
 import "./prop-setup.css";
+import "./prop-overview.css";
 import "./day-ten.css";
 import "./day-eleven.css";
 import "./confirmations.css";

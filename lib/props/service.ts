@@ -178,6 +178,15 @@ export async function propData(accountId?: string, headers?: Headers) {
                       revision: p.revision,
                       deductionId: p.deductionId,
                     })),
+                    accountId
+                      ? Object.fromEntries(
+                          journal.records
+                            .filter((r) => r.tradingAccountId === a.id)
+                            .flatMap((r) =>
+                              r.sourceIds.map((id) => [id, r.id]),
+                            ),
+                        )
+                      : undefined,
                   ),
                 ),
             })),

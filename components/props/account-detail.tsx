@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import type { TradingAccount } from "@/lib/accounts/types";
 import type { PropRules } from "@/lib/props/validation";
 import type { PropData } from "@/lib/props/service";
@@ -24,8 +24,9 @@ import { TrackingSetup } from "./tracking-setup";
 import { AccountSetupDialog } from "./account-setup-dialog";
 import { TrackingOverview } from "./tracking-overview";
 import { TrackingSnapshotForm } from "./tracking-snapshot";
+import { useOverviewLocation } from "./overview-location";
 import { PayoutLog } from "./payouts";
-export function PropAccountDetail({
+function AccountDetailContent({
   account: initial,
   ownedAccounts,
 }: {
@@ -33,26 +34,39 @@ export function PropAccountDetail({
   ownedAccounts: TradingAccount[];
 }) {
   const router = useRouter(),
-    search = useSearchParams(),
     [settings, setSettings] = useState(false),
     [setupOpen, setSetupOpen] = useState(false),
     [account, setAccount] = useState(initial),
-    [tab, setTab] = useState<"Overview" | "Rules" | "Payouts" | "History">(
-      "Overview",
-    ),
     [feedback, setFeedback] = useState(""),
     [copiedRules, setCopiedRules] = useState<PropRules | null>(null),
     [copiedEffective, setCopiedEffective] = useState<string | null>(null);
+  const { search, patch, accountHref } = useOverviewLocation(account.id);
+  const tab = ["Overview", "Rules", "Payouts", "History"].includes(
+    search.get("tab") ?? "",
+  )
+    ? search.get("tab")!
+    : "Overview";
+  const setTab = (value: string) => patch({ tab: value });
   const state = usePrivateRequest<PropData>(
       `accountId=${account.id}`,
       "/api/prop-progress",
     ),
     data = state.data,
-    item = data?.accounts[0];
+    item = data?.accounts.find((a) => a.account.id === account.id);
   const progress =
     item?.phases.find((p) => p.phase.id === search.get("phase")) ??
     item?.phases.at(-1) ??
     null;
+  const wantsSnapshot = search.get("snapshot") === "1";
+  useEffect(() => {
+    if (!wantsSnapshot || tab !== "Overview") return;
+    const summary = document.getElementById("firm-dashboard");
+    const details = summary?.closest("details");
+    if (details) {
+      details.open = true;
+      summary?.scrollIntoView({ block: "start" });
+    }
+  }, [wantsSnapshot, tab, progress?.phase.id]);
   const saved = ({
     phaseId,
     accountId,
@@ -66,11 +80,7 @@ export function PropAccountDetail({
     if (accountId !== account.id)
       router.push(`/prop-accounts/${accountId}?phase=${phaseId}`);
     else {
-      window.history.replaceState(
-        null,
-        "",
-        `/prop-accounts/${account.id}?phase=${phaseId}`,
-      );
+      patch({ phase: phaseId, snapshot: null });
       state.refresh();
       router.refresh();
     }
@@ -114,26 +124,71 @@ export function PropAccountDetail({
     }
   }
   return (
-    <div className="prop-workspace">
+    <div
+      className="prop-workspace prop-visual-detail"
+      data-account-id={account.id}
+    >
       <header className="page-header">
         <div>
           <Link href="/prop-accounts" className="prop-back">
             ← Prop Accounts
           </Link>
-          <h1>{metadata.displayName}</h1>
+          <div className="prop-overview-account-heading">
+            <h1>{metadata.displayName}</h1>
+            <select
+              aria-label="Switch account"
+              value={account.id}
+              onChange={(e) => {
+                if (ownedAccounts.some((a) => a.id === e.target.value))
+                  router.push(accountHref(e.target.value));
+              }}
+            >
+              {ownedAccounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.displayName}
+                  {a.archivedAt ? " · archived" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
           <p className="page-description">
             {metadata.firm ?? "Personal"} ·{" "}
-            {metadata.programName ?? "Program not named"} · {metadata.stage} ·{" "}
-            {metadata.status}
+            {progress?.tracking?.rules.product ??
+              metadata.programName ??
+              "Plan not selected"}{" "}
+            · {journalMoney(metadata.nominalSize)} nominal ·{" "}
+            {progress?.tracking?.rules.stage ?? metadata.stage} ·{" "}
+            {progress?.phase.status ?? metadata.status}
+            {progress?.tracking && (
+              <span className="badge violet-badge">
+                {progress.tracking.rules.drawdown.mode}
+              </span>
+            )}
           </p>
         </div>
         <div className="prop-actions">
+          {progress && (
+            <Button variant="outline" onClick={() => setTab("Rules")}>
+              Edit rules
+            </Button>
+          )}
+          {progress && !metadata.archivedAt && (
+            <Button
+              variant="outline"
+              onClick={() => patch({ tab: "Overview", snapshot: "1" })}
+            >
+              Update snapshot
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setSettings(true)}>
             Account settings
           </Button>
-          <Button variant="outline" onClick={() => void archive()}>
-            {metadata.archivedAt ? "Restore" : "Archive account"}
-          </Button>
+          <details className="prop-header-more">
+            <summary>More</summary>
+            <button onClick={() => void archive()}>
+              {metadata.archivedAt ? "Restore account" : "Archive account"}
+            </button>
+          </details>
           <Button asChild>
             <Link href={`/imports?accounts=${account.id}`}>Import CSV</Link>
           </Button>
@@ -159,7 +214,7 @@ export function PropAccountDetail({
           {state.error} <button onClick={state.refresh}>Retry</button>
         </p>
       )}
-      {!data ? (
+      {!data || !item ? (
         <p role="status" className="prop-setup">
           Loading account progress…
         </p>
@@ -167,16 +222,22 @@ export function PropAccountDetail({
         <>
           <div className="prop-detail-toolbar">
             <label>
-              Tracking period
+              {item && item.phases.length > 1
+                ? "Tracking phase"
+                : "Current phase"}
               <select
                 aria-label="Tracking period"
                 value={progress?.phase.id ?? ""}
                 onChange={(e) => {
-                  window.history.replaceState(
-                    null,
-                    "",
-                    `?phase=${e.target.value}`,
-                  );
+                  patch({
+                    phase: e.target.value,
+                    month: null,
+                    day: null,
+                    from: null,
+                    through: null,
+                    range: null,
+                    snapshot: null,
+                  });
                   setFeedback("");
                 }}
               >
@@ -188,7 +249,13 @@ export function PropAccountDetail({
               </select>
             </label>
             <span>
-              Latest import:{" "}
+              Data observation:{" "}
+              {progress?.tracking
+                ? journalTimestamp(progress.tracking.asOf, data.timezone)
+                : item.latestActivity
+                  ? journalTimestamp(item.latestActivity, data.timezone)
+                  : "None"}{" "}
+              · last import:{" "}
               {item?.latestImport
                 ? journalTimestamp(item.latestImport, data.timezone)
                 : "None"}{" "}
@@ -204,6 +271,19 @@ export function PropAccountDetail({
           {!progress ? (
             <section className="prop-setup">
               <h2>Choose your account plan</h2>
+              {!!item.activity.count && (
+                <p>
+                  Imported account {item.activity.basis} P&L:{" "}
+                  <strong>
+                    {journalMoney(
+                      item.activity.net ?? item.activity.gross,
+                      true,
+                    )}
+                  </strong>
+                  . This activity is not yet assigned to a configured tracking
+                  phase.
+                </p>
+              )}
               <p>
                 {item?.activity.count ?? 0} existing source records are ready to
                 reuse. No tracking phase or rules have been saved; no reupload
@@ -232,8 +312,23 @@ export function PropAccountDetail({
                 <>
                   {progress.tracking ? (
                     <TrackingOverview
+                      key={progress.phase.id}
                       progress={progress}
                       timezone={data.timezone}
+                      payouts={data.payouts}
+                      readOnly={!!metadata.archivedAt}
+                      onRules={() => setTab("Rules")}
+                      onSnapshot={() =>
+                        patch({ tab: "Overview", snapshot: "1" })
+                      }
+                      onBaseline={() => {
+                        const section =
+                          document.getElementById("phase-baseline");
+                        if (section instanceof HTMLDetailsElement) {
+                          section.open = true;
+                          section.scrollIntoView({ block: "start" });
+                        }
+                      }}
                     />
                   ) : (
                     <>
@@ -251,12 +346,14 @@ export function PropAccountDetail({
                       />
                     </>
                   )}
-                  <section className="panel prop-balance-panel">
-                    <header className="panel-header">
-                      <h2>Balance & threshold observations</h2>
-                    </header>
-                    <PropBalanceChart progress={progress} />
-                  </section>
+                  {!progress.tracking && (
+                    <section className="panel prop-balance-panel">
+                      <header className="panel-header">
+                        <h2>Balance & threshold observations</h2>
+                      </header>
+                      <PropBalanceChart progress={progress} />
+                    </section>
+                  )}
                   <div className="prop-freshness">
                     Latest imported close:{" "}
                     {progress.latestActivity
@@ -272,7 +369,7 @@ export function PropAccountDetail({
                     . Estimates are based on imported closes; manual
                     observations are dated separately.
                   </div>
-                  {progress.snapshots[0] && (
+                  {!progress.tracking && progress.snapshots[0] && (
                     <div className="prop-manual">
                       <h2>Manually recorded from prop dashboard</h2>
                       <p>
@@ -371,7 +468,7 @@ export function PropAccountDetail({
                           />
                         )}
                       </details>
-                      <details>
+                      <details id="phase-baseline">
                         <summary>
                           Confirm phase baseline / imported history
                         </summary>
@@ -622,6 +719,12 @@ export function PropAccountDetail({
       )}
     </div>
   );
+}
+export function PropAccountDetail(props: {
+  account: TradingAccount;
+  ownedAccounts: TradingAccount[];
+}) {
+  return <AccountDetailContent key={props.account.id} {...props} />;
 }
 import type { PhaseProgress } from "@/lib/props/model";
 function BaselineCorrection({

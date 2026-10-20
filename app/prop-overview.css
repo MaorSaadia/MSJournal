@@ -1,0 +1,738 @@
+.prop-visual-detail {
+  min-width: 0;
+}
+.prop-visual-detail .page-header {
+  align-items: flex-start;
+  gap: 20px;
+}
+.prop-overview-account-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+.prop-overview-account-heading select {
+  max-width: 240px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 12px;
+}
+.prop-visual-detail .page-description {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.prop-visual-detail .prop-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.prop-header-more {
+  position: relative;
+}
+.prop-header-more summary {
+  cursor: pointer;
+  font-size: 12px;
+  min-height: 36px;
+  padding: 9px;
+}
+.prop-header-more button {
+  position: absolute;
+  right: 0;
+  z-index: 10;
+  background: var(--card);
+  padding: 14px;
+  min-width: 150px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  box-shadow: 0 8px 25px #0002;
+}
+.prop-account-overview {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.prop-overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+.prop-overview-metrics section {
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 18px;
+  border-radius: 10px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.prop-overview-metrics section > span {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.prop-overview-metrics strong {
+  font-size: clamp(19px, 1.8vw, 28px);
+  line-height: 1.3;
+  font-weight: 650;
+  letter-spacing: -0.5px;
+  overflow-wrap: anywhere;
+}
+.prop-overview-metrics small {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.7;
+}
+.prop-overview-data-note {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  justify-content: space-between;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--violet) 5%, var(--card));
+  padding: 16px 18px;
+  border-radius: 9px;
+}
+.prop-overview-data-note strong {
+  font-size: 13px;
+}
+.prop-overview-data-note p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.75;
+}
+.prop-overview-data-note button {
+  flex-shrink: 0;
+}
+.prop-overview-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+}
+.prop-overview-panel-heading h2,
+.prop-overview-payout-forecast h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.prop-overview-panel-heading p {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.prop-overview-chart,
+.prop-account-position,
+.prop-overview-calendar {
+  min-width: 0;
+  overflow: hidden;
+}
+.prop-chart-range {
+  display: flex;
+  flex-shrink: 0;
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.prop-chart-range button {
+  font-size: 11px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  min-height: 32px;
+  transition: background 0.18s;
+}
+.prop-chart-range button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  color: var(--primary);
+}
+.prop-chart-custom-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0 20px 14px;
+}
+.prop-chart-custom-range label {
+  display: grid;
+  gap: 7px;
+  font-size: 11px;
+}
+.prop-chart-custom-range input {
+  padding: 9px;
+  border-radius: 6px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+}
+.prop-overview-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 0 20px 12px;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.prop-overview-chart-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 15px;
+  border-top: 2px dashed var(--muted-foreground);
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.prop-overview-chart-legend .balance::before {
+  border-color: var(--positive);
+  border-top-style: solid;
+}
+.prop-overview-chart-legend .floor::before {
+  border-color: var(--negative);
+}
+.prop-overview-chart-legend .target::before {
+  border-color: var(--violet);
+}
+.prop-overview-chart-canvas {
+  height: 360px;
+  width: 100%;
+  min-width: 0;
+}
+.prop-overview-tooltip {
+  max-width: min(300px, 75vw);
+  display: grid;
+  gap: 7px;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.prop-overview-tooltip small {
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+.prop-overview-chart-note {
+  margin: 0;
+  padding: 12px 20px 18px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.prop-overview-empty {
+  min-height: 200px;
+  padding: 50px 25px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  line-height: 1.8;
+  text-align: center;
+}
+.prop-overview-events {
+  margin: 0 20px 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+.prop-overview-events summary {
+  cursor: pointer;
+  padding: 8px 0;
+}
+.prop-overview-events p {
+  line-height: 1.8;
+}
+.prop-position-track {
+  position: relative;
+  height: 10px;
+  margin: 26px 24px 28px;
+  border-radius: 8px;
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--negative) 35%, var(--track)),
+    var(--track) 35%,
+    color-mix(in srgb, var(--positive) 35%, var(--track))
+  );
+}
+.prop-position-marker {
+  position: absolute;
+  top: -8px;
+  height: 26px;
+  border-left: 2px solid var(--muted-foreground);
+}
+.prop-position-marker.floor {
+  border-color: var(--negative);
+}
+.prop-position-marker.target {
+  border-color: var(--violet);
+}
+.prop-position-marker.current {
+  border-color: var(--positive);
+  top: -12px;
+  height: 34px;
+  z-index: 2;
+}
+.prop-position-marker i {
+  position: absolute;
+  left: -5px;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  background: var(--card);
+  border: 2px solid currentColor;
+  border-radius: 100%;
+}
+.prop-position-marker.current i {
+  top: 12px;
+  background: var(--positive);
+  border-color: var(--positive);
+}
+.prop-position-marker.floor i {
+  border-color: var(--negative);
+}
+.prop-position-marker.target i {
+  border-color: var(--violet);
+}
+.prop-position-legend {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0 24px;
+  gap: 12px 24px;
+}
+.prop-position-legend > span {
+  display: grid;
+  grid-template-columns: 7px auto;
+  align-items: center;
+  gap: 5px 7px;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.prop-position-legend strong {
+  grid-column: 2;
+  font-size: 12px;
+  color: var(--foreground);
+}
+.prop-position-legend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted-foreground);
+}
+.prop-position-legend .floor i {
+  background: var(--negative);
+}
+.prop-position-legend .current i {
+  background: var(--positive);
+}
+.prop-position-legend .target i {
+  background: var(--violet);
+}
+.prop-position-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  border-top: 1px solid var(--border);
+  margin: 20px 20px 0;
+  padding: 18px 0;
+}
+.prop-position-values span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-bottom: 7px;
+}
+.prop-position-values strong {
+  font-size: 19px;
+  overflow-wrap: anywhere;
+}
+.prop-overview-requirements > header {
+  padding-left: 0;
+}
+.prop-requirement-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.prop-overview-requirement {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--card);
+  min-width: 0;
+}
+.prop-overview-requirement summary {
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+}
+.prop-overview-requirement summary::-webkit-details-marker {
+  display: none;
+}
+.prop-overview-requirement summary > div:first-child {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  justify-content: space-between;
+}
+.prop-overview-requirement h3 {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.prop-requirement-state {
+  font-size: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+}
+.prop-requirement-state.met {
+  color: var(--positive);
+}
+.prop-overview-requirement summary p {
+  margin: 14px 0;
+  display: grid;
+  gap: 7px;
+  overflow-wrap: anywhere;
+}
+.prop-overview-requirement summary strong {
+  font-size: 19px;
+  line-height: 1.5;
+}
+.prop-overview-requirement summary p span {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.prop-overview-requirement summary small {
+  font-size: 10px;
+  color: var(--primary);
+  display: block;
+  margin-top: 10px;
+}
+.prop-overview-fill {
+  height: 4px;
+  background: var(--track);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.prop-overview-fill span {
+  display: block;
+  height: 100%;
+  background: var(--positive);
+  border-radius: 3px;
+}
+.prop-requirement-explanation {
+  padding: 0 16px 16px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+.prop-overview-requirement[open] .prop-requirement-explanation {
+  animation: prop-overview-enter 0.2s ease-out;
+}
+.prop-overview-requirements > .prop-overview-chart-note {
+  padding-left: 0;
+  padding-bottom: 0;
+}
+.prop-overview-payout-forecast {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 20px;
+  background: color-mix(in srgb, var(--violet) 4%, var(--card));
+}
+.prop-overview-payout-forecast > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 18px;
+}
+.prop-overview-payout-forecast span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-bottom: 6px;
+}
+.prop-overview-payout-forecast strong {
+  font-size: 20px;
+}
+.prop-overview-payout-forecast p {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  line-height: 1.8;
+  margin-bottom: 0;
+}
+.prop-calendar-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.prop-calendar-controls button {
+  min-width: 36px;
+  min-height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.prop-calendar-controls input {
+  border: 1px solid var(--border);
+  padding: 8px;
+  border-radius: 6px;
+  color: var(--foreground);
+  background: var(--background);
+  font-size: 12px;
+}
+.prop-session-calendar-scroll {
+  overflow-x: auto;
+  padding: 0 18px;
+  overscroll-behavior-x: contain;
+}
+.prop-session-weekdays,
+.prop-session-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 590px;
+}
+.prop-session-weekdays span {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  text-align: center;
+  padding: 10px 4px;
+}
+.prop-session-calendar-grid button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 7px;
+  min-height: 96px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  text-align: left;
+  background: color-mix(in srgb, var(--card) 65%, var(--background));
+}
+.prop-session-calendar-grid button > span:first-child {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  align-self: flex-end;
+}
+.prop-session-calendar-grid strong {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.prop-session-calendar-grid small {
+  font-size: 9px;
+  color: var(--muted-foreground);
+}
+.prop-session-calendar-grid .profit {
+  background: color-mix(in srgb, var(--positive) 7%, var(--card));
+}
+.prop-session-calendar-grid .loss {
+  background: color-mix(in srgb, var(--negative) 7%, var(--card));
+}
+.prop-session-calendar-grid .profit strong {
+  color: var(--positive);
+}
+.prop-session-calendar-grid .loss strong {
+  color: var(--negative);
+}
+.prop-session-calendar-grid .outside {
+  opacity: 0.45;
+}
+.prop-session-calendar-grid [aria-pressed="true"] {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+.prop-session-qualification {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  color: var(--positive);
+  font-size: 11px;
+}
+.prop-session-calendar-grid .prop-session-payout {
+  color: var(--violet);
+}
+.prop-session-detail {
+  margin: 18px;
+  border-top: 1px solid var(--border);
+  padding: 16px 0 0;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.prop-session-detail h3 {
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+.prop-session-detail p {
+  color: var(--muted-foreground);
+}
+.prop-session-detail ul {
+  list-style: none;
+  padding: 0;
+}
+.prop-session-detail li {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+.prop-session-detail a {
+  color: var(--primary);
+  min-height: 32px;
+}
+.prop-overview-checks {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 16px;
+  background: var(--card);
+  font-size: 12px;
+}
+.prop-overview-checks summary {
+  cursor: pointer;
+}
+.prop-overview-checks > div {
+  line-height: 1.8;
+  padding-top: 10px;
+}
+.prop-overview-checks a {
+  display: block;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.prop-overview-checks button {
+  margin-top: 10px;
+}
+@keyframes prop-overview-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 1100px) {
+  .prop-overview-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .prop-requirement-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .prop-visual-detail .page-header {
+    flex-direction: column;
+  }
+  .prop-overview-data-note {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (max-width: 600px) {
+  .prop-overview-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .prop-overview-metrics section {
+    padding: 14px;
+  }
+  .prop-overview-metrics strong {
+    font-size: 22px;
+  }
+  .prop-overview-metrics small {
+    font-size: 11px;
+  }
+  .prop-overview-metrics section:last-child {
+    grid-column: 1/-1;
+  }
+  .prop-overview-panel-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+  .prop-overview-chart-canvas {
+    height: 300px;
+  }
+  .prop-chart-range {
+    width: 100%;
+  }
+  .prop-chart-range button {
+    flex: 1;
+    min-height: 40px;
+    font-size: 12px;
+  }
+  .prop-chart-custom-range input,
+  .prop-calendar-controls input,
+  .prop-overview-account-heading select {
+    font-size: 16px;
+    min-height: 44px;
+    max-width: 100%;
+  }
+  .prop-overview-account-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .prop-visual-detail .prop-actions {
+    width: 100%;
+  }
+  .prop-visual-detail .prop-actions button {
+    min-height: 42px;
+  }
+  .prop-position-values {
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+  }
+  .prop-position-values strong {
+    font-size: 18px;
+  }
+  .prop-position-legend {
+    padding: 0 18px;
+    gap: 16px;
+  }
+  .prop-requirement-cards {
+    grid-template-columns: 1fr;
+  }
+  .prop-overview-requirement summary {
+    padding: 18px;
+  }
+  .prop-overview-payout-forecast > div {
+    grid-template-columns: 1fr 1fr;
+  }
+  .prop-calendar-controls {
+    width: 100%;
+  }
+  .prop-calendar-controls button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .prop-session-calendar-scroll {
+    padding: 0 12px;
+  }
+  .prop-overview-chart-note {
+    padding: 12px 16px 16px;
+  }
+  .prop-overview-data-note {
+    padding: 16px;
+  }
+  .prop-header-more summary {
+    min-height: 42px;
+  }
+  .prop-overview-account-heading h1 {
+    overflow-wrap: anywhere;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prop-account-overview *,
+  .prop-visual-detail * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

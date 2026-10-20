@@ -903,6 +903,7 @@ export function trackingProgress(
     tradingDays,
     bestDay,
     consistency,
+    consistencyBasis: { profit: consistencyProfit, bestDay: assessedBest },
     effectiveTarget:
       r.evaluation.target !== null &&
       r.evaluation.targetAdjustsForConsistency &&
@@ -935,7 +936,10 @@ export function trackingProgress(
       : anchor && latestActivity === anchorAt
         ? "Confirmed snapshot"
         : "Derived from recorded activity; not live equity",
-    days,
+    days: days.map((day) => ({
+      ...day,
+      countedForDayRequirement: countable.some((d) => d.start === day.start),
+    })),
     points,
     positionLimits,
     breachObserved,

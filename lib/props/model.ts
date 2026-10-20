@@ -11,6 +11,7 @@ import { shiftDay } from "@/lib/calendar/model";
 import { localInstant, type PropRules } from "./validation";
 import type { CashAdjustment } from "@/lib/balances/model";
 import { trackingProgress } from "./tracking-calculations";
+import { phaseSessionActivity } from "./overview-model";
 import { activitySummary } from "./setup-model";
 import type { SnapshotDetails, Payout } from "./tracking-rules";
 export type Phase = {
@@ -86,6 +87,7 @@ export function phaseProgress(
   now: string,
   pending = false,
   payouts: Payout[] = [],
+  recordIds?: Record<string, string>,
 ) {
   const stop = phase.endAt && phase.endAt < now ? phase.endAt : now;
   const scoped = all.filter(
@@ -567,6 +569,9 @@ export function phaseProgress(
   const current = periods.filter((p) => p.effectiveAt <= stop).at(-1) ?? null;
   return {
     phase,
+    sessions: recordIds
+      ? phaseSessionActivity(phase, versions, portions, fees, stop, recordIds)
+      : [],
     sessionStats: activitySummary(
       portions,
       fees,
