@@ -235,7 +235,7 @@ test("account overview agrees with progress, preserves dates and isolates accoun
     journalMoney(evaluationData.balance),
   );
   await check(metric("Phase trading P&L")).toHaveText(
-    journalMoney(evaluationData.phaseProfit),
+    journalMoney(evaluationData.phaseProfit, true),
   );
   await check(page.locator(".prop-overview-chart-canvas")).toBeVisible();
   await page
@@ -295,6 +295,12 @@ test("account overview agrees with progress, preserves dates and isolates accoun
   await check(page.locator(".prop-overview-events")).toContainText(
     "4 Oct 2026",
   );
+  await page.getByRole("button", { name: "Events", exact: true }).click();
+  await check(
+    page.locator(".prop-session-calendar-grid .prop-session-payout-event"),
+  ).toHaveCount(3);
+  await page.getByRole("button", { name: "P&L", exact: true }).click();
+
   for (const theme of ["light", "dark"]) {
     await page.evaluate(
       (t) => document.documentElement.classList.toggle("dark", t === "dark"),

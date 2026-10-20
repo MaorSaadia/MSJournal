@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { TradingAccount } from "@/lib/accounts/types";
 import type { PropRules } from "@/lib/props/validation";
@@ -125,46 +126,35 @@ function AccountDetailContent({
   }
   return (
     <div
-      className="prop-workspace prop-visual-detail"
+      className="prop-workspace prop-visual-detail prop-reference-detail"
       data-account-id={account.id}
     >
-      <header className="page-header">
-        <div>
-          <Link href="/prop-accounts" className="prop-back">
-            ← Prop Accounts
+      <header className="page-header prop-reference-header">
+        <div className="prop-reference-switcher">
+          <Link
+            href="/prop-accounts"
+            className="prop-back"
+            aria-label="Back to Prop Accounts"
+          >
+            <ArrowLeft size={17} />
           </Link>
-          <div className="prop-overview-account-heading">
-            <h1>{metadata.displayName}</h1>
-            <select
-              aria-label="Switch account"
-              value={account.id}
-              onChange={(e) => {
-                if (ownedAccounts.some((a) => a.id === e.target.value))
-                  router.push(accountHref(e.target.value));
-              }}
-            >
-              {ownedAccounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.displayName}
-                  {a.archivedAt ? " · archived" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <p className="page-description">
-            {metadata.firm ?? "Personal"} ·{" "}
-            {progress?.tracking?.rules.product ??
-              metadata.programName ??
-              "Plan not selected"}{" "}
-            · {journalMoney(metadata.nominalSize)} nominal ·{" "}
-            {progress?.tracking?.rules.stage ?? metadata.stage} ·{" "}
-            {progress?.phase.status ?? metadata.status}
-            {progress?.tracking && (
-              <span className="badge violet-badge">
-                {progress.tracking.rules.drawdown.mode}
-              </span>
-            )}
-          </p>
+          <span className="prop-account-switcher-label">Account</span>
+          <h1 className="sr-only">{metadata.displayName}</h1>
+          <select
+            aria-label="Switch account"
+            value={account.id}
+            onChange={(e) => {
+              if (ownedAccounts.some((a) => a.id === e.target.value))
+                router.push(accountHref(e.target.value));
+            }}
+          >
+            {ownedAccounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.displayName}
+                {a.archivedAt ? " (archived)" : ""}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="prop-actions">
           {progress && (
@@ -180,29 +170,57 @@ function AccountDetailContent({
               Update snapshot
             </Button>
           )}
-          <Button variant="outline" onClick={() => setSettings(true)}>
-            Account settings
-          </Button>
-          <details className="prop-header-more">
-            <summary>More</summary>
-            <button onClick={() => void archive()}>
-              {metadata.archivedAt ? "Restore account" : "Archive account"}
-            </button>
-          </details>
           <Button asChild>
             <Link href={`/imports?accounts=${account.id}`}>Import CSV</Link>
           </Button>
+          <details className="prop-header-more">
+            <summary>Manage</summary>
+            <div className="prop-header-menu">
+              <button onClick={() => setSettings(true)}>
+                Account settings
+              </button>
+              <Link href={`/trade-view?${query}`}>
+                Trade View - phase dates
+              </Link>
+              <Link
+                href={`/calendar?${query}&month=${query.get("start")?.slice(0, 7) ?? ""}`}
+              >
+                Journal calendar
+              </Link>
+              <Link href={`/prop-accounts/${account.id}/fees`}>
+                Fees & net P&L
+              </Link>
+              <button onClick={state.refresh}>Refresh progress</button>
+              <button onClick={() => void archive()}>
+                {metadata.archivedAt ? "Restore account" : "Archive account"}
+              </button>
+            </div>
+          </details>
         </div>
       </header>
-      <div className="prop-links">
-        <Link href={`/trade-view?${query}`}>Trade View · phase dates</Link>
-        <Link
-          href={`/calendar?${query}&month=${query.get("start")?.slice(0, 7) ?? ""}`}
+      <div className="prop-reference-identity">
+        <span
+          className={`prop-reference-status ${(progress?.phase.status ?? metadata.status).toLowerCase()}`}
         >
-          Calendar · journal days
-        </Link>
-        <Link href={`/prop-accounts/${account.id}/fees`}>Fee settings</Link>
-        <button onClick={state.refresh}>Refresh progress</button>
+          {progress?.phase.status ?? metadata.status}
+        </span>
+        <span className="prop-reference-stage">
+          {progress?.tracking?.rules.stage ?? metadata.stage}
+        </span>
+        <strong>
+          {metadata.firm ?? "Personal"}
+          {progress?.tracking?.rules.product
+            ? ` / ${progress.tracking.rules.product}`
+            : metadata.programName
+              ? ` / ${metadata.programName}`
+              : ""}
+        </strong>
+        <span>{journalMoney(metadata.nominalSize)} nominal</span>
+        {progress?.tracking && (
+          <span className="badge violet-badge">
+            {progress.tracking.rules.drawdown.mode}
+          </span>
+        )}
       </div>
       {feedback && (
         <p role="status" className="prop-local-note">
@@ -221,46 +239,55 @@ function AccountDetailContent({
       ) : (
         <>
           <div className="prop-detail-toolbar">
-            <label>
-              {item && item.phases.length > 1
-                ? "Tracking phase"
-                : "Current phase"}
-              <select
-                aria-label="Tracking period"
-                value={progress?.phase.id ?? ""}
-                onChange={(e) => {
-                  patch({
-                    phase: e.target.value,
-                    month: null,
-                    day: null,
-                    from: null,
-                    through: null,
-                    range: null,
-                    snapshot: null,
-                  });
-                  setFeedback("");
-                }}
-              >
-                {item?.phases.map((p) => (
-                  <option key={p.phase.id} value={p.phase.id}>
-                    {p.phase.label} · {p.phase.kind} · {p.phase.status}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <span>
-              Data observation:{" "}
-              {progress?.tracking
-                ? journalTimestamp(progress.tracking.asOf, data.timezone)
-                : item.latestActivity
-                  ? journalTimestamp(item.latestActivity, data.timezone)
-                  : "None"}{" "}
-              · last import:{" "}
-              {item?.latestImport
-                ? journalTimestamp(item.latestImport, data.timezone)
-                : "None"}{" "}
-              · analyzed {journalTimestamp(data.asOf, data.timezone)}
-            </span>
+            {item.phases.length > 1 ? (
+              <label>
+                {item && item.phases.length > 1
+                  ? "Tracking phase"
+                  : "Current phase"}
+                <select
+                  aria-label="Tracking period"
+                  value={progress?.phase.id ?? ""}
+                  onChange={(e) => {
+                    patch({
+                      phase: e.target.value,
+                      month: null,
+                      day: null,
+                      from: null,
+                      through: null,
+                      range: null,
+                      snapshot: null,
+                    });
+                    setFeedback("");
+                  }}
+                >
+                  {item?.phases.map((p) => (
+                    <option key={p.phase.id} value={p.phase.id}>
+                      {p.phase.label} · {p.phase.kind} · {p.phase.status}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <span className="prop-reference-current-phase">
+                {progress?.phase.label ?? "Not configured"}
+              </span>
+            )}
+            <details className="prop-reference-freshness">
+              <summary>
+                {progress?.tracking?.quality ?? "Recorded account activity"}
+                {progress?.tracking
+                  ? ` - ${journalTimestamp(progress.tracking.asOf, data.timezone)}`
+                  : ""}
+              </summary>
+              <p>
+                Last import:{" "}
+                {item.latestImport
+                  ? journalTimestamp(item.latestImport, data.timezone)
+                  : "None"}
+                . Refreshed {journalTimestamp(data.asOf, data.timezone)}. These
+                are journal observations, not live account risk.
+              </p>
+            </details>
           </div>
           {metadata.archivedAt && (
             <p className="prop-local-note">

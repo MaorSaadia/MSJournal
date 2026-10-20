@@ -42,6 +42,8 @@ export function OverviewCalendar({
     ? search.get("day")
     : null;
   const weeks = calendarWeeks(month, weekStartsOn);
+  const calendarView =
+    search.get("calendarView") === "events" ? "events" : "pnl";
   const payoutEvents = phasePayoutEvents(progress, payouts).flatMap((event) => {
     try {
       const policy =
@@ -114,7 +116,23 @@ export function OverviewCalendar({
     <section className="panel prop-overview-calendar">
       <header className="prop-overview-panel-heading">
         <div>
-          <h2>Trading sessions</h2>
+          <div className="prop-calendar-heading-tabs">
+            <h2>Trading calendar</h2>
+            <div className="prop-chart-range" aria-label="Calendar view">
+              <button
+                aria-pressed={calendarView === "pnl"}
+                onClick={() => patch({ calendarView: "pnl" })}
+              >
+                P&L
+              </button>
+              <button
+                aria-pressed={calendarView === "events"}
+                onClick={() => patch({ calendarView: "events" })}
+              >
+                Events
+              </button>
+            </div>
+          </div>
           <p>
             Firm-session dates · {p.rules.session.timezone} · reset{" "}
             {p.rules.session.reset}
@@ -176,7 +194,7 @@ export function OverviewCalendar({
                 onClick={() => patch({ day: date })}
               >
                 <span>{Number(date.slice(-2))}</span>
-                {day.sessions.length > 0 && (
+                {calendarView === "pnl" && day.sessions.length > 0 && (
                   <>
                     <strong>{journalMoney(value, true)}</strong>
                     <small>
@@ -188,6 +206,18 @@ export function OverviewCalendar({
                     </small>
                   </>
                 )}
+                {calendarView === "events" &&
+                  day.events.slice(0, 2).map((event, i) => (
+                    <small
+                      className="prop-session-payout-event"
+                      key={`${event.at}-${i}`}
+                    >
+                      {event.label}
+                      {event.amount !== null && (
+                        <strong>{journalMoney(event.amount)}</strong>
+                      )}
+                    </small>
+                  ))}
                 {qualifying && (
                   <span
                     className="prop-session-qualification"

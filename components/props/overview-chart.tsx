@@ -84,12 +84,11 @@ export function OverviewChart({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
     >
-      <header className="prop-overview-panel-heading">
-        <div>
-          <h2>Balance & loss threshold</h2>
-          <p>
-            {progress.phase.label} · {timezone} · one phase only
-          </p>
+      <header className="prop-overview-panel-heading prop-reference-chart-heading">
+        <h2 className="sr-only">Balance & loss threshold</h2>
+        <div className="prop-reference-series">
+          <span className="balance">Balance</span>
+          <span className="floor">Minimum balance</span>
         </div>
         <div className="prop-chart-range" aria-label="Chart date range">
           {[
@@ -129,12 +128,6 @@ export function OverviewChart({
           </label>
         </div>
       )}
-      <div className="prop-overview-chart-legend">
-        <span className="balance">Balance</span>
-        <span className="floor">Loss threshold</span>
-        {reference && <span className="target">{reference.label}</span>}
-        <span>Starting balance</span>
-      </div>
       {!valid ? (
         <p className="prop-overview-empty" role="status">
           Choose valid dates with From on or before Through.
@@ -153,7 +146,7 @@ export function OverviewChart({
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={rows}
-              margin={{ top: 22, right: 18, left: 0, bottom: 12 }}
+              margin={{ top: 18, right: 12, left: 14, bottom: 14 }}
             >
               <defs>
                 <linearGradient
@@ -166,19 +159,19 @@ export function OverviewChart({
                   <stop
                     offset="0%"
                     stopColor="var(--positive)"
-                    stopOpacity={0.17}
+                    stopOpacity={0.24}
                   />
                   <stop
                     offset="100%"
                     stopColor="var(--positive)"
-                    stopOpacity={0.01}
+                    stopOpacity={0.015}
                   />
                 </linearGradient>
               </defs>
               <CartesianGrid
                 vertical={false}
                 stroke="var(--border)"
-                strokeDasharray="3 5"
+                strokeOpacity={0.55}
               />
               <XAxis
                 dataKey="at"
@@ -196,18 +189,25 @@ export function OverviewChart({
                   }).format(new Date(at))
                 }
                 minTickGap={45}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={12}
                 tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
               />
               <YAxis
                 domain={[low - pad, high + pad]}
-                width={72}
+                width={78}
+                orientation="right"
+                axisLine={false}
+                tickLine={false}
+                tickMargin={12}
                 tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
                 tickFormatter={(v) =>
                   new Intl.NumberFormat("en-US", {
                     style: "currency",
                     currency: "USD",
-                    notation: "compact",
-                    maximumFractionDigits: 1,
+                    notation: Math.abs(v) >= 1000000 ? "compact" : "standard",
+                    maximumFractionDigits: 0,
                   }).format(v)
                 }
               />
@@ -287,7 +287,12 @@ export function OverviewChart({
                 stroke="var(--positive)"
                 fill={`url(#balance-${progress.phase.id})`}
                 strokeWidth={2}
-                dot={{ r: 2 }}
+                dot={
+                  rows.filter((row) => row.balance !== null).length === 1
+                    ? { r: 3 }
+                    : false
+                }
+                activeDot={{ r: 4 }}
                 connectNulls={false}
                 isAnimationActive={false}
               />
@@ -297,8 +302,12 @@ export function OverviewChart({
                 name="Loss threshold"
                 stroke="var(--negative)"
                 strokeDasharray="6 5"
-                strokeWidth={2}
-                dot={{ r: 2 }}
+                strokeWidth={1.6}
+                dot={
+                  rows.filter((row) => row.floor !== null).length === 1
+                    ? { r: 3 }
+                    : false
+                }
                 connectNulls={false}
                 isAnimationActive={false}
               />
@@ -318,18 +327,26 @@ export function OverviewChart({
           </ResponsiveContainer>
         </div>
       )}
-      <p className="prop-overview-chart-note">
-        {rows.filter((r) => r.exactBalance !== null || r.exactFloor !== null)
-          .length === 1
-          ? "One observation: a point is shown. History will appear as supported observations are added. "
-          : ""}
-        Linear balances and step thresholds reflect recorded data. Gaps are
-        intentional; snapshot points do not establish the intervening equity
-        path.{" "}
-        {progress.tracking?.estimatedFees
-          ? "Amounts include estimated fees."
-          : ""}
-      </p>
+      <details className="prop-chart-method">
+        <summary>Chart details</summary>
+        <div className="prop-overview-chart-legend">
+          {reference && <span className="target">{reference.label}</span>}
+          {progress.phase.baseline !== null && <span>Starting balance</span>}
+        </div>
+        <p className="prop-overview-chart-note">
+          {progress.phase.label} / {timezone}.
+          {rows.filter((r) => r.exactBalance !== null || r.exactFloor !== null)
+            .length === 1
+            ? "One observation: a point is shown. History will appear as supported observations are added. "
+            : ""}
+          Linear balances and step thresholds reflect recorded data. Gaps are
+          intentional; snapshot points do not establish the intervening equity
+          path.{" "}
+          {progress.tracking?.estimatedFees
+            ? "Amounts include estimated fees."
+            : ""}
+        </p>
+      </details>
       {events.length > 0 && (
         <details className="prop-overview-events">
           <summary>

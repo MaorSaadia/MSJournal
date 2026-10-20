@@ -1,4 +1,5 @@
 "use client";
+import { D } from "@/lib/journal/processing";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { journalMoney } from "@/lib/journal/calculations";
@@ -48,7 +49,7 @@ export function TrackingOverview({
           : p.quality,
     },
     {
-      label: "Loss threshold",
+      label: "Minimum balance",
       value: money(p.threshold),
       note:
         p.threshold === null
@@ -65,7 +66,10 @@ export function TrackingOverview({
     },
     {
       label: `Phase trading P&L${p.estimatedFees ? " · estimated net" : " · net"}`,
-      value: money(p.phaseProfit),
+      value:
+        p.phaseProfit === null
+          ? money(null)
+          : journalMoney(p.phaseProfit, true),
       note:
         p.phaseProfit === null
           ? `Imported gross ${money(progress.gross)} · confirm missing fees/history`
@@ -85,18 +89,53 @@ export function TrackingOverview({
           : `${r.stage === "Evaluation" ? (r.evaluation.tradingDays ?? "Unspecified") : (r.payout.requiredDays ?? "Unspecified")} required · firm sessions`,
     },
   ];
+  const compactMetrics = [
+    metrics[0],
+    metrics[1],
+    metrics[3],
+    metrics[4],
+    r.consistency.percent !== null || r.consistency.status === "unknown"
+      ? {
+          label: "Consistency",
+          value:
+            p.consistency.percent === null
+              ? "Needs review"
+              : `${new D(p.consistency.percent).toDecimalPlaces(2).toFixed()}%`,
+          note: `${r.consistency.percent === null ? "Confirm saved consistency rules" : `${r.consistency.comparison === "strict" ? "Less than" : "At most"} ${r.consistency.percent}% required`}. Exact percentage, denominator and additional-profit assumption are explained in Requirements.`,
+        }
+      : metrics[2],
+  ];
   const missing =
     p.balance === null ||
     p.threshold === null ||
     progress.phase.baseline === null ||
     p.phaseProfit === null;
   const markers = accountPosition(progress);
+  const startMarker = markers?.find((m) => m.key === "start"),
+    currentMarker = markers?.find((m) => m.key === "current");
+  const fillLeft =
+    startMarker && currentMarker
+      ? Math.min(startMarker.position, currentMarker.position)
+      : null;
+  const fillWidth =
+    startMarker && currentMarker
+      ? Math.abs(startMarker.position - currentMarker.position)
+      : null;
   return (
     <div className="prop-account-overview" data-phase-id={progress.phase.id}>
       <div className="prop-overview-metrics">
-        {metrics.map((m) => (
+        {compactMetrics.map((m) => (
           <motion.section
             key={m.label}
+            tabIndex={0}
+            title={m.note}
+            className={
+              m === metrics[3] && p.phaseProfit !== null
+                ? new D(p.phaseProfit).lt(0)
+                  ? "negative"
+                  : "positive"
+                : ""
+            }
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
@@ -123,7 +162,7 @@ export function TrackingOverview({
           </div>
           {readOnly ? (
             <p className="small muted">
-              Restore this account from More to add tracking data.
+              Restore this account from Manage to add tracking data.
             </p>
           ) : (
             <Button
@@ -147,14 +186,7 @@ export function TrackingOverview({
         payouts={payouts}
       />
       <section className="panel prop-account-position">
-        <header className="prop-overview-panel-heading">
-          <div>
-            <h2>Account position</h2>
-            <p>
-              Supported at {at} · {p.quality}
-            </p>
-          </div>
-        </header>
+        <h2 className="sr-only">Account position</h2>
         {markers && (
           <>
             <div
@@ -164,6 +196,15 @@ export function TrackingOverview({
                 .map((m) => `${m.label}: ${journalMoney(m.value)}`)
                 .join("; ")}
             >
+              {fillLeft !== null && fillWidth !== null && (
+                <motion.span
+                  className={`prop-position-progress ${startMarker && currentMarker && new D(currentMarker.value).lt(startMarker.value) ? "loss" : ""}`}
+                  style={{ left: `${fillLeft}%` }}
+                  initial={false}
+                  animate={{ width: `${fillWidth}%` }}
+                  transition={{ duration: 0.4 }}
+                />
+              )}
               {markers.map((m) => (
                 <span
                   key={m.key}
@@ -172,15 +213,28 @@ export function TrackingOverview({
                   title={`${m.label}: ${journalMoney(m.value)}`}
                 >
                   <i />
+                  {m.key === "start" && <small>Start</small>}
                 </span>
               ))}
             </div>
-            <div className="prop-position-legend">
-              {markers.map((m) => (
-                <span key={m.key} className={m.key}>
-                  <i />
-                  {m.label}
-                  <strong>{journalMoney(m.value)}</strong>
+            <div className="prop-position-bounds">
+              {[
+                markers.find((m) => m.key === "floor"),
+                markers.find((m) => m.key === "target"),
+              ].map((m, i) => (
+                <span key={i} className={m?.key ?? ""}>
+                  {m && (
+                    <>
+                      <strong>{journalMoney(m.value)}</strong>
+                      <small>
+                        {m.key === "floor"
+                          ? "Loss threshold"
+                          : r.stage === "Evaluation"
+                            ? "Target"
+                            : "Request balance floor"}
+                      </small>
+                    </>
+                  )}
                 </span>
               ))}
             </div>
@@ -202,14 +256,28 @@ export function TrackingOverview({
             </div>
           )}
         </div>
-        <p className="prop-overview-chart-note">
-          Markers are proportional, including losses, negative balances and
-          exceeded targets. Missing observations have no marker.{" "}
-          {r.stage === "Evaluation"
-            ? "The effective balance reference accounts for recorded non-trading ledger events when known. Otherwise it is labeled as starting balance plus target. Passing is assessed on trading profit separately."
-            : "A payout balance floor is shown only when saved rules specify one; it does not establish payout eligibility."}
-        </p>
+        <details className="prop-position-method">
+          <summary>Position details</summary>
+          <p className="prop-overview-chart-note">
+            Supported at {at}. {p.quality}. Markers are proportional, including
+            losses, negative balances and exceeded targets. Missing observations
+            have no marker.{" "}
+            {r.stage === "Evaluation"
+              ? "The effective balance reference accounts for recorded non-trading ledger events when known. Otherwise it is labeled as starting balance plus target. Passing is assessed on trading profit separately."
+              : "A payout balance floor is shown only when saved rules specify one; it does not establish payout eligibility."}
+          </p>
+          <div className="prop-position-legend">
+            {markers?.map((m) => (
+              <span key={m.key} className={m.key}>
+                <i />
+                {m.label}
+                <strong>{journalMoney(m.value)}</strong>
+              </span>
+            ))}
+          </div>
+        </details>
       </section>
+      <OverviewCalendar progress={progress} payouts={payouts} />
       <OverviewRequirements progress={progress} timezone={timezone} />
       {r.stage !== "Evaluation" && p.payout.eligible !== null && (
         <div className="prop-overview-payout-forecast">
@@ -233,7 +301,7 @@ export function TrackingOverview({
           </p>
         </div>
       )}
-      <OverviewCalendar progress={progress} payouts={payouts} />
+
       <details className="prop-overview-checks">
         <summary>Data quality, manual checks & official sources</summary>
         <div>

@@ -736,3 +736,646 @@
     scroll-behavior: auto !important;
   }
 }
+/* Reference-inspired composition, scoped to the account detail workspace. */
+.prop-reference-detail {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--background);
+  gap: 12px;
+}
+.prop-reference-detail .prop-reference-header {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 2px;
+}
+.prop-reference-switcher {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  min-width: 0;
+}
+.prop-reference-switcher .prop-back {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 0;
+  color: var(--muted-foreground);
+}
+.prop-account-switcher-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  font-weight: 650;
+}
+.prop-reference-switcher select {
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 42px;
+  max-width: 260px;
+  min-width: 0;
+  padding: 8px 30px 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--background);
+  color: var(--foreground);
+}
+.prop-reference-header .prop-actions {
+  justify-content: flex-end;
+  align-items: center;
+}
+.prop-reference-header .prop-actions > button,
+.prop-reference-header .prop-actions > a {
+  min-height: 40px;
+  font-size: 11px;
+}
+.prop-reference-header .prop-header-more summary {
+  padding: 12px 9px;
+  min-height: 40px;
+  font-size: 11px;
+}
+.prop-reference-header .prop-header-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  display: grid;
+  min-width: 210px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 0 12px 30px #0002;
+}
+.prop-reference-header .prop-header-menu button,
+.prop-reference-header .prop-header-menu a {
+  position: static;
+  min-width: 0;
+  padding: 11px 12px;
+  text-align: left;
+  font-size: 12px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 5px;
+  color: var(--foreground);
+}
+.prop-reference-header .prop-header-menu button:hover,
+.prop-reference-header .prop-header-menu a:hover {
+  background: var(--muted);
+}
+.prop-reference-identity {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 0;
+}
+.prop-reference-identity strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+.prop-reference-identity
+  > span:not(.prop-reference-status):not(.prop-reference-stage) {
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.prop-reference-status,
+.prop-reference-stage {
+  text-transform: uppercase;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--border);
+  padding: 3px 6px;
+  border-radius: 3px;
+  color: var(--muted-foreground);
+  background: var(--card);
+}
+.prop-reference-status.active,
+.prop-reference-status.passed {
+  color: var(--positive);
+  border-color: color-mix(in srgb, var(--positive) 35%, var(--border));
+  background: color-mix(in srgb, var(--positive) 9%, var(--card));
+}
+.prop-reference-status.failed {
+  color: var(--negative);
+}
+.prop-reference-detail .prop-detail-toolbar {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+.prop-reference-detail .prop-detail-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+}
+.prop-reference-detail .prop-detail-toolbar select {
+  width: auto;
+  min-width: 0;
+  max-width: 300px;
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 10px;
+}
+.prop-reference-freshness {
+  position: relative;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.prop-reference-freshness summary {
+  cursor: pointer;
+  padding: 5px 0;
+}
+.prop-reference-freshness p {
+  max-width: 440px;
+  line-height: 1.7;
+  margin: 5px 0;
+}
+.prop-reference-detail .prop-tabs {
+  gap: 18px;
+  margin: 0 0 2px;
+  padding: 0;
+  border-bottom-color: transparent;
+}
+.prop-reference-detail .prop-tabs button {
+  padding: 6px 0;
+  font-size: 10px;
+}
+.prop-reference-detail .prop-account-overview {
+  gap: 16px;
+}
+.prop-reference-detail .prop-overview-metrics {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+.prop-reference-detail .prop-overview-metrics section {
+  position: relative;
+  gap: 6px;
+  padding: 15px 16px;
+  min-height: 76px;
+  border-radius: 11px;
+  justify-content: center;
+}
+.prop-reference-detail .prop-overview-metrics section > span {
+  text-transform: uppercase;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  line-height: 1.5;
+}
+.prop-reference-detail .prop-overview-metrics strong {
+  font-size: clamp(17px, 1.6vw, 23px);
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+}
+.prop-reference-detail .prop-overview-metrics .positive strong {
+  color: var(--positive);
+}
+.prop-reference-detail .prop-overview-metrics .negative strong {
+  color: var(--negative);
+}
+.prop-reference-detail .prop-overview-metrics small {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.prop-reference-detail .prop-overview-metrics section:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+.prop-reference-detail .prop-overview-metrics section:focus small {
+  width: 100%;
+  height: auto;
+  left: 0;
+  top: calc(100% + 6px);
+  clip-path: none;
+  overflow: visible;
+  white-space: normal;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  z-index: 8;
+  box-shadow: 0 6px 18px #0002;
+}
+.prop-reference-detail .prop-overview-chart {
+  border-radius: 11px;
+}
+.prop-reference-detail .prop-reference-chart-heading {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  margin: 0 18px;
+  padding-left: 0;
+  padding-right: 0;
+}
+.prop-reference-series {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.prop-reference-series span {
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted-foreground);
+}
+.prop-reference-series span::before {
+  display: inline-block;
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background: var(--positive);
+  vertical-align: 1px;
+}
+.prop-reference-series .floor::before {
+  background: var(--negative);
+}
+.prop-reference-detail .prop-chart-range {
+  border-color: var(--border);
+}
+.prop-reference-detail .prop-chart-range button {
+  font-size: 10px;
+  min-height: 28px;
+  padding: 4px 9px;
+}
+.prop-reference-detail .prop-overview-chart-canvas {
+  height: 400px;
+  padding: 8px 12px 0;
+}
+.prop-chart-method {
+  margin: 0 18px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+.prop-chart-method summary {
+  padding: 9px 0 12px;
+  cursor: pointer;
+}
+.prop-chart-method .prop-overview-chart-note {
+  padding: 8px 0 14px;
+}
+.prop-chart-method .prop-overview-chart-legend {
+  padding: 4px 0;
+}
+.prop-reference-detail .prop-account-position {
+  padding: 0 20px;
+  border-radius: 11px;
+}
+.prop-reference-detail .prop-position-track {
+  margin: 24px 0 14px;
+  height: 6px;
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--negative) 10%, var(--background)),
+    var(--track) 35%,
+    color-mix(in srgb, var(--positive) 12%, var(--background))
+  );
+}
+.prop-position-progress {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--positive);
+  border-radius: 5px;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--positive) 20%, transparent);
+}
+.prop-position-progress.loss {
+  background: var(--negative);
+}
+.prop-reference-detail .prop-position-marker {
+  top: -3px;
+  height: 12px;
+  border-left-width: 1px;
+  opacity: 0.65;
+}
+.prop-reference-detail .prop-position-marker i {
+  display: none;
+}
+.prop-reference-detail .prop-position-marker.current {
+  top: -5px;
+  height: 16px;
+  border-left-width: 2px;
+  opacity: 1;
+}
+.prop-position-marker small {
+  position: absolute;
+  top: 11px;
+  left: 0;
+  transform: translateX(-50%);
+  font-size: 8px;
+  text-transform: uppercase;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+.prop-position-bounds {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 3px 0 18px;
+}
+.prop-position-bounds span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+}
+.prop-position-bounds span:last-child {
+  text-align: right;
+  justify-content: flex-end;
+}
+.prop-position-bounds strong {
+  font-size: 11px;
+  font-weight: 500;
+}
+.prop-position-bounds small {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 650;
+  color: var(--muted-foreground);
+}
+.prop-position-bounds .floor strong {
+  color: var(--negative);
+}
+.prop-position-bounds .target strong {
+  color: var(--positive);
+}
+.prop-reference-detail .prop-position-values {
+  margin: 0;
+  padding: 18px 0;
+  gap: 14px;
+}
+.prop-reference-detail .prop-position-values > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 7px;
+}
+.prop-reference-detail .prop-position-values > div:nth-child(2) {
+  text-align: center;
+}
+.prop-reference-detail
+  .prop-position-values
+  > div:last-child:not(:nth-child(2)) {
+  text-align: right;
+}
+.prop-reference-detail .prop-position-values span {
+  margin: 0;
+  text-transform: uppercase;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+}
+.prop-reference-detail .prop-position-values strong {
+  font-size: 20px;
+}
+.prop-reference-detail .prop-position-values > div:nth-child(2) strong {
+  color: var(--positive);
+}
+.prop-position-method {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  border-top: 1px solid var(--border);
+}
+.prop-position-method summary {
+  padding: 9px 0;
+  cursor: pointer;
+}
+.prop-position-method .prop-overview-chart-note {
+  padding: 4px 0 12px;
+}
+.prop-position-method .prop-position-legend {
+  padding: 0 0 12px;
+}
+.prop-calendar-heading-tabs {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.prop-reference-detail .prop-calendar-heading-tabs h2 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+}
+.prop-reference-detail .prop-overview-calendar > header {
+  padding: 16px 18px;
+}
+.prop-reference-detail .prop-overview-calendar header p {
+  font-size: 10px;
+  margin-top: 6px;
+}
+.prop-calendar-heading-tabs .prop-chart-range button {
+  min-width: 50px;
+}
+.prop-session-payout-event {
+  display: block;
+  color: var(--violet) !important;
+  line-height: 1.4;
+}
+.prop-session-payout-event strong {
+  display: block;
+  font-size: 11px;
+  margin-top: 3px;
+}
+.dark .prop-reference-detail {
+  --background: #0c0d0e;
+  --card: #121314;
+  --border: #252728;
+  --track: #242827;
+  --muted: #1d2021;
+  --positive: #4ee2a4;
+  --negative: #ef777a;
+  --muted-foreground: #95999b;
+}
+@media (max-width: 1100px) {
+  .prop-reference-detail .prop-reference-header {
+    flex-wrap: wrap;
+  }
+  .prop-reference-detail .prop-overview-metrics {
+    gap: 9px;
+  }
+  .prop-reference-detail .prop-overview-metrics section {
+    padding: 13px 12px;
+  }
+  .prop-reference-detail .prop-overview-metrics strong {
+    font-size: 18px;
+  }
+  .prop-reference-detail .prop-overview-chart-canvas {
+    height: 360px;
+  }
+}
+@media (max-width: 600px) {
+  .prop-reference-detail {
+    padding: 12px;
+    border-radius: 12px;
+  }
+  .prop-reference-detail .prop-reference-header {
+    gap: 10px;
+  }
+  .prop-reference-switcher {
+    width: 100%;
+    gap: 9px;
+  }
+  .prop-account-switcher-label {
+    font-size: 9px;
+  }
+  .prop-reference-switcher select {
+    flex: 1;
+    max-width: none;
+    width: 100%;
+    font-size: 16px;
+    min-height: 44px;
+    padding-left: 8px;
+  }
+  .prop-reference-switcher .prop-back {
+    width: 36px;
+    min-width: 36px;
+  }
+  .prop-reference-header .prop-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .prop-reference-header .prop-actions > button,
+  .prop-reference-header .prop-actions > a {
+    min-height: 42px;
+    font-size: 10px;
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+  .prop-reference-identity strong {
+    font-size: 11px;
+  }
+  .prop-reference-detail .prop-detail-toolbar label {
+    width: 100%;
+  }
+  .prop-reference-detail .prop-detail-toolbar select {
+    font-size: 16px;
+    width: 100%;
+    max-width: 100%;
+    min-height: 40px;
+  }
+  .prop-reference-freshness {
+    font-size: 9px;
+    line-height: 1.6;
+  }
+  .prop-reference-detail .prop-overview-metrics {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .prop-reference-detail .prop-overview-metrics section {
+    padding: 13px;
+    min-height: 74px;
+  }
+  .prop-reference-detail .prop-overview-metrics strong {
+    font-size: 21px;
+  }
+  .prop-reference-detail .prop-overview-metrics section:last-child {
+    grid-column: 1/-1;
+  }
+  .prop-reference-detail .prop-reference-chart-heading {
+    margin: 0 12px;
+    gap: 12px;
+  }
+  .prop-reference-series {
+    gap: 14px;
+  }
+  .prop-reference-series span {
+    font-size: 9px;
+  }
+  .prop-reference-detail .prop-chart-range {
+    width: auto;
+  }
+  .prop-reference-detail .prop-reference-chart-heading > .prop-chart-range {
+    width: 100%;
+  }
+  .prop-reference-detail .prop-chart-range button {
+    font-size: 11px;
+    min-height: 38px;
+  }
+  .prop-reference-detail .prop-overview-chart-canvas {
+    height: 310px;
+    padding: 6px 0 0;
+  }
+  .prop-reference-detail .prop-account-position {
+    padding: 0 14px;
+  }
+  .prop-reference-detail .prop-position-values {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 16px;
+  }
+  .prop-reference-detail .prop-position-values > div:nth-child(2) {
+    text-align: right;
+  }
+  .prop-reference-detail
+    .prop-position-values
+    > div:last-child:not(:nth-child(2)) {
+    grid-column: 1/-1;
+    text-align: left;
+  }
+  .prop-reference-detail .prop-position-values strong {
+    font-size: 19px;
+  }
+  .prop-position-bounds span {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .prop-position-bounds span:last-child {
+    align-items: flex-end;
+  }
+  .prop-reference-detail .prop-tabs {
+    gap: 18px;
+  }
+  .prop-reference-detail .prop-tabs button {
+    font-size: 11px;
+    min-height: 38px;
+  }
+  .prop-reference-detail .prop-calendar-controls {
+    flex-wrap: wrap;
+  }
+  .prop-reference-detail .prop-calendar-controls input {
+    min-width: 0;
+    max-width: 190px;
+  }
+  .prop-reference-detail .prop-overview-calendar > header {
+    padding: 14px 12px;
+  }
+  .prop-reference-detail .prop-header-menu {
+    right: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prop-position-progress {
+    box-shadow: none;
+  }
+  .prop-reference-detail * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
