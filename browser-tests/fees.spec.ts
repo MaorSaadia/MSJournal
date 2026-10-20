@@ -279,7 +279,13 @@ test("fee totals reconcile imports, duplicates, overlaps and edits without doubl
       zip.includes(Buffer.from("data/fee_reconciliation_sources.json")),
     ).toBe(true);
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto(`/fees?accountId=${accountId}`, { waitUntil: "load" });
+    // Legacy account links open the same combined, ownership-checked workspace.
+    await page.goto(`/prop-accounts/${accountId}/fees`, { waitUntil: "load" });
+    await expect(page).toHaveURL(new RegExp(`/fees\\?accountId=${accountId}$`));
+    await page.getByText("Automatic fee estimates", { exact: false }).click();
+    await expect(
+      page.getByLabel("Estimated all-in fee per contract, per side (USD)"),
+    ).toHaveValue(/^99(?:\.0+)?$/);
     await expect(
       page.getByRole("heading", { name: "Fee history", exact: true }),
     ).toBeVisible({ timeout: 60000 });

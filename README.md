@@ -462,6 +462,8 @@ See [Day 13 details](docs/day-thirteen.md) for metric denominators, limits, priv
 
 Use **Trade View ? Fees & net P&L** (also available in Settings and account fee settings) to add or edit actual broker-reported trading fee totals. During a Performance import, expand **Trading fees & commissions (optional)** and enter the total for every Performance row in that file, including duplicates. Preview gross, fees and net, then confirm. Select **Net** on the dashboard to display after-fee results.
 
+The account-specific **Fees & net P&L** workspace combines actual broker totals, saved fee history and an expandable **Automatic fee estimates** section. Account fee links open this same page. Estimates are optional, stay labeled as estimates, and preserve entered broker totals and manual fees. Unsaved changes are protected when switching accounts.
+
 Totals reconcile once against immutable source records. Identical re-uploads do not add fees again; cumulative reports replace complete earlier totals only after confirmation, and partial overlaps are rejected. Per-record fees are labeled **Allocated**, because a report total does not establish individual broker charges. Estimates remain a fallback and preserve entered totals.
 
 [Fee totals guide](docs/fees.md) explains scope, allocation, limits, privacy and checks. Apply reviewed migration `0011_illegal_korg.sql` in other environments with `npm run db:migrate -- --reviewed`; it is already applied to the configured development database. Archive format v5 includes fee-total history, source allocations and prop payout history. No new environment variables are required.

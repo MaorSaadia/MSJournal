@@ -187,7 +187,7 @@ function AccountDetailContent({
               >
                 Journal calendar
               </Link>
-              <Link href={`/prop-accounts/${account.id}/fees`}>
+              <Link href={`/fees?accountId=${account.id}`}>
                 Fees & net P&L
               </Link>
               <button onClick={state.refresh}>Refresh progress</button>

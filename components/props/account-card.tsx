@@ -130,7 +130,7 @@ export function PropAccountCard({
                   {configured ? "Review setup" : "Finish setup"}
                 </button>
               )}
-              <Link href={`/prop-accounts/${account.id}/fees`}>
+              <Link href={`/fees?accountId=${account.id}`}>
                 Fees & net P&L
               </Link>
               <button disabled={busy} onClick={onArchive}>

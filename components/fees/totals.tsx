@@ -100,14 +100,13 @@ export function FeeTotals({ accountId }: { accountId: string }) {
     }
   }
   return (
-    <section className="import-card fee-totals">
+    <section className="fee-totals" aria-labelledby="actual-fees-heading">
       <header>
-        <h2>Actual fee totals</h2>
+        <h2 id="actual-fees-heading">Actual broker fees</h2>
         <p className="muted">
-          Enter the trading fees from your broker report for the same account
-          and closed records. Per-record amounts are quantity-weighted
-          allocations. Deposits, withdrawals and subscription costs stay
-          separate.
+          Choose the date range from your broker report and enter its total
+          trading fees. These update net P&L without changing gross P&L. Exclude
+          deposits, withdrawals and subscriptions.
         </p>
       </header>
       <form onSubmit={review}>
@@ -297,13 +296,6 @@ export function FeeTotals({ accountId }: { accountId: string }) {
           ))}
         </div>
       )}
-      <p className="muted">
-        Need estimated automatic fees for future imports?{" "}
-        <Link href={`/prop-accounts/${accountId}/fees`}>
-          Account fee settings
-        </Link>
-        .
-      </p>
     </section>
   );
 }
