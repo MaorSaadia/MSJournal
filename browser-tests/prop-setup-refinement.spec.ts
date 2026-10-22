@@ -513,3 +513,43 @@ test("custom TPT account accepts an unlisted size and persists its own rules", a
     drawdown: { distance: "5000", initialThreshold: "195000" },
   });
 });
+
+test("empty firm deletion is private and preserves active and archived accounts", async ({ page, playwright }, info) => {
+  test.skip(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true", "Disposable accounts only");
+  test.setTimeout(120000);
+  const headers = { Origin: origin };
+  expect((await page.request.post("/api/auth/sign-up/email", { headers, data: disposableUser() })).status()).toBe(200);
+  const other = await playwright.request.newContext({ baseURL: origin });
+  try {
+    expect((await other.post("/api/auth/sign-up/email", { headers, data: disposableUser() })).status()).toBe(200);
+    const name = "Take Profit Trader";
+    expect((await page.request.post("/api/prop-firms", { headers, data: { name } })).status()).toBe(200);
+    expect((await other.delete("/api/prop-firms", { headers, data: { name } })).status()).toBe(404);
+    expect((await (await page.request.get("/api/prop-firms")).json()).firms).toContain(name);
+    await page.goto("/prop-accounts");
+    await page.getByRole("button", { name: `Delete ${name} firm`, exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Delete firm?" })).toBeVisible();
+    await page.screenshot({ path: info.outputPath("delete-empty-firm.png") });
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+    await page.getByRole("button", { name: `Delete ${name} firm`, exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete firm", exact: true }).click();
+    await expect(page.getByRole("heading", { name, exact: true })).toHaveCount(0);
+    expect((await (await page.request.get("/api/prop-firms")).json()).firms).not.toContain(name);
+    expect((await page.request.post("/api/prop-firms", { headers, data: { name } })).status()).toBe(200);
+    const response = await page.request.post("/api/trading-accounts", { headers, data: {
+      displayName: "Protected firm account", firmChoice: "Take Profit Trader", customFirm: "",
+      platform: "Tradovate", brokerIdentifier: "", stage: "Evaluation", status: "Active",
+      nominalSize: "50000", openingBalance: "", openingBalanceDate: "", currency: "USD",
+      reportingTimezone: "UTC", notes: "",
+    } });
+    expect(response.status()).toBe(201);
+    const accountId = (await response.json()).account.id;
+    expect((await page.request.delete("/api/prop-firms", { headers, data: { name } })).status()).toBe(409);
+    expect((await page.request.patch(`/api/trading-accounts/${accountId}`, { headers, data: { archived: true } })).status()).toBe(200);
+    expect((await page.request.delete("/api/prop-firms", { headers, data: { name } })).status()).toBe(409);
+    expect((await page.request.get(`/api/trading-accounts/${accountId}`)).status()).toBe(200);
+    expect((await (await page.request.get("/api/prop-firms")).json()).firms).toContain(name);
+  } finally { await other.dispose(); }
+});

@@ -504,3 +504,5 @@ Open an account name from **Prop Accounts** for a compact account/phase switcher
 Balances and buffers use the same calculation results as the account cards. The chart uses linear balance segments, stepped supported thresholds and isolated dashboard observations; it does not reconstruct intraday equity highs. Payout requests, approvals, deductions and receipts keep their own timestamps. Calendar amounts use saved firm-session rules, preserve gross/net/estimated labels, and link to the owned source journal records. Opening aggregate/daily facts remain in the progress requirements; the calendar's activity rows show imported source records.
 
 See [overview behavior and checks](docs/prop-account-overview.md). No schema migration, new configuration, backup-format change or deployment is required for this presentation update.
+
+Empty saved firm groups can be removed with the trash button in their header after confirmation. Firms with active or archived accounts cannot be deleted; accounts, imports and history are preserved. Prop-account card percentages use at most two decimal places for display, while rule calculations keep full precision.

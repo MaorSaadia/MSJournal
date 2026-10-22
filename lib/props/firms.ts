@@ -1,8 +1,8 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { userPreferences } from "@/db/schema";
+import { tradingAccounts, userPreferences } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
 import { ReviewError } from "@/lib/reviews/model";
@@ -56,6 +56,42 @@ export async function addPropFirm(input: unknown, headers: Headers) {
         .set({ propFirmNames: next, updatedAt: new Date() })
         .where(eq(userPreferences.userId, owner.id));
       return next;
+    });
+  } catch (e) {
+    if (e instanceof ReviewError) throw e;
+    throw new WorkspaceUnavailableError();
+  }
+}
+
+/** Remove only the signed-in user's saved, empty group; never delete accounts. */
+export async function deletePropFirm(input: unknown, headers: Headers) {
+  const owner = await requireUser(headers);
+  const { name } = firmInput.parse(input);
+  try {
+    return await getDb().transaction(async (tx) => {
+      const [row] = await tx
+        .select({ names: userPreferences.propFirmNames })
+        .from(userPreferences)
+        .where(eq(userPreferences.userId, owner.id))
+        .for("update");
+      const saved = row?.names.find((n) => n.toLowerCase() === name.toLowerCase());
+      if (!saved) throw new ReviewError("Firm group not found.", 404);
+      const preset = firmTiles.find((f) => f.id !== "Custom" &&
+        [f.id.toLowerCase(), f.name.toLowerCase()].includes(saved.toLowerCase()));
+      const aliases = [...new Set([saved, ...(preset ? [preset.id, preset.name] : [])])]
+        .map((value) => value.toLowerCase());
+      const [account] = await tx.select({ id: tradingAccounts.id })
+        .from(tradingAccounts)
+        .where(and(eq(tradingAccounts.ownerId, owner.id),
+          inArray(sql`lower(${tradingAccounts.firm})`, aliases)))
+        .limit(1);
+      if (account) throw new ReviewError(
+        "This firm still has accounts, including archived accounts. Only empty firm groups can be deleted.", 409);
+      const names = row.names.filter((n) => n !== saved);
+      await tx.update(userPreferences)
+        .set({ propFirmNames: names, updatedAt: new Date() })
+        .where(eq(userPreferences.userId, owner.id));
+      return names;
     });
   } catch (e) {
     if (e instanceof ReviewError) throw e;

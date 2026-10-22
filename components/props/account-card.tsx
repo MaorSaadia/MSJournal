@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { motion } from "motion/react";
+import { propPercent } from "@/lib/props/format";
 import { D } from "@/lib/journal/processing";
 import { journalMoney } from "@/lib/journal/calculations";
 import { journalTimestamp } from "@/lib/timezones";
@@ -281,7 +282,7 @@ export function PropAccountCard({
                     Consistency{" "}
                     {t.consistency.percent === null
                       ? "needs assessed sessions"
-                      : `${t.consistency.percent}% / ${r.consistency.percent}% ${t.consistency.met ? "met" : "outstanding"}`}
+                      : `${propPercent(t.consistency.percent)} / ${propPercent(r.consistency.percent)} ${t.consistency.met ? "met" : "outstanding"}`}
                   </li>
                 )}
                 {r.payout.minimumBalanceToSubmit !== null && (
@@ -307,7 +308,7 @@ export function PropAccountCard({
                         Math.min(t.payoutNumber - 1, r.payout.caps.length - 1)
                       ],
                     )}{" "}
-                    / split {r.payout.split}%
+                    / split {r.payout.split === null ? "Confirm" : propPercent(r.payout.split)}
                   </li>
                 )}
               </ul>
@@ -326,8 +327,8 @@ export function PropAccountCard({
               Consistency:{" "}
               {t.consistency.percent === null
                 ? "Needs assessed sessions"
-                : `${t.consistency.percent}%`}{" "}
-              / {r.consistency.percent}% {r.consistency.comparison}
+                : `${propPercent(t.consistency.percent)}`}{" "}
+              / {propPercent(r.consistency.percent)} {r.consistency.comparison}
             </p>
           )}
           {r.daily.mode !== "disabled" &&

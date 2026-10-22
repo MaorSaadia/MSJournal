@@ -2,10 +2,11 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, Search, WalletCards, Archive, LoaderCircle } from "lucide-react";
+import { Plus, Search, WalletCards, Archive, LoaderCircle, Trash2 } from "lucide-react";
 import type { TradingAccount } from "@/lib/accounts/types";
 import { STAGES, STATUSES } from "@/lib/accounts/validation";
 import { requestJson } from "@/lib/client-api";
+import { confirmAction } from "@/components/ui/confirm-action";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -119,6 +120,30 @@ export function AccountsPage({
       setError(
         error instanceof Error ? error.message : "Unable to update account.",
       );
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function removeFirm(name: string) {
+    if (busy) return;
+    const accepted = await confirmAction(
+      `Delete the empty ${name} firm group? You can add it again later.`,
+      { title: "Delete firm?", confirmLabel: "Delete firm", destructive: true },
+    );
+    if (!accepted) return;
+    setBusy(`firm:${name}`);
+    setError("");
+    setFeedback("");
+    try {
+      const result = await requestJson<{ firms: string[] }>("/api/prop-firms", {
+        method: "DELETE", body: JSON.stringify({ name }),
+      });
+      setSavedFirms(result.firms);
+      setCollapsed((previous) => previous.filter((firm) => firm !== name));
+      setFeedback(`${name} removed.`);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not delete this firm.");
     } finally {
       setBusy(null);
     }
@@ -284,6 +309,18 @@ export function AccountsPage({
                   >
                     + Add account
                   </Button>
+                  {savedFirms.includes(group) && !accounts.some((a) => a.firm === group) && (
+                    <Button
+                      variant="ghost"
+                      className="prop-delete-firm"
+                      aria-label={`Delete ${group} firm`}
+                      title="Delete empty firm"
+                      disabled={busy !== null}
+                      onClick={() => void removeFirm(group)}
+                    >
+                      {busy === `firm:${group}` ? <LoaderCircle size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                    </Button>
+                  )}
                   <button
                     className="prop-group-toggle"
                     aria-expanded={!closed}

@@ -928,3 +928,14 @@
   border-color: var(--primary);
   background: color-mix(in srgb, var(--primary) 6%, var(--card));
 }
+
+.prop-delete-firm {
+  width: 40px;
+  min-height: 40px;
+  padding: 8px;
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+}
+.prop-delete-firm:hover { color: var(--destructive); }
+.prop-payout-checklist,
+.prop-card-statistics strong { font-variant-numeric: tabular-nums; }
