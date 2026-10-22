@@ -156,12 +156,11 @@ export function AccountSetupDialog({
     account?.firm ?? initialFirmName ?? "Custom prop firm",
   );
   const [platform, setPlatform] = useState(
-      account?.platform ?? initialPreset?.rules.platform ?? "Unknown",
-    ),
-    [broker, setBroker] = useState(account?.brokerIdentifier ?? "");
-  const [zone, setZone] = useState(
-    account?.reportingTimezone ?? "Asia/Jerusalem",
+    account?.platform ?? initialPreset?.rules.platform ?? "Unknown",
   );
+  // Keep import metadata intact without exposing it in the simplified setup.
+  const broker = account?.brokerIdentifier ?? "";
+  const zone = account?.reportingTimezone ?? "Asia/Jerusalem";
   const initialDate =
     phase?.phase.startAt ??
     item?.activity.firstEntry ??
@@ -644,7 +643,7 @@ export function AccountSetupDialog({
                       Use firm presets
                     </Button>
                   )}
-                  <div className="prop-form-grid">
+                  <div className="prop-account-name">
                     <label>
                       Account label
                       <input
@@ -656,31 +655,6 @@ export function AccountSetupDialog({
                           setNameEdited(true);
                         }}
                       />
-                    </label>
-                    <label>
-                      Actual platform
-                      <input
-                        aria-label="Actual platform"
-                        value={platform}
-                        onChange={(e) => {
-                          setPlatform(e.target.value);
-                          setCustom(true);
-                          setConfirmActivity(false);
-                        }}
-                        list="prop-platforms"
-                      />
-                      <datalist id="prop-platforms">
-                        {[
-                          "Tradovate",
-                          "TopstepX",
-                          "Rithmic",
-                          "NinjaTrader",
-                          "TradingView",
-                          "Unknown",
-                        ].map((p) => (
-                          <option key={p}>{p}</option>
-                        ))}
-                      </datalist>
                     </label>
                   </div>
                   {(rules.firm === "Custom" ||
@@ -738,32 +712,6 @@ export function AccountSetupDialog({
                       />
                     </label>
                   )}
-                  <details>
-                    <summary>Optional import mapping and timezone</summary>
-                    <div className="prop-form-grid">
-                      <label>
-                        Broker identifier (optional)
-                        <input
-                          value={broker}
-                          onChange={(e) => setBroker(e.target.value)}
-                        />
-                      </label>
-                      <label>
-                        Journal account timezone
-                        <input
-                          aria-label="Account timezone"
-                          value={zone}
-                          disabled={!!phase}
-                          onChange={(e) => setZone(e.target.value)}
-                        />
-                      </label>
-                    </div>
-                    <p className="muted small">
-                      Performance.csv uses the explicitly selected account. A
-                      broker identifier is optional; CSV support remains
-                      Tradovate format.
-                    </p>
-                  </details>
                 </>
               )}
               {step === 1 && (
@@ -1329,11 +1277,10 @@ export function AccountSetupDialog({
                 if (
                   !/^\d{1,16}(?:\.\d{1,2})?$/.test(rules.size) ||
                   Number(rules.size) <= 0 ||
-                  !name.trim() ||
-                  !platform.trim()
+                  !name.trim()
                 ) {
                   setError(
-                    "Enter an account label, positive account size and actual platform (or Unknown).",
+                    "Enter an account label and positive account size.",
                   );
                   return;
                 }

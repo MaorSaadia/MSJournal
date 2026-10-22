@@ -99,7 +99,9 @@ test("guided prop setup is atomic, private, reuses imports and fits both themes"
     .locator(".prop-size-grid button")
     .filter({ hasText: "$50,000" })
     .click();
-  await expect(dialog.getByLabel("Actual platform")).toHaveValue("TopstepX");
+  await expect(dialog.getByLabel("Actual platform")).toHaveCount(0);
+  await expect(dialog.getByLabel("Broker identifier (optional)")).toHaveCount(0);
+  await expect(dialog.getByLabel("Account timezone")).toHaveCount(0);
   await dialog.getByLabel("Account label").fill("Guided Topstep fixture");
   await dialog.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(
