@@ -1427,3 +1427,40 @@
 @media (max-width: 640px) {
   .prop-reference-detail .prop-imported-overview .prop-overview-metrics.has-target section:last-child { grid-column: auto; }
 }
+
+/* Balance chart: compact controls, clear hierarchy, restrained reference lines. */
+.prop-reference-detail .prop-polished-chart { overflow: hidden; }
+.prop-reference-detail .prop-polished-chart .prop-reference-chart-heading { margin: 0; padding: 22px 24px 16px; border-bottom: 0; align-items: center; justify-content: space-between; gap: 20px; }
+.prop-chart-headline { min-width: 0; }
+.prop-chart-headline h2 { margin: 0 0 10px; font-size: 13px; font-weight: 550; color: var(--muted-foreground); letter-spacing: 0; text-transform: none; }
+.prop-chart-balance { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; }
+.prop-chart-balance > strong { font-size: 28px; line-height: 1.2; letter-spacing: -.045em; font-weight: 650; font-variant-numeric: tabular-nums; }
+.prop-chart-balance > span { display: flex; flex-direction: column; gap: 3px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.prop-chart-balance .positive { color: var(--positive); }
+.prop-chart-balance .negative { color: var(--negative); }
+.prop-chart-balance small { color: var(--muted-foreground); font-size: 10px; font-weight: 400; }
+.prop-chart-controls > .prop-chart-range { flex-shrink: 0; }
+.prop-chart-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.prop-reference-detail .prop-polished-chart .prop-chart-range { padding: 3px; border-radius: 9px; background: var(--muted); border-color: transparent; }
+.prop-reference-detail .prop-polished-chart .prop-chart-range button { border-radius: 6px; padding: 7px 11px; font-size: 11px; min-height: 32px; white-space: nowrap; transition: background 150ms ease; }
+.prop-reference-detail .prop-polished-chart .prop-chart-range button[aria-pressed="true"] { background: var(--background); color: var(--foreground); box-shadow: 0 1px 4px #00000012; }
+.prop-polished-chart .prop-chart-display { padding: 0 24px 10px; gap: 14px; }
+.prop-polished-chart .prop-reference-series { gap: 16px; }
+.prop-polished-chart .prop-reference-series span { font-size: 10px; font-weight: 450; letter-spacing: 0; text-transform: none; }
+.prop-polished-chart .prop-reference-series span::before { width: 14px; height: 3px; border-radius: 2px; }
+.prop-polished-chart .prop-reference-series .floor::before, .prop-polished-chart .prop-reference-series .target::before, .prop-polished-chart .prop-reference-series .starting::before { background: none; border-top: 2px dashed var(--negative); height: 0; border-radius: 0; }
+.prop-polished-chart .prop-reference-series .target::before { border-color: var(--violet); }
+.prop-polished-chart .prop-reference-series .starting::before { border-color: var(--muted-foreground); opacity: .6; }
+.prop-reference-detail .prop-polished-chart .prop-overview-chart-canvas { height: 350px; padding: 0 14px 0 18px; }
+.prop-polished-chart .prop-overview-tooltip { padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 28px #00000014; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .prop-reference-detail .prop-polished-chart .prop-reference-chart-heading { padding: 18px 16px 14px; gap: 16px; }
+  .prop-chart-balance > strong { font-size: 26px; }
+  .prop-chart-controls { width: 100%; justify-content: space-between; gap: 6px; }
+  .prop-reference-detail .prop-polished-chart .prop-chart-range button { padding: 7px 9px; min-height: 36px; }
+  .prop-polished-chart .prop-chart-display { padding: 0 16px 8px; }
+  .prop-polished-chart .prop-chart-display > small { font-size: 9px; }
+  .prop-polished-chart .prop-reference-series { gap: 10px 14px; }
+  .prop-reference-detail .prop-polished-chart .prop-overview-chart-canvas { height: 290px; padding: 0 4px; }
+}
+@media (prefers-reduced-motion: reduce) { .prop-reference-detail .prop-polished-chart .prop-chart-range button { transition: none; } }

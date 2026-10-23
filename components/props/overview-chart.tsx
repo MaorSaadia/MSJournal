@@ -46,35 +46,47 @@ export function OverviewChart({ progress, timezone, payouts }: { progress: Phase
   const values = rows.flatMap((row) => [row.balance, ...(showFloor ? [row.floor] : []), row.target]).filter((value): value is number => value !== null);
   if (o.baseline !== null) values.push(Number(o.baseline));
   const low = values.length ? values.reduce((a, b) => Math.min(a, b)) : 0, high = values.length ? values.reduce((a, b) => Math.max(a, b)) : 1;
-  const pad = Math.max((high - low) * .08, 1);
+  const pad = Math.max((high - low) * .12, 1);
+  const lastRow = rows.at(-1);
+  const latest = lastRow?.exactBalance != null ? lastRow : undefined;
+  const first = rows.find((row) => row.exactBalance !== null);
+  const change = latest && first ? new D(latest.exactBalance!).minus(first.exactBalance!) : null;
   const events = phasePayoutEvents(progress, payouts).filter((event) => Date.parse(event.at) >= start && Date.parse(event.at) <= end);
-  return <section className="panel prop-overview-chart">
+  return <section className="panel prop-overview-chart prop-polished-chart">
     <header className="prop-overview-panel-heading prop-reference-chart-heading">
-      <h2 className="sr-only">Account balance and loss limit</h2>
+      <div className="prop-chart-headline">
+        <h2>Balance performance</h2>
+        <div className="prop-chart-balance">
+          <strong>{latest ? journalMoney(latest.exactBalance!) : "—"}</strong>
+          {change !== null && <span className={change.isNegative() ? "negative" : "positive"}>{journalMoney(change.toFixed(), true)}<small>in selected range</small></span>}
+        </div>
+      </div>
+      <div className="prop-chart-controls">
+      <div className="prop-chart-range" aria-label="Chart data view">{[["trades", "Trades"], ["daily", "Daily"]].map(([id, label]) => <button key={id} aria-pressed={daily === (id === "daily")} onClick={() => patch({ chartView: id })}>{label}</button>)}</div>
+      <div className="prop-chart-range" aria-label="Chart date range">
+        {[["phase", "All time"], ["30", "30 days"], ["custom", "Custom"]].map(([id, label]) => <button key={id} aria-pressed={mode === id} onClick={() => patch({ range: id })}>{label}</button>)}
+      </div>
+      </div>
+    </header>
+    <div className="prop-chart-display">
       <div className="prop-reference-series">
         <span className="balance">Account balance</span>
         {showFloor && <span className="floor">Loss limit{o.limitEstimated ? " (estimated)" : ""}</span>}
         {showTarget && <span className="target">Profit target</span>}
         {o.baseline !== null && <span className="starting">Starting balance</span>}
       </div>
-      <div className="prop-chart-range" aria-label="Chart date range">
-        {[["phase", "All time"], ["30", "30 days"], ["custom", "Custom"]].map(([id, label]) => <button key={id} aria-pressed={mode === id} onClick={() => patch({ range: id })}>{label}</button>)}
-      </div>
-    </header>
-    <div className="prop-chart-display">
-      <div className="prop-chart-range" aria-label="Chart data view">{[["trades", "Trades"], ["daily", "Daily"]].map(([id, label]) => <button key={id} aria-pressed={daily === (id === "daily")} onClick={() => patch({ chartView: id })}>{label}</button>)}</div>
-      <small>{daily ? `Completed sessions \u00b7 ${chartZone}` : `Closed-trade times \u00b7 ${timezone}`}</small>
+      <small>{daily ? `Completed sessions \u00b7 ${chartZone}` : `Closed trades \u00b7 ${timezone}`}</small>
     </div>
     {mode === "custom" && <div className="prop-chart-custom-range">
       <label>From<input type="date" aria-label="Chart from date" value={from} onChange={(event) => patch({ from: event.target.value })} /></label>
       <label>Through<input type="date" aria-label="Chart through date" value={through} onChange={(event) => patch({ through: event.target.value })} /></label>
     </div>}
     {!valid ? <p className="prop-overview-empty" role="status">Choose dates within this phase, with From on or before Through.</p> : !visible ? <p className="prop-overview-empty">{o.pending ? "Process the remaining imports to update this chart." : o.baseline === null ? "Set a starting balance in account rules to see the balance chart." : daily ? "No completed sessions in this range. Switch to Trades to see closed-trade progress." : "Add trading fees to calculate the net account balance."}</p> : <div className="prop-overview-chart-canvas" role="img" aria-label="Calculated account balance with loss limit, profit target and starting balance references">
-      <ResponsiveContainer width="100%" height="100%"><ComposedChart data={rows} margin={{ top: 20, right: 12, left: 12, bottom: 14 }}>
-        <defs><linearGradient id={`imported-balance-${progress.phase.id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--positive)" stopOpacity={.22} /><stop offset="100%" stopColor="var(--positive)" stopOpacity={.015} /></linearGradient></defs>
-        <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={.5} />
-        <XAxis dataKey="at" type="number" domain={start === end ? [start - 1, end + 1] : [start, end]} tickFormatter={(value) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: chartZone }).format(new Date(value))} minTickGap={50} tickLine={false} axisLine={false} tickMargin={12} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
-        <YAxis domain={[low - pad, high + pad]} width={78} orientation="right" axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} tickFormatter={(value) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: Math.abs(value) >= 1000000 ? "compact" : "standard", maximumFractionDigits: 0 }).format(value)} />
+      <ResponsiveContainer width="100%" height="100%"><ComposedChart data={rows} margin={{ top: 18, right: 4, left: 4, bottom: 12 }}>
+        <defs><linearGradient id={`imported-balance-${progress.phase.id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--positive)" stopOpacity={.24} /><stop offset="100%" stopColor="var(--positive)" stopOpacity={.01} /></linearGradient></defs>
+        <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={.45} strokeDasharray="3 5" />
+        <XAxis dataKey="at" type="number" domain={start === end ? [start - 1, end + 1] : [start, end]} tickFormatter={(value) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: chartZone }).format(new Date(value))} minTickGap={65} padding={{ left: 6, right: 6 }} tickLine={false} axisLine={false} tickMargin={12} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
+        <YAxis domain={[low - pad, high + pad]} width={76} tickCount={5} orientation="right" axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} tickFormatter={(value) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: Math.abs(value) >= 1000000 ? "compact" : "standard", maximumFractionDigits: 0 }).format(value)} />
         <Tooltip cursor={{ stroke: "var(--muted-foreground)", strokeDasharray: "3 4" }} content={({ active, payload }) => {
           const row = payload?.[0]?.payload as (typeof rows)[number] | undefined;
           if (!active || !row) return null;
@@ -87,9 +99,9 @@ export function OverviewChart({ progress, timezone, payouts }: { progress: Phase
             {buffer !== null && <span>Remaining loss buffer {journalMoney(buffer)}{row.estimated || o.estimatedFees ? " (Estimated)" : ""}</span>}
           </div>;
         }} />
-        {o.baseline !== null && <ReferenceLine y={Number(o.baseline)} stroke="var(--muted-foreground)" strokeOpacity={.6} strokeDasharray="2 6" />}
-        {showTarget && <Line type="stepAfter" dataKey="target" name="Profit target" stroke="var(--violet)" strokeDasharray="5 5" strokeWidth={1.2} dot={false} activeDot={false} connectNulls={false} isAnimationActive={false} />}
-        <Area type="stepAfter" dataKey="balance" name="Account balance" baseValue="dataMin" stroke="var(--positive)" fill={`url(#imported-balance-${progress.phase.id})`} strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false} />
+        {o.baseline !== null && <ReferenceLine y={Number(o.baseline)} stroke="var(--muted-foreground)" strokeOpacity={.35} strokeDasharray="2 6" />}
+        {showTarget && <Line type="stepAfter" dataKey="target" name="Profit target" stroke="var(--violet)" strokeDasharray="5 5" strokeOpacity={.65} strokeWidth={1.2} dot={false} activeDot={false} connectNulls={false} isAnimationActive={false} />}
+        <Area type="stepAfter" dataKey="balance" name="Account balance" baseValue="dataMin" stroke="var(--positive)" fill={`url(#imported-balance-${progress.phase.id})`} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" dot={false} activeDot={{ r: 5, stroke: "var(--background)", strokeWidth: 3 }} connectNulls={false} isAnimationActive={false} />
         {showFloor && <Line type="stepAfter" dataKey="floor" name="Loss limit" stroke="var(--negative)" strokeOpacity={.8} strokeDasharray="6 5" strokeWidth={1.5} dot={false} activeDot={false} connectNulls={false} isAnimationActive={false} />}
       </ComposedChart></ResponsiveContainer>
     </div>}
