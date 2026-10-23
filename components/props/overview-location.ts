@@ -12,6 +12,7 @@ const keys = [
   "through",
   "snapshot",
   "calendarView",
+  "chartView",
 ];
 export function useOverviewLocation(accountId: string) {
   const search = useSearchParams();

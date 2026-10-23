@@ -1379,3 +1379,51 @@
     transition: none !important;
   }
 }
+
+/* Imported trading results are the primary account overview. */
+.prop-import-status { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; color: var(--muted-foreground); font-size: 11px; line-height: 1.7; }
+.prop-import-status small { font-size: 10px; }
+.prop-import-status > button { margin-left: auto; }
+.prop-reference-detail .prop-imported-overview .prop-overview-metrics { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.prop-reference-detail .prop-imported-overview .prop-overview-metrics.has-target { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.prop-reference-detail .prop-imported-overview .prop-overview-metrics section > span { font-size: 10px; letter-spacing: .02em; text-transform: none; }
+.prop-imported-overview .prop-overview-metrics section { position: relative; }
+.prop-estimate-label { font-style: normal; font-size: 10px; color: var(--muted-foreground); }
+.prop-overview-hint { font-size: 11px; color: var(--muted-foreground); line-height: 1.7; margin: -6px 0 0; }
+.prop-overview-hint a { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+.prop-chart-display { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 20px 14px; }
+.prop-chart-display small { font-size: 10px; color: var(--muted-foreground); }
+.prop-reference-series .target::before { background: var(--violet); }
+.prop-reference-series .starting::before { background: var(--muted-foreground); }
+.prop-reference-detail .prop-reference-chart-heading { flex-wrap: wrap; }
+.prop-reference-detail .prop-reference-series { flex-wrap: wrap; row-gap: 10px; }
+.prop-simple-target { padding: 20px; }
+.prop-simple-target header, .prop-simple-target footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.prop-simple-target h2 { font-size: 14px; font-weight: 600; }
+.prop-simple-target header > span { font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.prop-simple-target small { color: var(--muted-foreground); font-size: 11px; font-weight: 400; }
+.prop-simple-target footer { font-size: 12px; margin-top: 14px; line-height: 1.7; }
+.prop-simple-target footer strong { margin-left: 8px; }
+.prop-target-track { height: 7px; border-radius: 5px; overflow: hidden; background: var(--muted); margin-top: 16px; }
+.prop-target-track span { display: block; height: 100%; background: var(--positive); border-radius: inherit; transition: width 240ms ease; }
+.prop-imported-overview > .prop-overview-checks { margin: 0; }
+@media (max-width: 640px) {
+  .prop-reference-detail .prop-imported-overview .prop-overview-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .prop-import-status > button { margin-left: 0; min-height: 44px; }
+  .prop-chart-display { padding-inline: 12px; flex-wrap: wrap; }
+  .prop-simple-target { padding: 16px; }
+  .prop-simple-target footer { align-items: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) { .prop-target-track span { transition: none; } }
+
+@media (min-width: 641px) and (max-width: 1200px) {
+  .prop-reference-detail .prop-imported-overview .prop-overview-metrics,
+  .prop-reference-detail .prop-imported-overview .prop-overview-metrics.has-target { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .prop-reference-detail .prop-imported-overview .prop-overview-metrics.has-target { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .prop-reference-detail .prop-imported-overview .prop-overview-metrics.has-target section:last-child { grid-column: auto; }
+}

@@ -1,3 +1,4 @@
+import { importedOverview } from "./imported-overview";
 import { TZDate } from "@date-fns/tz";
 import {
   D,
@@ -569,6 +570,7 @@ export function phaseProgress(
   const current = periods.filter((p) => p.effectiveAt <= stop).at(-1) ?? null;
   return {
     phase,
+    imported: importedOverview(phase, versions, all, fees, cash, payouts, now, pending),
     sessions: recordIds
       ? phaseSessionActivity(phase, versions, portions, fees, stop, recordIds)
       : [],

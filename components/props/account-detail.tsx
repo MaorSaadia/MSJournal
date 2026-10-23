@@ -12,8 +12,6 @@ import { AccountForm } from "@/components/accounts/account-form";
 import { Button } from "@/components/ui/button";
 import { journalMoney, localDay } from "@/lib/journal/calculations";
 import { journalTimestamp } from "@/lib/timezones";
-import { RequirementOverview } from "./progress";
-import { PropBalanceChart } from "./charts";
 import {
   PhaseForm,
   RulesForm,
@@ -45,12 +43,12 @@ function AccountDetailContent({
     [copiedRules, setCopiedRules] = useState<PropRules | null>(null),
     [copiedEffective, setCopiedEffective] = useState<string | null>(null);
   const { search, patch, accountHref } = useOverviewLocation(account.id);
-  const tab = ["Overview", "Rules", "Payouts", "History"].includes(
+  const tab = search.get("snapshot") === "1" ? "Rules" : ["Overview", "Rules", "Payouts", "History"].includes(
     search.get("tab") ?? "",
   )
     ? search.get("tab")!
     : "Overview";
-  const setTab = (value: string) => patch({ tab: value });
+  const setTab = (value: string) => patch({ tab: value, snapshot: null });
   const state = usePrivateRequest<PropData>(
       `accountId=${account.id}`,
       "/api/prop-progress",
@@ -63,7 +61,7 @@ function AccountDetailContent({
     null;
   const wantsSnapshot = search.get("snapshot") === "1";
   useEffect(() => {
-    if (!wantsSnapshot || tab !== "Overview") return;
+    if (!wantsSnapshot || tab !== "Rules") return;
     const summary = document.getElementById("firm-dashboard");
     const details = summary?.closest("details");
     if (details) {
@@ -166,14 +164,6 @@ function AccountDetailContent({
               Edit rules
             </Button>
           )}
-          {progress && !metadata.archivedAt && (
-            <Button
-              variant="outline"
-              onClick={() => patch({ tab: "Overview", snapshot: "1" })}
-            >
-              Update snapshot
-            </Button>
-          )}
           <Button asChild>
             <Link href={`/imports?accounts=${account.id}`}>Import CSV</Link>
           </Button>
@@ -194,6 +184,7 @@ function AccountDetailContent({
               <Link href={`/fees?accountId=${account.id}`}>
                 Fees & net P&L
               </Link>
+              {progress && !metadata.archivedAt && <button onClick={() => patch({ tab: "Rules", snapshot: "1" })}>Manual reconciliation</button>}
               <button onClick={state.refresh}>Refresh progress</button>
               <button onClick={() => void archive()}>
                 {metadata.archivedAt ? "Restore account" : "Archive account"}
@@ -277,22 +268,6 @@ function AccountDetailContent({
                 {progress?.phase.label ?? "Not configured"}
               </span>
             )}
-            <details className="prop-reference-freshness">
-              <summary>
-                {progress?.tracking?.quality ?? "Recorded account activity"}
-                {progress?.tracking
-                  ? ` - ${journalTimestamp(progress.tracking.asOf, data.timezone)}`
-                  : ""}
-              </summary>
-              <p>
-                Last import:{" "}
-                {item.latestImport
-                  ? journalTimestamp(item.latestImport, data.timezone)
-                  : "None"}
-                . Refreshed {journalTimestamp(data.asOf, data.timezone)}. These
-                are journal observations, not live account risk.
-              </p>
-            </details>
           </div>
           {metadata.archivedAt && (
             <p className="prop-local-note">
@@ -349,147 +324,23 @@ function AccountDetailContent({
                       <PhaseStartCorrection key={data.asOf} account={metadata} progress={progress}
                         firstEntry={item.activity.firstEntry} count={item.activity.count} onSaved={saved} />
                     )}
-                  {progress.tracking ? (
-                    <TrackingOverview
-                      key={progress.phase.id}
-                      progress={progress}
-                      timezone={data.timezone}
-                      payouts={data.payouts}
-                      readOnly={!!metadata.archivedAt}
-                      onRules={() => setTab("Rules")}
-                      onSnapshot={() =>
-                        patch({ tab: "Overview", snapshot: "1" })
-                      }
-                      onBaseline={() => {
-                        const section =
-                          document.getElementById("phase-baseline");
-                        if (section instanceof HTMLDetailsElement) {
-                          section.open = true;
-                          section.scrollIntoView({ block: "start" });
-                        }
-                      }}
-                    />
-                  ) : (
-                    <>
-                      {!metadata.archivedAt && (
-                        <Button
-                          variant="outline"
-                          onClick={() => setTab("Rules")}
-                        >
-                          Configure progress tracking
-                        </Button>
-                      )}
-                      <RequirementOverview
-                        progress={progress}
-                        timezone={data.timezone}
-                      />
-                    </>
-                  )}
-                  {!progress.tracking && (
-                    <section className="panel prop-balance-panel">
-                      <header className="panel-header">
-                        <h2>Balance & threshold observations</h2>
-                      </header>
-                      <PropBalanceChart progress={progress} />
-                    </section>
-                  )}
-                  <div className="prop-freshness">
-                    Latest imported close:{" "}
-                    {progress.latestActivity
-                      ? journalTimestamp(progress.latestActivity, data.timezone)
-                      : "None"}{" "}
-                    · latest snapshot:{" "}
-                    {progress.snapshots[0]
-                      ? journalTimestamp(
-                          progress.snapshots[0].asOf,
-                          data.timezone,
-                        )
-                      : "None"}
-                    . Estimates are based on imported closes; manual
-                    observations are dated separately.
-                  </div>
-                  {!progress.tracking && progress.snapshots[0] && (
-                    <div className="prop-manual">
-                      <h2>Manually recorded from prop dashboard</h2>
-                      <p>
-                        {journalTimestamp(
-                          progress.snapshots[0].asOf,
-                          data.timezone,
-                        )}{" "}
-                        · Balance {journalMoney(progress.snapshots[0].balance)}{" "}
-                        · threshold{" "}
-                        {journalMoney(progress.snapshots[0].threshold)} ·
-                        observed days{" "}
-                        {progress.snapshots[0].qualifyingDays ?? "not recorded"}{" "}
-                        · observed snapshot buffer{" "}
-                        {journalMoney(progress.snapshots[0].buffer, true)}
-                      </p>
-                    </div>
-                  )}
-                  {!progress.tracking && (
-                    <section className="panel prop-days">
-                      <header className="panel-header">
-                        <h2>Prop rule-day realized summaries</h2>
-                      </header>
-                      {progress.current?.rules.daySettingsConfirmed ? (
-                        <div className="prop-table-scroll">
-                          <table>
-                            <thead>
-                              <tr>
-                                <th>Rule date</th>
-                                <th>Portions</th>
-                                <th>{progress.current.rules.basis} P&L</th>
-                                <th>Qualification</th>
-                                <th>Realized loss crossing</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {progress.current.days.map((d) => (
-                                <tr key={d.date}>
-                                  <td>{d.date}</td>
-                                  <td>{d.count}</td>
-                                  <td>{journalMoney(d.pnl, true)}</td>
-                                  <td>
-                                    {!d.complete
-                                      ? "Partial / unfinished"
-                                      : d.qualifying === null
-                                        ? "Incomplete"
-                                        : d.qualifying
-                                          ? "Qualifying"
-                                          : "Not qualifying"}
-                                  </td>
-                                  <td>
-                                    {d.lossCrossing === null
-                                      ? "Not evaluated"
-                                      : d.lossCrossing
-                                        ? "Observed"
-                                        : "Not observed in imported closes"}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                          {!progress.current.days.length && (
-                            <p className="prop-setup">
-                              No supported rule-day activity in this version.
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="prop-setup">
-                          Confirm the rule timezone, reset and label convention
-                          in Rules before interpreting daily results.
-                        </p>
-                      )}
-                    </section>
-                  )}
+                  <TrackingOverview
+                    key={progress.phase.id} progress={progress} timezone={data.timezone}
+                    payouts={data.payouts} latestImport={item.latestImport}
+                    readOnly={!!metadata.archivedAt} onRules={() => setTab("Rules")}
+                  />
+
+                </>
+              )}
+              {tab === "Rules" && (
+                <>
                   {!metadata.archivedAt && (
                     <div className="prop-editor-stack">
                       <details
                         open={search.get("snapshot") === "1" ? true : undefined}
                       >
                         <summary id="firm-dashboard">
-                          Update from firm dashboard
+                          Optional manual reconciliation
                         </summary>
                         {progress.tracking ? (
                           <TrackingSnapshotForm
@@ -542,10 +393,6 @@ function AccountDetailContent({
                       </details>
                     </div>
                   )}
-                </>
-              )}
-              {tab === "Rules" && (
-                <>
                   {metadata.archivedAt ? (
                     <p className="prop-setup">
                       Restore this account to configure rules. Saved versions

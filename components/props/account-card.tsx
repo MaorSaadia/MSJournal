@@ -52,57 +52,25 @@ export function PropAccountCard({
     t = phase?.tracking,
     r = t?.rules;
   const summary = phase?.sessionStats ?? item?.activity;
-  const phasePnl =
-    t?.phaseProfit ??
-    (phase
-      ? (phase.net ?? phase.gross)
-      : (summary?.net ?? summary?.gross ?? null));
+  const o = phase?.imported;
   const basis = phase?.unknownFees ? "gross" : (summary?.basis ?? "net");
-  const profitBasis =
-    t?.phaseProfit !== null && t?.phaseProfit !== undefined
-      ? t.estimatedFees
-        ? "estimated net"
-        : "net"
-      : basis;
+  const phasePnl = phase ? (o?.netProfit ?? phase.gross) : (summary?.net ?? summary?.gross ?? null);
+  const profitBasis = phase ? o?.netProfit == null ? "gross" : o.estimatedFees ? "estimated net" : "net" : summary?.basis ?? "net";
   const configured = !!r;
   const earlierImports = !!(phase && item?.phases.length === 1 &&
     phase.phase.kind === "Evaluation" && !phase.phase.previousId && !phase.phase.endAt &&
     item.activity.firstEntry && item.activity.firstEntry < phase.phase.startAt);
 
-  const diagnosis = !item
-    ? "Loading account progress..."
-    : !phase
-      ? "Choose your account plan. Existing imports are ready to reuse."
-      : !phase.current
-        ? "Choose the rules for this phase."
-        : phase.phase.baseline === null && !t?.confirmedSnapshot
-          ? "Add your starting balance or a firm dashboard snapshot."
-          : !configured
-            ? "Finish the product rules for this existing phase."
-            : item.needsProcessing
-              ? "Process the remaining imported records."
-              : !item.activity.count
-                ? "Import trades to begin tracking."
-                : earlierImports
-                  ? "Imported trades fall before the evaluation start. Review phase dates."
-                  : t.threshold === null
-                    ? "Update threshold from firm dashboard."
-                    : t.estimatedFees
-                      ? "Fee estimates are in use. Confirm actual trading fees."
-                      : phase.unknownFees
-                        ? "Some fees are missing. Gross results remain available."
-                        : null;
-  const missingSetup =
-    !phase ||
-    !phase.current ||
-    !configured ||
-    (phase.phase.baseline === null && !t?.confirmedSnapshot);
-  const next =
-    t?.outstanding[0] ??
-    (r?.stage !== "Evaluation" ? t?.payout.missing[0] : null) ??
-    t?.status;
-  const target = t?.effectiveTarget ?? r?.evaluation.target ?? null;
-  const remaining = t?.remainingProfit ?? null;
+  const diagnosis = !item ? "Loading account progress..."
+    : !phase ? "Choose your account plan. Existing imports are ready to reuse."
+    : !configured || o?.missingRules ? "Set the starting balance and account rules."
+    : item.needsProcessing ? "Process the remaining imported records."
+    : earlierImports ? "Imported trades fall before the evaluation start. Review phase dates."
+    : !item.activity.count ? "Import trades to begin tracking."
+    : o?.missingFees ? "Some fees are missing. Gross results remain available." : null;
+  const missingSetup = !phase || !configured || !!o?.missingRules;
+  const target = o?.targetProfit ?? null;
+  const remaining = o?.remainingProfit ?? null;
   const positive = (v: string | null | undefined) =>
     v && new D(v).lt(0) ? "negative" : "positive";
   return (
@@ -192,9 +160,7 @@ export function PropAccountCard({
                       ? `/imports?accounts=${account.id}`
                       : earlierImports
                         ? `/prop-accounts/${account.id}`
-                        : t?.threshold === null
-                        ? `/prop-accounts/${account.id}?snapshot=1#firm-dashboard`
-                        : `/fees?accounts=${account.id}`
+                        : `/fees?accountId=${account.id}`
                 }
               >
                 {item?.needsProcessing
@@ -203,8 +169,6 @@ export function PropAccountCard({
                     ? "Import trades"
                     : earlierImports
                       ? "Review phase dates"
-                      : t?.threshold === null
-                      ? "Update firm snapshot"
                       : "Review fees"}{" "}
                 →
               </Link>
@@ -220,43 +184,40 @@ export function PropAccountCard({
                   Profit target / {t.estimatedFees ? "estimated net" : "net"}
                 </span>
                 <strong>
-                  {t.phaseProfit === null
+                  {o?.netProfit == null
                     ? "Add missing fees"
-                    : journalMoney(t.phaseProfit, true)}{" "}
+                    : journalMoney(o.netProfit, true)}{" "}
                   / {journalMoney(target)}
                 </strong>
               </div>
               <AccountProgressBar
-                value={t.phaseProfit}
+                value={o?.netProfit ?? null}
                 total={target}
-                label={`Profit target: ${t.phaseProfit ?? "unknown"} of ${target}`}
+                label={`Profit target: ${o?.netProfit ?? "unknown"} of ${target}`}
               />
               {remaining !== null && (
                 <small>
                   {journalMoney(remaining)} remaining
-                  {r.evaluation.targetAdjustsForConsistency
-                    ? " (includes assessed consistency)"
-                    : ""}
                 </small>
               )}
             </section>
           )}
-          {t.buffer !== null && t.balance !== null && t.threshold !== null && (
-            <section className={new D(t.buffer).lte(0) ? "is-warning" : ""}>
+          {o && o.buffer !== null && o.balance !== null && o.threshold !== null && (
+            <section className={new D(o.buffer).lte(0) ? "is-warning" : ""}>
               <div>
-                <span>Loss buffer remaining</span>
-                <strong>{journalMoney(t.buffer)}</strong>
+                <span>Loss buffer remaining{o.limitEstimated ? " (estimated)" : ""}</span>
+                <strong>{journalMoney(o.buffer)}</strong>
               </div>
               {r.drawdown.distance !== null && (
                 <AccountProgressBar
-                  value={t.buffer}
+                  value={o.buffer}
                   total={r.drawdown.distance}
-                  label={`Buffer remaining ${t.buffer}; visual reference ${r.drawdown.distance} configured drawdown distance`}
+                  label={`Buffer remaining ${o.buffer}; visual reference ${r.drawdown.distance} configured drawdown distance`}
                 />
               )}
               <small>
-                Supported balance {journalMoney(t.balance)} / loss threshold{" "}
-                {journalMoney(t.threshold)}
+                Account balance {journalMoney(o.balance)} / loss limit{" "}
+                {journalMoney(o.threshold)}
                 {r.drawdown.distance !== null
                   ? ` / bar reference: ${journalMoney(r.drawdown.distance)} configured distance`
                   : ""}
@@ -331,7 +292,7 @@ export function PropAccountCard({
             r.evaluation.tradingDays !== null &&
             r.evaluation.tradingDays > 0 && (
               <p>
-                {t.tradingDays ?? "Confirm"} / {r.evaluation.tradingDays}{" "}
+                {o?.tradingDays ?? "Set session"} / {r.evaluation.tradingDays}{" "}
                 trading days
               </p>
             )}
@@ -352,7 +313,6 @@ export function PropAccountCard({
                 Intraday equity check requires the firm dashboard.
               </p>
             )}
-          {!diagnosis && next && <p className="prop-card-next">{next}</p>}
         </div>
       )}
       <footer>

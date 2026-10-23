@@ -75,42 +75,11 @@ export function OverviewCalendar({
     };
   };
   const chosen = selected ? daily(selected) : null;
-  const qualification = (start: string) => {
-    const assessed = p.days.find((d) => d.start === start);
-    if (!assessed)
-      return {
-        text: "Outside the current assessed payout period or before its opening cutoff.",
-        met: false,
-      };
-    if (assessed.complete && !assessed.countedForDayRequirement)
-      return {
-        text: "This completed session is excluded by the saved payout reset-day rule.",
-        met: false,
-      };
-    if (
-      !p.rules.session.confirmed ||
-      (p.rules.stage === "Evaluation" || p.rules.payout.dayBasis === "trading"
-        ? p.tradingDays === null
-        : p.qualifyingDays === null) ||
-      assessed.qualifying === null
-    )
-      return {
-        text: "Needs confirmation: session boundary, fees, history or opening counts are incomplete.",
-        met: false,
-      };
-    if (p.rules.stage === "Evaluation" || p.rules.payout.dayBasis === "trading")
-      return {
-        text: assessed.complete
-          ? "Completed trading session; profitable-day qualification is not the applicable day rule."
-          : "Session is partial or unfinished.",
-        met: false,
-      };
-    return {
-      text: assessed.qualifying
-        ? `Qualifying: session net meets the saved ${journalMoney(p.rules.payout.dailyProfit ?? "0")} minimum.`
-        : `Not qualifying: session net is below the saved ${journalMoney(p.rules.payout.dailyProfit ?? "0")} minimum.`,
-      met: assessed.qualifying,
-    };
+  const qualifies = (start: string) => {
+    const day = p.days.find((value) => value.start === start);
+    return p.rules.stage !== "Evaluation" && p.rules.payout.dayBasis !== "trading" &&
+      p.rules.session.confirmed && p.qualifyingDays !== null &&
+      !!day?.complete && day.countedForDayRequirement && day.qualifying === true;
   };
   return (
     <section className="panel prop-overview-calendar">
@@ -183,7 +152,7 @@ export function OverviewCalendar({
             const day = daily(date),
               value = day.net ?? day.gross;
             const qualifying = day.sessions.some(
-              (s) => qualification(s.start).met,
+              (s) => qualifies(s.start),
             );
             return (
               <button
@@ -257,7 +226,6 @@ export function OverviewCalendar({
                   ? `Gross ${journalMoney(session.gross)} · add missing fees for net`
                   : `${session.estimated ? "Estimated net" : "Net"} ${journalMoney(session.net)}`}
               </strong>
-              <p>{qualification(session.start).text}</p>
               <ul>
                 {session.activity.map((activity) => (
                   <li key={activity.id}>
@@ -291,9 +259,7 @@ export function OverviewCalendar({
         </div>
       )}
       <p className="prop-overview-chart-note">
-        Calendar activity spans this phase. Day qualification follows the
-        engine’s current assessed period; payout events never count as trading
-        profit. Historical session timezones are shown in each date’s activity.
+        Dates follow the configured trading sessions. Payout events are separate from trading profit.
       </p>
     </section>
   );

@@ -98,7 +98,7 @@ test("account overview agrees with progress, preserves dates and isolates accoun
         label: `${name} phase`,
         startLocal: "2026-10-01T00:00:00",
         baseline: stage === "Evaluation" ? "50000" : "0",
-        historyConfirmed: stage === "Evaluation",
+        historyConfirmed: false,
         note: "Synthetic",
         initialRules: toLegacyRules(r),
       },
@@ -148,6 +148,15 @@ test("account overview agrees with progress, preserves dates and isolates accoun
       })
     ).status(),
   ).toBe(200);
+  // A repeated import must leave the imported overview unchanged.
+  const beforeRepeat = await (await page.request.get(`/api/prop-progress?accountId=${evaluation.account.id}`)).json();
+  const repeatedResponse = await page.request.post("/api/imports/preview", { headers, multipart: input });
+  check(repeatedResponse.status()).toBe(200);
+  const repeated = await repeatedResponse.json();
+  check((await page.request.post("/api/imports/confirm", { headers, multipart: { ...input, token: repeated.token, feeFingerprint: repeated.feeReview.fingerprint } })).status()).toBe(200);
+  const afterRepeat = await (await page.request.get(`/api/prop-progress?accountId=${evaluation.account.id}`)).json();
+  check(afterRepeat.accounts[0].phases[0].imported.netProfit).toBe(beforeRepeat.accounts[0].phases[0].imported.netProfit);
+  check(afterRepeat.accounts[0].phases[0].imported.balance).toBe(beforeRepeat.accounts[0].phases[0].imported.balance);
   async function snapshot(
     target: typeof funded,
     at: string,
@@ -210,14 +219,14 @@ test("account overview agrees with progress, preserves dates and isolates accoun
       `/api/prop-progress?accountId=${id}`,
     );
     check(response.status()).toBe(200);
-    return (await response.json()).accounts[0].phases[0].tracking;
+    return (await response.json()).accounts[0].phases[0].imported;
   }
   const evaluationData = await expected(evaluation.account.id),
     fundedData = await expected(funded.account.id);
   const metric = (name: string) =>
     page
       .locator(".prop-overview-metrics section")
-      .filter({ hasText: name })
+      .filter({ has: page.getByText(name, { exact: true }) })
       .locator("strong");
   const loaded = page.waitForResponse(
     (response) =>
@@ -234,10 +243,13 @@ test("account overview agrees with progress, preserves dates and isolates accoun
   await check(metric("Account balance")).toHaveText(
     journalMoney(evaluationData.balance),
   );
-  await check(metric("Phase trading P&L")).toHaveText(
-    journalMoney(evaluationData.phaseProfit, true),
+  await check(metric("Net profit")).toHaveText(
+    journalMoney(evaluationData.netProfit, true),
   );
   await check(page.locator(".prop-overview-chart-canvas")).toBeVisible();
+  await page.getByRole("button", { name: "Daily", exact: true }).click();
+  await check(page.locator(".prop-chart-display")).toContainText("Completed sessions");
+  await page.getByRole("button", { name: "Trades", exact: true }).click();
   await page
     .locator('.prop-session-calendar-grid button[aria-label^="2026-10-02,"]')
     .click();
@@ -335,7 +347,10 @@ test("account overview agrees with progress, preserves dates and isolates accoun
   await page
     .getByLabel("Switch account", { exact: true })
     .selectOption(sparse.account.id);
-  await check(metric("Account balance")).toHaveText("$1,200.00");
+  await check(metric("Account balance")).toHaveText("$0.00");
+  await check(page.locator(".prop-account-overview")).toContainText("Estimated from closed trades.");
+  await check(page.locator(".prop-account-overview")).not.toContainText("Complete the account picture");
+  await check(page.getByRole("button", { name: "Update dashboard snapshot", exact: true })).toHaveCount(0);
   await check(page.locator(".prop-overview-chart-canvas")).toBeVisible();
   await page.evaluate(() => scrollTo(0, 0));
   await page.screenshot({
