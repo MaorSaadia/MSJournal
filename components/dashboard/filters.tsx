@@ -88,10 +88,9 @@ export function DashboardFilters({
                 })
               }
             >
-              <option value="all">Long & short</option>
+              <option value="all">All directions</option>
               <option value="long">Long</option>
               <option value="short">Short</option>
-              {!demo && <option value="unknown">Unknown direction</option>}
             </select>
           </label>
           <Button

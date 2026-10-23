@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FlaskConical, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 export function ModeControl({
   mode,
   base = "/",
@@ -16,14 +16,6 @@ export function ModeControl({
       >
         <ShieldCheck size={13} />
         My Accounts
-      </Link>
-      <Link
-        href={`${base}?mode=demo`}
-        aria-current={mode === "demo" ? "page" : undefined}
-        className={mode === "demo" ? "selected" : ""}
-      >
-        <FlaskConical size={13} />
-        Demo
       </Link>
     </nav>
   );

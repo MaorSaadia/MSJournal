@@ -64,7 +64,9 @@ export function RealDashboard({
     ...(search.get("symbol") && search.get("symbol") !== "all"
       ? { symbol: search.get("symbol") }
       : {}),
-    direction: search.get("direction") ?? "all",
+    direction: ["long", "short"].includes(search.get("direction") ?? "")
+      ? search.get("direction")
+      : "all",
   });
   const q = parsed.success
     ? parsed.data

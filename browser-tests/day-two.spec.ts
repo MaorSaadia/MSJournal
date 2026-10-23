@@ -188,7 +188,7 @@ test("disposable database account lifecycle, persistence, selection, demo separa
     ).toBeVisible();
     await page.reload();
     await expect(page).toHaveURL(new RegExp(fixtureId!));
-    await page.getByRole("link", { name: "Demo", exact: true }).click();
+    await page.goto("/?mode=demo");
     await expect(page.locator(".demo-indicator")).toContainText("Demo data");
     await expect(page.locator(".metric-net .metric-value")).not.toHaveText("—");
     await page

@@ -145,7 +145,7 @@ test("Day 1 dashboard, filters, navigation, themes, and responsive layouts", asy
     page.getByRole("link", { name: "Reports", exact: true }),
   ).toHaveAttribute("aria-current", "page");
   await page.getByRole("link", { name: "Back to Dashboard" }).click();
-  await page.getByRole("link", { name: "Demo", exact: true }).click();
+  await page.goto("/?mode=demo");
   await page.getByRole("button", { name: "Choose appearance" }).first().click();
   await page.getByRole("button", { name: "Dark", exact: true }).click();
   await page.keyboard.press("Escape");
