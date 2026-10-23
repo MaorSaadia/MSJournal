@@ -506,3 +506,5 @@ Balances and buffers use the same calculation results as the account cards. The 
 See [overview behavior and checks](docs/prop-account-overview.md). No schema migration, new configuration, backup-format change or deployment is required for this presentation update.
 
 Empty saved firm groups can be removed with the trash button in their header after confirmation. Firms with active or archived accounts cannot be deleted; accounts, imports and history are preserved. Prop-account card percentages use at most two decimal places for display, while rule calculations keep full precision.
+
+When imports appear on the Dashboard but precede an initial evaluation phase, the account Overview shows **Review phase dates**. Preview the existing sources, confirm the actual balance before the corrected start and the original rules, then explicitly correct the start. Only the first open evaluation without snapshots or payouts is eligible. Original rule versions and imports remain intact, an audit event records old/new dates and balances, and the journal recalculates without a CSV re-upload. No migration is required.

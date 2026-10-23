@@ -511,7 +511,43 @@ export async function saveProp(
             "Timestamp must be inside the selected phase's exclusive-end period.",
           );
       };
-      if (q.action === "baseline") {
+      if (q.action === "start-correction") {
+        const start = instant(q.startLocal);
+        const oldStart = phase.startAt.toISOString();
+        if (q.expectedStart !== oldStart)
+          throw new ReviewError("The phase changed. Refresh and review the dates again.", 409);
+        if (phase.previousId || phase.endAt || phase.kind !== "Evaluation" ||
+            ownedPhases.filter((p) => p.tradingAccountId === account.id).length !== 1)
+          bad("Only the first open evaluation can use this correction. Reset and funded phase boundaries are preserved.");
+        if (start >= oldStart) bad("Choose an earlier phase start to include the existing imports.");
+        const [snapshots, payouts, versions] = await Promise.all([
+          tx.select({ id: propSnapshots.id }).from(propSnapshots)
+            .where(and(eq(propSnapshots.ownerId, user.id), eq(propSnapshots.phaseId, phase.id))).limit(1),
+          tx.select({ id: propPayouts.id }).from(propPayouts)
+            .where(and(eq(propPayouts.ownerId, user.id), eq(propPayouts.phaseId, phase.id))).limit(1),
+          tx.select().from(propRuleVersions)
+            .where(and(eq(propRuleVersions.ownerId, user.id), eq(propRuleVersions.phaseId, phase.id)))
+            .orderBy(asc(propRuleVersions.effectiveAt)),
+        ]);
+        if (snapshots.length || payouts.length)
+          bad("This phase has confirmed snapshots or payout history. Their cutoffs must be reconciled before changing the phase start.");
+        const initial = versions[0];
+        if (!initial || initial.effectiveAt.toISOString() !== oldStart)
+          bad("The original starting rules need confirmation before extending this phase.");
+        if (initial.rules.tracking?.drawdown.allowCorrection)
+          bad("The initial rules contain an explicit threshold correction and need manual review before extending the phase.");
+        // Extend the initial policy by an explicit new version; retain original versions and audit events.
+        await tx.insert(propRuleVersions).values({
+          ownerId: user.id, phaseId: phase.id, effectiveAt: new Date(start), rules: initial.rules,
+        });
+        await tx.update(propPhases).set({
+          startAt: new Date(start), baseline: q.baseline, historyConfirmed: q.historyConfirmed,
+        }).where(and(eq(propPhases.id, phase.id), eq(propPhases.ownerId, user.id)));
+        await tx.insert(propEvents).values({
+          ownerId: user.id, phaseId: phase.id, at: now, kind: "Evaluation start corrected",
+          note: `Start ${oldStart} -> ${start}; baseline ${phase.baseline ?? "unknown"} -> ${q.baseline}; history confirmed ${phase.historyConfirmed} -> ${q.historyConfirmed}. User confirmed the original rules apply from the corrected start. Sources and original rule versions preserved.`,
+        });
+      } else if (q.action === "baseline") {
         await tx
           .update(propPhases)
           .set({ baseline: q.baseline, historyConfirmed: q.historyConfirmed })

@@ -115,6 +115,16 @@ export function localInstant(value: string, timezone: string) {
   );
 }
 export const propMutation = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("start-correction"),
+    accountId: z.uuid(),
+    phaseId: z.uuid(),
+    expectedStart: z.iso.datetime(),
+    startLocal: localTime,
+    baseline: optionalMoney.refine((v) => v !== null, "Confirm the balance before the corrected start."),
+    historyConfirmed: z.boolean(),
+    confirmRules: z.literal(true),
+  }).strict(),
   z
     .object({
       action: z.literal("baseline"),

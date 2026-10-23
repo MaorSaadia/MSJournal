@@ -939,3 +939,9 @@
 .prop-delete-firm:hover { color: var(--destructive); }
 .prop-payout-checklist,
 .prop-card-statistics strong { font-variant-numeric: tabular-nums; }
+
+.prop-start-repair { padding: 18px; margin-bottom: 16px; }
+.prop-start-repair h2 { font-size: 14px; font-weight: 600; }
+.prop-start-repair p { line-height: 1.7; margin-block: 10px; }
+.prop-start-repair summary { color: var(--primary); cursor: pointer; font-size: 12px; }
+.prop-start-repair .prop-form { margin-top: 16px; }

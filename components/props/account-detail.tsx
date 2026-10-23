@@ -23,6 +23,7 @@ import {
 import { requestJson } from "@/lib/client-api";
 import { TrackingSetup } from "./tracking-setup";
 import { AccountSetupDialog } from "./account-setup-dialog";
+import { PhaseStartCorrection } from "./phase-start-correction";
 import { TrackingOverview } from "./tracking-overview";
 import { TrackingSnapshotForm } from "./tracking-snapshot";
 import { useOverviewLocation } from "./overview-location";
@@ -337,6 +338,13 @@ function AccountDetailContent({
               </nav>
               {tab === "Overview" && (
                 <>
+                  {!metadata.archivedAt && item.phases.length === 1 &&
+                    progress.phase.kind === "Evaluation" && !progress.phase.previousId &&
+                    !progress.phase.endAt && item.activity.firstEntry &&
+                    item.activity.firstEntry < progress.phase.startAt && (
+                      <PhaseStartCorrection key={data.asOf} account={metadata} progress={progress}
+                        firstEntry={item.activity.firstEntry} count={item.activity.count} onSaved={saved} />
+                    )}
                   {progress.tracking ? (
                     <TrackingOverview
                       key={progress.phase.id}

@@ -208,3 +208,22 @@ describe("prop overview presentation integrity", () => {
     ]);
   });
 });
+
+it("includes earlier imports exactly once after an explicit initial-phase date correction", () => {
+  const oldStart = "2026-10-04T00:00:00.000Z";
+  const original = { ...phase, startAt: oldStart, baseline: "50000" };
+  const originalRule = { ...version(), effectiveAt: oldStart };
+  const fees = { source: { amount: "10", kind: "Manual" as const } };
+  const before = phaseProgress(original, [originalRule], [part], fees, [], [], at);
+  expect(before.portionCount).toBe(0);
+  const corrected = phaseProgress(
+    { ...original, startAt: phase.startAt },
+    [{ ...originalRule, id: "correction", effectiveAt: phase.startAt }, originalRule],
+    [part], fees, [], [], at,
+  );
+  expect(corrected.portionCount).toBe(1);
+  expect(corrected.net).toBe("90.12345678");
+  expect(corrected.tracking?.phaseProfit).toBe("90.12345678");
+  expect(corrected.tracking?.balance).toBe("50090.12345678");
+  expect(originalRule.effectiveAt).toBe(oldStart);
+});

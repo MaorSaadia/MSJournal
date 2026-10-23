@@ -63,6 +63,10 @@ export function PropAccountCard({
         : "net"
       : basis;
   const configured = !!r;
+  const earlierImports = !!(phase && item?.phases.length === 1 &&
+    phase.phase.kind === "Evaluation" && !phase.phase.previousId && !phase.phase.endAt &&
+    item.activity.firstEntry && item.activity.firstEntry < phase.phase.startAt);
+
   const diagnosis = !item
     ? "Loading account progress..."
     : !phase
@@ -77,13 +81,15 @@ export function PropAccountCard({
               ? "Process the remaining imported records."
               : !item.activity.count
                 ? "Import trades to begin tracking."
-                : t.threshold === null
-                  ? "Update threshold from firm dashboard."
-                  : t.estimatedFees
-                    ? "Fee estimates are in use. Confirm actual trading fees."
-                    : phase.unknownFees
-                      ? "Some fees are missing. Gross results remain available."
-                      : null;
+                : earlierImports
+                  ? "Imported trades fall before the evaluation start. Review phase dates."
+                  : t.threshold === null
+                    ? "Update threshold from firm dashboard."
+                    : t.estimatedFees
+                      ? "Fee estimates are in use. Confirm actual trading fees."
+                      : phase.unknownFees
+                        ? "Some fees are missing. Gross results remain available."
+                        : null;
   const missingSetup =
     !phase ||
     !phase.current ||
@@ -181,7 +187,9 @@ export function PropAccountCard({
                     ? `/trade-view?accounts=${account.id}`
                     : !item?.activity.count
                       ? `/imports?accounts=${account.id}`
-                      : t?.threshold === null
+                      : earlierImports
+                        ? `/prop-accounts/${account.id}`
+                        : t?.threshold === null
                         ? `/prop-accounts/${account.id}?snapshot=1#firm-dashboard`
                         : `/fees?accounts=${account.id}`
                 }
@@ -190,7 +198,9 @@ export function PropAccountCard({
                   ? "Inspect activity"
                   : !item?.activity.count
                     ? "Import trades"
-                    : t?.threshold === null
+                    : earlierImports
+                      ? "Review phase dates"
+                      : t?.threshold === null
                       ? "Update firm snapshot"
                       : "Review fees"}{" "}
                 →
