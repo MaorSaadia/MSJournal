@@ -785,7 +785,7 @@ export async function removeScreenshot(id: string, headers?: Headers) {
   return { removed: true };
 }
 // Pending metadata is a durable cleanup ledger; deletion is idempotent and retryable.
-export async function cleanupScreenshots(ownerId: string) {
+export async function cleanupScreenshots(ownerId: string, accountId?: string) {
   const store = await objectStorage();
   const rows = await getDb()
     .select()
@@ -793,6 +793,7 @@ export async function cleanupScreenshots(ownerId: string) {
     .where(
       and(
         eq(reviewAttachments.ownerId, ownerId),
+        accountId ? eq(reviewAttachments.tradingAccountId, accountId) : undefined,
         or(
           eq(reviewAttachments.state, "deleting"),
           and(

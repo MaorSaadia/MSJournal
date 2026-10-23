@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DeleteAccountDialog } from "./delete-account-dialog";
 import { AccountForm } from "./account-form";
 import { usePrivateRequest } from "@/components/calendar/cache-provider";
 import type { PropData } from "@/lib/props/service";
@@ -67,6 +68,7 @@ export function AccountsPage({
     [collapsed, setCollapsed] = useState<string[]>([]);
   const [editing, setEditing] = useState<TradingAccount | "new" | null>(null),
     [confirm, setConfirm] = useState<TradingAccount | null>(null),
+    [deleting, setDeleting] = useState<TradingAccount | null>(null),
     [busy, setBusy] = useState<string | null>(null),
     [feedback, setFeedback] = useState(""),
     [error, setError] = useState("");
@@ -290,8 +292,8 @@ export function AccountsPage({
                   <div>
                     <h2>{group}</h2>
                     <p>
-                      {entries.length} accounts /{" "}
-                      {entries.filter((a) => a.status === "Active").length}{" "}
+                      {entries.length} {entries.length === 1 ? "account" : "accounts"} /{" "}
+                      {entries.filter((a) => !a.archivedAt && a.status === "Active").length}{" "}
                       active
                     </p>
                   </div>
@@ -368,6 +370,7 @@ export function AccountsPage({
                             busy={busy === account.id}
                             onSetup={() => setSetup(account)}
                             onEdit={() => setEditing(account)}
+                            onDelete={() => setDeleting(account)}
                             onArchive={() => {
                               if (account.archivedAt)
                                 void archive(account, false);
@@ -462,6 +465,12 @@ export function AccountsPage({
           }}
         />
       )}
+      {deleting && <DeleteAccountDialog key={deleting.id} account={deleting}
+        onClose={() => setDeleting(null)} onDeleted={() => {
+          setAccounts((previous) => previous.filter((account) => account.id !== deleting.id));
+          setFeedback(`${deleting.displayName} permanently deleted.`);
+          setDeleting(null); progress.refresh(); router.refresh();
+        }} />}
       <Dialog
         open={!!confirm}
         onOpenChange={(open) => {

@@ -40,3 +40,14 @@ export async function PATCH(request: Request, context: Context) {
     return privateError(error);
   }
 }
+
+export async function DELETE(request: Request, context: Context) {
+  try {
+    requireOrigin(request);
+    await requireUser(request.headers);
+    const { readBounded } = await import("@/lib/reviews/images");
+    const { deleteArchivedAccount } = await import("@/lib/accounts/deletion");
+    return privateJson(await deleteArchivedAccount((await context.params).id,
+      JSON.parse((await readBounded(request, 4096)).toString("utf8")), request.headers));
+  } catch (error) { return privateError(error); }
+}

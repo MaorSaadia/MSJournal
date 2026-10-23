@@ -37,6 +37,7 @@ export function PropAccountCard({
   onSetup,
   onEdit,
   onArchive,
+  onDelete,
   busy,
 }: {
   account: TradingAccount;
@@ -44,6 +45,7 @@ export function PropAccountCard({
   onSetup: () => void;
   onEdit: () => void;
   onArchive: () => void;
+  onDelete: () => void;
   busy: boolean;
 }) {
   const phase = item?.phases.at(-1),
@@ -123,8 +125,8 @@ export function PropAccountCard({
           </p>
         </div>
         <div className="prop-card-tools">
-          <span className={`prop-status ${account.status.toLowerCase()}`}>
-            {account.status}
+          <span className={`prop-status ${account.archivedAt ? "archived" : account.status.toLowerCase()}`}>
+            {account.archivedAt ? "Archived" : account.status}
           </span>
           <details>
             <summary aria-label={`Actions for ${account.displayName}`}>
@@ -143,6 +145,7 @@ export function PropAccountCard({
               <button disabled={busy} onClick={onArchive}>
                 {account.archivedAt ? "Restore account" : "Archive account"}
               </button>
+              {account.archivedAt && <button disabled={busy} className="negative" onClick={onDelete}>Delete permanently</button>}
             </div>
           </details>
         </div>

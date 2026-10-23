@@ -7,6 +7,7 @@ import type { TradingAccount } from "@/lib/accounts/types";
 import type { PropRules } from "@/lib/props/validation";
 import type { PropData } from "@/lib/props/service";
 import { usePrivateRequest } from "@/components/calendar/cache-provider";
+import { DeleteAccountDialog } from "@/components/accounts/delete-account-dialog";
 import { AccountForm } from "@/components/accounts/account-form";
 import { Button } from "@/components/ui/button";
 import { journalMoney, localDay } from "@/lib/journal/calculations";
@@ -37,6 +38,7 @@ function AccountDetailContent({
 }) {
   const router = useRouter(),
     [settings, setSettings] = useState(false),
+    [deleting, setDeleting] = useState(false),
     [setupOpen, setSetupOpen] = useState(false),
     [account, setAccount] = useState(initial),
     [feedback, setFeedback] = useState(""),
@@ -130,6 +132,7 @@ function AccountDetailContent({
       className="prop-workspace prop-visual-detail prop-reference-detail"
       data-account-id={account.id}
     >
+      {deleting && <DeleteAccountDialog account={metadata} onClose={() => setDeleting(false)} onDeleted={() => router.replace("/prop-accounts?archived=1")} />}
       <header className="page-header prop-reference-header">
         <div className="prop-reference-switcher">
           <Link
@@ -195,6 +198,7 @@ function AccountDetailContent({
               <button onClick={() => void archive()}>
                 {metadata.archivedAt ? "Restore account" : "Archive account"}
               </button>
+              {metadata.archivedAt && <button className="negative" onClick={() => setDeleting(true)}>Delete permanently</button>}
             </div>
           </details>
         </div>

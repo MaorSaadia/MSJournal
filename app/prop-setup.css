@@ -945,3 +945,27 @@
 .prop-start-repair p { line-height: 1.7; margin-block: 10px; }
 .prop-start-repair summary { color: var(--primary); cursor: pointer; font-size: 12px; }
 .prop-start-repair .prop-form { margin-top: 16px; }
+
+.prop-status.archived { color: var(--muted-foreground); border-color: var(--border); }
+.account-delete-dialog[data-slot="dialog-content"] {
+  width: min(512px, calc(100vw - 24px));
+  max-width: 512px;
+  max-height: 90dvh;
+  overflow-y: auto;
+  background: var(--card);
+  color: var(--foreground);
+  z-index: 51;
+}
+.account-delete-dialog form { display: grid; gap: 16px; min-width: 0; }
+.account-delete-dialog .field-label { display: grid; gap: 8px; font-size: 12px; }
+.account-delete-dialog input { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--input); border-radius: 7px; background: var(--background); color: var(--foreground); }
+.account-delete-dialog p { line-height: 1.7; }
+.account-delete-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 18px; padding-block: 12px; border-block: 1px solid var(--border); }
+.account-delete-summary > div { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+.account-delete-summary dt { color: var(--muted-foreground); }
+.account-delete-summary dd { font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .account-delete-dialog input { font-size: 16px; min-height: 44px; }
+  .account-delete-dialog button { min-height: 44px; }
+  .account-delete-dialog .account-form-actions { flex-wrap: wrap; }
+}
