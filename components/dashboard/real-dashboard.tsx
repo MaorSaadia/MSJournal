@@ -18,7 +18,6 @@ import { dashboardSchema } from "@/lib/dashboard/model";
 import { journalMoney } from "@/lib/journal/calculations";
 import { journalTimestamp } from "@/lib/timezones";
 import { DashboardFilters } from "./filters";
-import { ModeControl } from "./mode-control";
 import { Panel, Help } from "./panel";
 import { RealActivity } from "./activity";
 import { BalanceChart, PortionTimeChart } from "./real-charts";
@@ -175,10 +174,6 @@ export function RealDashboard({
         />
       </header>
       <div className="dashboard-intro">
-        <ModeControl mode="real" />
-        <Link href="/day-view" className="back-link">
-          Start my day
-        </Link>
         <label className="dashboard-basis-label">
           Statistics
           <select
