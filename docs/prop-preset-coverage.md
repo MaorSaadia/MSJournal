@@ -83,3 +83,8 @@ Additional official sources used:
 - [TPT size/drawdown table](https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15170265979165-Rule-3-Do-Not-Hit-End-Of-Day-EOD-Maximum-Trailing-Drawdown), [Topstep size/contracts](https://help.topstep.com/en/articles/8284197-trading-combine-parameters), [FundedNext Futures contract/size tables](https://helpfutures.fundednext.com/en/articles/17230194-contract-limits-and-contract-types-at-fundednext-futures).
 
 No schema migration or new infrastructure. Unpublished/uncertain combinations remain Custom; unknown fees, equity highs and firm approval are not inferred by a preset.
+
+
+### Fresh setup catalog
+
+Account setup requests the current preset catalog from authenticated `/api/prop-presets` each time it opens (`private, no-store`). Plan selection waits for that response; failure offers a retry instead of silently displaying a potentially stale bundled size list. Existing saved account rules are not replaced when the catalog loads. Focused browser coverage checks every current firm's product/stage size list, both general and firm-group entry points, authentication, retry and reopening.

@@ -642,3 +642,34 @@ test("every current firm product shows its full size list in account setup", asy
     await page.screenshot({ path: info.outputPath(firm === "Lucid Trading" ? "lucid-group-sizes.png" : "apex-group-sizes.png") });
   }
 });
+
+
+test("setup reloads current account options and supports retry without stale choices", async ({ page }) => {
+  test.skip(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true", "Disposable accounts only");
+  test.setTimeout(90000);
+  page.setDefaultTimeout(20000);
+  expect((await page.request.get("/api/prop-presets")).status()).toBe(401);
+  expect((await page.request.post("/api/auth/sign-up/email", { headers: { Origin: origin }, data: disposableUser() })).status()).toBe(200);
+  await page.route("**/api/prop-presets", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ message: "Temporary fixture failure" }) }));
+  await page.goto("/prop-accounts?add=1");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("button", { name: "Retry account options" })).toBeVisible();
+  await expect(dialog.locator(".prop-size-grid")).toHaveCount(0);
+  await page.unroute("**/api/prop-presets");
+  const loaded = page.waitForResponse((r) => r.url().endsWith("/api/prop-presets") && r.status() === 200);
+  await dialog.getByRole("button", { name: "Retry account options" }).click();
+  const response = await loaded;
+  expect(response.headers()["cache-control"]).toContain("no-store");
+  await dialog.locator(".prop-firm-tiles button").filter({ hasText: "Lucid Trading" }).click();
+  for (const product of ["Pro", "Daily", "Direct", "Flex"]) {
+    await dialog.locator(".prop-product-options").getByRole("button", { name: product, exact: true }).click();
+    await expect(dialog.locator(".prop-size-grid button")).toHaveCount(4);
+  }
+  // Reopening setup must request the latest server catalog again.
+  const reopened = page.waitForResponse((r) => r.url().endsWith("/api/prop-presets") && r.status() === 200);
+  await page.reload();
+  await reopened;
+  await dialog.locator(".prop-firm-tiles button").filter({ hasText: "Apex Trader Funding" }).click();
+  await dialog.getByRole("button", { name: "Intraday", exact: true }).click();
+  await expect(dialog.locator(".prop-size-grid button")).toHaveCount(4);
+});

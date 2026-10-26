@@ -20,7 +20,7 @@ import {
   snapshotDetailsSchema,
   type TrackingRules,
 } from "@/lib/props/tracking-rules";
-import { propPresets, type PropPreset } from "@/lib/props/presets";
+import { propPresets as bundledPresets, type PropPreset } from "@/lib/props/presets";
 import { firmTiles, firmKey } from "@/lib/props/setup-model";
 import { wallInput } from "@/lib/props/model";
 import { journalMoney } from "@/lib/journal/calculations";
@@ -89,6 +89,27 @@ export function AccountSetupDialog({
   onClose: () => void;
   onSaved: (a: TradingAccount) => void;
 }) {
+  const [propPresets, setPresets] = useState<PropPreset[]>(bundledPresets);
+  const [catalogAttempt, setCatalogAttempt] = useState(0);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    requestJson<{ presets: PropPreset[] }>("/api/prop-presets", { signal: controller.signal })
+      .then(({ presets }) => {
+        if (!controller.signal.aborted) {
+          setPresets(presets);
+          setCatalogLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setCatalogError(true);
+          setCatalogLoading(false);
+        }
+      });
+    return () => controller.abort();
+  }, [catalogAttempt]);
   const phase = item?.phases.at(-1) ?? null;
   const initialPreset =
     !account && initialFirm
@@ -424,7 +445,18 @@ export function AccountSetupDialog({
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.18 }}
             >
-              {step === 0 && (
+              {step === 0 && catalogLoading && <p className="small muted" role="status">Loading current account options...</p>}
+              {step === 0 && catalogError && (
+                <div className="prop-catalog-error" role="status">
+                  <p>Could not load current account options. Retry before choosing a plan.</p>
+                  <Button variant="outline" onClick={() => {
+                    setCatalogError(false);
+                    setCatalogLoading(true);
+                    setCatalogAttempt((attempt) => attempt + 1);
+                  }}>Retry account options</Button>
+                </div>
+              )}
+              {step === 0 && !catalogLoading && !catalogError && (
                 <>
                   {initialFirmName ? (
                     <div className="prop-setup-firm-context">
@@ -1276,7 +1308,7 @@ export function AccountSetupDialog({
           {step < 2 ? (
             <Button
               disabled={
-                !name || (!selected && !custom && rules.firm !== "Custom")
+                catalogLoading || catalogError || !name || (!selected && !custom && rules.firm !== "Custom")
               }
               onClick={() => {
                 if (
