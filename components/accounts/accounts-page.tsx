@@ -61,11 +61,16 @@ export function AccountsPage({
     setStage = (v: string) => setFilter("stage", v),
     setStatus = (v: string) => setFilter("status", v),
     setArchived = (v: boolean) => setFilter("archived", v ? "1" : "");
-  const [setup, setSetup] = useState<TradingAccount | "new" | null>(null),
+  const [manualSetup, setSetup] = useState<TradingAccount | "new" | null>(null),
     [setupFirm, setSetupFirm] = useState<TrackingRules["firm"] | undefined>(
       undefined,
     ),
     [collapsed, setCollapsed] = useState<string[]>([]);
+  const setup = manualSetup ?? (filters.get("add") === "1" ? "new" : null);
+  const closeSetup = () => {
+    setSetup(null);
+    if (filters.has("add")) setFilter("add", "");
+  };
   const [editing, setEditing] = useState<TradingAccount | "new" | null>(null),
     [confirm, setConfirm] = useState<TradingAccount | null>(null),
     [deleting, setDeleting] = useState<TradingAccount | null>(null),
@@ -433,13 +438,13 @@ export function AccountsPage({
               ? undefined
               : progress.data?.accounts.find((a) => a.account.id === setup.id)
           }
-          initialFirm={setup === "new" ? setupFirm : undefined}
-          initialFirmName={setup === "new" ? setupFirmName : undefined}
-          onClose={() => setSetup(null)}
+          initialFirm={setup === "new" && manualSetup ? setupFirm : undefined}
+          initialFirmName={setup === "new" && manualSetup ? setupFirmName : undefined}
+          onClose={closeSetup}
           onSaved={(account) => {
             update(account);
             progress.refresh();
-            setSetup(null);
+            closeSetup();
             setFeedback(`${account.displayName} and tracking saved.`);
           }}
         />

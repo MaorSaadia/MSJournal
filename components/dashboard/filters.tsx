@@ -1,11 +1,13 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import {
   SlidersHorizontal,
   CalendarDays,
   ChevronDown,
   WalletCards,
   RotateCcw,
+  Plus,
 } from "lucide-react";
 import type { Filters, Account } from "@/lib/types";
 import { initialFilters, DEMO_PERIOD } from "@/data/demo";
@@ -202,7 +204,7 @@ export function DashboardFilters({
           <Button
             variant="outline"
             className="account-trigger"
-            disabled={accounts.length === 0}
+            disabled={demo && accounts.length === 0}
           >
             <WalletCards size={15} />
             {accountLabel}
@@ -245,6 +247,16 @@ export function DashboardFilters({
               </span>
             </label>
           ))}
+          {!demo && (
+            <div className="account-dropdown-footer">
+              <Button asChild variant="ghost">
+                <Link href="/prop-accounts?add=1">
+                  <Plus size={15} />
+                  Add account
+                </Link>
+              </Button>
+            </div>
+          )}
         </PopoverContent>
       </Popover>
     </div>

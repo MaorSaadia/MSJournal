@@ -1901,3 +1901,16 @@ h1 {
   background: var(--track);
   border-radius: 3px;
 }
+
+.account-dropdown-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+.account-dropdown-footer > a {
+  width: 100%;
+  justify-content: flex-start;
+  color: var(--primary);
+  font-size: 12px;
+  min-height: 40px;
+}
