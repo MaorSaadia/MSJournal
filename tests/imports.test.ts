@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseReport, exactDecimal } from "@/lib/imports/parser";
 import { parseSourceTime, sourceTimezone } from "@/lib/imports/time";
 import { classify } from "@/lib/imports/identity";
-import { MAX_ROWS, counts, type ParsedFile } from "@/lib/imports/types";
+import { MAX_ROWS, counts, type ParsedFile, type PerformanceValues } from "@/lib/imports/types";
 import { inspectReportType } from "@/lib/imports/reports";
 import { journalTimestamp, timezoneChoices } from "@/lib/timezones";
 import { csv, order, performance } from "./fixtures/tradovate";
@@ -295,5 +295,54 @@ describe("record-level overlaps", () => {
     );
     classify(other, stored(old));
     expect(other.rows[0].disposition).toBe("conflict");
+  });
+});
+
+
+describe("normalized Performance overlap comparison", () => {
+  const saved = (file: ParsedFile) => file.rows.map((row) => ({ identity: row.identity, fingerprint: row.fingerprint, occurrence: row.occurrence, values: row.values as PerformanceValues }));
+  it("ignores decimal, currency and duration display formatting while preserving the original source reference", () => {
+    const old = parse("performance", [performance()]);
+    const incoming = parse("performance", [performance({ qty:"02", buyPrice:"20011.5000", sellPrice:"20000.2500", pnl:"-45.00000000", duration:"00:00:16" })]);
+    expect(incoming.rows[0].fingerprint).not.toBe(old.rows[0].fingerprint);
+    classify(incoming, saved(old));
+    expect(incoming.rows[0].disposition).toBe("duplicate");
+    expect(incoming.rows[0].matchedSource).toEqual({ fingerprint:old.rows[0].fingerprint, occurrence:1 });
+    expect(incoming.rows[0].raw.duration).toBe("00:00:16");
+    expect(incoming.errors).toEqual([]);
+  });
+  it("retains multiplicity when formatting makes raw fingerprints converge or split", () => {
+    const old = parse("performance", [performance(), performance({pnl:"-45"})]);
+    const incoming = parse("performance", [performance({pnl:"-45.000"}), performance({pnl:"-45.000"})]);
+    classify(incoming, saved(old));
+    expect(incoming.rows.every((r) => r.disposition === "duplicate")).toBe(true);
+    expect(new Set(incoming.rows.map((r) => JSON.stringify(r.matchedSource))).size).toBe(2);
+    const partial = parse("performance", [performance()]);
+    classify(partial, saved(old));
+    expect(partial.rows[0].disposition).toBe("conflict");
+    expect(partial.errors[0].message).toContain("Stored portions: 2; uploaded portions: 1");
+  });
+  it.each([ ["qty","3","quantity"], ["buyPrice","20012","buy price"], ["sellPrice","20001","sell price"], ["pnl","-44","gross P&L"], ["symbol","MESU6","contract"], ["boughtTimestamp","09/02/2026 16:53:32","buy time (UTC)"] ])("blocks changed %s with a specific diagnostic", (field,value,label) => {
+    const old = parse("performance", [performance()]);
+    const incoming = parse("performance", [performance({[field]:value})]);
+    classify(incoming, saved(old));
+    expect(incoming.rows[0].disposition).toBe("conflict");
+    expect(incoming.errors[0].message).toContain(label);
+    expect(incoming.rows[0].matchedSource).toBeUndefined();
+  });
+  it("blocks a changed source timezone when it changes actual UTC timestamps", () => {
+    const old = parse("performance", [performance()]);
+    const incoming = parseReport(Buffer.from(csv("performance", [performance()])),"different-zone.csv","performance","America/New_York");
+    classify(incoming,saved(old));
+    expect(incoming.rows[0].disposition).toBe("conflict");
+    expect(incoming.errors[0].message).toContain("CSV source timezone");
+    expect(incoming.errors[0].message).toContain("saved");
+  });
+  it("retains new portions with different fill IDs and detects pair-wise changes even if field totals match", () => {
+    const old = parse("performance", [performance({qty:"1",pnl:"10"}),performance({qty:"2",pnl:"20"})]);
+    const incoming = parse("performance", [performance({qty:"1",pnl:"20"}),performance({qty:"2",pnl:"10"}),performance({buyFillId:"new-id"})]);
+    classify(incoming,saved(old));
+    expect(incoming.rows.map((r) => r.disposition)).toEqual(["conflict","conflict","new"]);
+    expect(incoming.errors[0].message).toContain("differ as a set");
   });
 });

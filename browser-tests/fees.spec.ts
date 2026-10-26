@@ -356,3 +356,53 @@ test("fee totals reconcile imports, duplicates, overlaps and edits without doubl
     await other.dispose();
   }
 });
+
+
+test("normalized Performance copies reuse saved portions and fees without double counting", async ({ page, playwright }) => {
+  test.skip(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true", "Disposable fixtures only");
+  test.setTimeout(120000);
+  const headers = { Origin: origin };
+  expect((await page.request.post("/api/auth/sign-up/email", {headers,data:disposableUser()})).status()).toBe(200);
+  const created = await page.request.post("/api/trading-accounts",{headers,data:{displayName:"Normalized overlap fixture",firmChoice:"",customFirm:"",platform:"Tradovate",brokerIdentifier:"",stage:"Personal",status:"Active",nominalSize:"50000",openingBalance:"",openingBalanceDate:"",currency:"USD",reportingTimezone:"UTC",notes:""}});
+  expect(created.status()).toBe(201);
+  const accountId = (await created.json()).account.id;
+  async function preview(rows: Record<string,string>[], total?: string) {
+    const multipart = {accountId,timezone:"UTC",confirmPerformance:"true",confirmOrders:"false",...(total === undefined ? {} : {feeTotal:total,replaceFees:"true"}),performance:{name:"Performance.csv",mimeType:"text/csv",buffer:Buffer.from(csv("performance",rows))}};
+    const response = await page.request.post("/api/imports/preview",{headers,multipart});
+    expect(response.status(),await response.text()).toBe(200);
+    return { multipart, result:await response.json() };
+  }
+  async function confirm(p: Awaited<ReturnType<typeof preview>>) {
+    const response = await page.request.post("/api/imports/confirm",{headers,multipart:{...p.multipart,token:p.result.token,...(p.result.feeReview ? {feeFingerprint:p.result.feeReview.fingerprint} : {})}});
+    expect(response.status(),await response.text()).toBe(200);
+    const result = await response.json();
+    expect(result.processing.status).toBe("Ready");
+    return result;
+  }
+  async function activity() { return (await (await page.request.get(`/api/prop-progress?accountId=${accountId}`)).json()).accounts[0].activity; }
+  const initial = [performance(),performance({pnl:"-45",duration:"00:00:16"})];
+  await confirm(await preview(initial,"2"));
+  expect(await activity()).toMatchObject({count:2,gross:"-90",net:"-92"});
+  const formatted = [performance({qty:"02",buyPrice:"20011.5000",pnl:"-45.0000",duration:"16 seconds"}),performance({qty:"02",buyPrice:"20011.5000",pnl:"-45.0000",duration:"16 seconds"})];
+  const duplicate = await preview(formatted);
+  expect(duplicate.result.counts).toMatchObject({duplicates:2,new:0,conflicts:0});
+  expect(duplicate.result.canConfirm).toBe(true);
+  expect((await confirm(duplicate)).added).toBe(0);
+  expect(await activity()).toMatchObject({count:2,gross:"-90",net:"-92"});
+  const mixed = [...formatted,performance({buyFillId:"new-fixture-buy",sellFillId:"new-fixture-sell",pnl:"10"})];
+  const additional = await preview(mixed,"3");
+  expect(additional.result.counts).toMatchObject({duplicates:2,new:1,conflicts:0});
+  expect((await confirm(additional)).added).toBe(1);
+  expect(await activity()).toMatchObject({count:3,gross:"-80",net:"-83"});
+  expect((await confirm(await preview(mixed))).added).toBe(0);
+  expect(await activity()).toMatchObject({count:3,gross:"-80",net:"-83"});
+  const changed = await preview([performance({pnl:"-44"}),formatted[1],mixed[2]]);
+  expect(changed.result.canConfirm).toBe(false);
+  expect(changed.result.files[0].errors.some((e: {message:string}) => e.message.includes("gross P&L"))).toBe(true);
+  expect(await activity()).toMatchObject({count:3,net:"-83"});
+  const other = await playwright.request.newContext({baseURL:origin});
+  try {
+    expect((await other.post("/api/auth/sign-up/email",{headers,data:disposableUser()})).status()).toBe(200);
+    expect((await other.post("/api/imports/preview",{headers,multipart:duplicate.multipart})).status()).toBe(404);
+  } finally { await other.dispose(); }
+});

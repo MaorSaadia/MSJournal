@@ -54,3 +54,14 @@ Financial views default to Net. Gross remains available as an explicit choice; u
 The partial-coverage display uses server-side subtotals across the full filtered result set, before pagination. Known net is the exact sum of records with fees; the separate remaining gross amount covers records without fees. Neither subtotal is presented as the full net result. If one account is missing fees, the action opens that account's reconciliation page. No imported fee or P&L value is changed by this display update.
 
 Partial-coverage verification: nine focused unit checks, TypeScript, scoped lint, and the disposable browser scenario passed. The browser covers known, missing, and mixed fees through the SQL-backed summary as well as navigation. It caught a missing SQL subtotal projection, which was corrected; fixture and text assertions were also corrected. No full suite or production build was run.
+
+
+## Performance overlap formatting fix (2026-10-26)
+
+Performance.csv overlap detection now compares the full multiset of normalized contract, quantity, buy/sell prices, gross P&L and UTC buy/sell timestamps for each fill-ID pair. Equivalent decimal/currency formatting and reported duration/display metadata do not create false conflicts. Orders keep their existing strict snapshot comparison; actual UTC timestamp differences and changed portion counts remain blocked.
+
+Saved raw fingerprints, source IDs, provenance and fee allocations remain immutable. A formatting-equivalent incoming portion maps to its original stored fingerprint/occurrence, including multiple financially identical portions with different raw text. Preview fee plans and confirmation use those same original IDs. Confirmation still rechecks the owned account inside the transaction; no force-overwrite path was added. Parser version is `tradovate-1.2`, so previews made before the change should be recreated.
+
+Conflict messages identify changed financial fields (with saved/uploaded values for a single portion), UTC times or stored/uploaded portion counts. No account data is changed by preview. This does not automatically correct a source timezone, merge partial fill pairs, or infer which conflicting broker report is authoritative.
+
+Verification: focused import/request unit checks, plus a disposable browser/API scenario covering formatting-only duplicates, multiplicity, mixed duplicate/new imports, fee replacement and preserved net totals, repeat imports, actual P&L conflicts and cross-user rejection. TypeScript, scoped lint and diff checks passed. No schema migration, full suite or deployment.

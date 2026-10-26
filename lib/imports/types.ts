@@ -1,5 +1,5 @@
 export type ReportType = "orders" | "performance";
-export const PARSER_VERSION = "tradovate-1.1";
+export const PARSER_VERSION = "tradovate-1.2";
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_ROWS = 10000;
 export type Diagnostic = { row: number; column: string; message: string };
@@ -43,6 +43,7 @@ export type SourceRow = {
   raw: Record<string, string>;
   values: OrderValues | PerformanceValues;
   disposition: "new" | "duplicate" | "conflict";
+  matchedSource?: { fingerprint: string; occurrence: number };
 };
 export type ParsedFile = {
   type: ReportType;
@@ -81,6 +82,7 @@ export type Preview = {
   feeReview?: import("@/lib/fees/model").FeeQuote;
 };
 export type StoredIdentity = {
+  values?: PerformanceValues;
   identity: string;
   fingerprint: string;
   occurrence: number;

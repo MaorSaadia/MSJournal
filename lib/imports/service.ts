@@ -34,7 +34,7 @@ import {
 type DB = ReturnType<typeof getDb>;
 type TX = Parameters<Parameters<DB["transaction"]>[0]>[0];
 type Stored = StoredIdentity & { id: string };
-const sourceKey = (r: StoredIdentity) => JSON.stringify([r.identity, r.fingerprint, r.occurrence]);
+const sourceKey = (r: Pick<StoredIdentity, "identity" | "fingerprint" | "occurrence"> & { matchedSource?: { fingerprint: string; occurrence: number } }) => JSON.stringify([r.identity, r.matchedSource?.fingerprint ?? r.fingerprint, r.matchedSource?.occurrence ?? r.occurrence]);
 function importFeeParts(files: ParsedFile[], stored: Map<string, Stored[]>) {
   const file = files.find((f) => f.type === "performance");
   if (!file?.rows.length || file.errors.length) throw new ImportError("Resolve Performance CSV errors before adding a fee total.");
@@ -162,6 +162,16 @@ async function evaluate(
               identity: tradovatePerformance.identity,
               fingerprint: tradovatePerformance.fingerprint,
               occurrence: tradovatePerformance.occurrence,
+              buyFillId: tradovatePerformance.buyFillId,
+              sellFillId: tradovatePerformance.sellFillId,
+              symbol: tradovatePerformance.symbol,
+              quantity: tradovatePerformance.quantity,
+              buyPrice: tradovatePerformance.buyPrice,
+              sellPrice: tradovatePerformance.sellPrice,
+              grossPnl: tradovatePerformance.grossPnl,
+              boughtAt: tradovatePerformance.boughtAt,
+              soldAt: tradovatePerformance.soldAt,
+              duration: tradovatePerformance.duration,
             })
             .from(tradovatePerformance)
             .where(
@@ -172,8 +182,13 @@ async function evaluate(
               ),
             )
         : [];
-      stored.set(file.type, old);
-      classify(file, old);
+      const compared = old.map((row) => ({ ...row, values: {
+        buyFillId: row.buyFillId, sellFillId: row.sellFillId, symbol: row.symbol,
+        quantity: row.quantity, buyPrice: row.buyPrice, sellPrice: row.sellPrice,
+        grossPnl: row.grossPnl, boughtAt: row.boughtAt.toISOString(), soldAt: row.soldAt.toISOString(), duration: row.duration,
+      } }));
+      stored.set(file.type, compared);
+      classify(file, compared);
       if (!options.confirmPerformance)
         file.errors.push({
           row: 0,
@@ -366,8 +381,7 @@ export async function confirmImport(
           end: file.end ? new Date(file.end) : null,
         })
         .returning();
-      const key = (r: StoredIdentity) =>
-        JSON.stringify([r.identity, r.fingerprint, r.occurrence]);
+      const key = sourceKey;
       const references = new Map(
         (existing.get(file.type) ?? []).map((r) => [key(r), r.id]),
       );
