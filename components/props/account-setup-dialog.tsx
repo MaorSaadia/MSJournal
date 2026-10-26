@@ -1,4 +1,5 @@
 "use client";
+import { firmRuleSites } from "@/lib/props/setup-model";
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Search, Plus } from "lucide-react";
@@ -1191,6 +1192,10 @@ export function AccountSetupDialog({
                   )}
                   <section className="prop-setup-preview">
                     <h3>Review before saving</h3>
+                    <p className="prop-firm-rules-note">
+                      Before confirming, check all rules on your prop firm&apos;s official website for changes. Your purchased account agreement takes priority over these presets.{" "}
+                      {firmRuleSites[rules.firm] && <a href={firmRuleSites[rules.firm]} target="_blank" rel="noreferrer">Check official rules</a>}
+                    </p>
                     <strong>{name || "Choose an account label"}</strong>
                     <p>
                       {rules.firm} / {rules.product} / {rules.stage} /{" "}

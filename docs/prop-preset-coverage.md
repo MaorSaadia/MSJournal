@@ -56,3 +56,30 @@ Every firm now exposes a prominent **Custom account** option in Add account. Ent
 
 
 Focused verification for this follow-up: 18 prop calculation/preset tests passed; TypeScript and scoped ESLint passed. One disposable browser scenario verified all five Test size cards and saved a custom 200K TPT account with its own rules, no preset reference, and an explicit 200K baseline. Desktop/mobile form captures in both themes were reviewed. No full suite, production build, new migration or deployment was performed.
+
+
+## Account-size review: 2026-10-26
+
+Catalog changes apply only when a preset is selected. Existing saved rules, phase baselines, imports and history are not rewritten. `observed-2026-10-26-sizes` is a verification date, not a firm effective date. Before saving, setup now reminds traders to check current official rules and their purchased agreement, with a link to the firm's help center.
+
+| Firm / family | Sizes offered in setup (K) | Review / remaining gaps |
+| --- | --- | --- |
+| Apex EOD and Intraday, Evaluation and PA | 25, 50, 100, 150 | Exact targets, distances, evaluation contracts/DLLs, PA tiers, qualifying profit, safety-net floors and six payout caps. Tradovate evaluation is uncapped. EOD threshold activates next session. |
+| Apex Legacy Full | 25, 50, 75, 100, 150, 250, 300 | Separate legacy distances/contracts. Additional historical targets, passing days and payout policies require the actual agreement; no target guessed. Static remains 100K. |
+| Lucid Pro / Flex / Daily, Evaluation and Sim Funded; Direct Sim Funded | 25, 50, 100, 150 | Product-specific distances (Direct 100K/150K differ), targets and maxima. Pro/Flex payout tables and Flex scaling included. Funded forecasts remain unverified where cycle, optional DLL/scaling DLL, Direct changing goals or lock events require confirmation. Flex evaluation now defaults to published standard 40%; purchased 50%/DLL add-ons need review/customization. Pro 25K evaluation DLL conflicts with checkout. |
+| Lucid Black Legacy | 25, 50, 100 | No invented 150K. Scaling/bonus payout terms require agreement-specific configuration. |
+| MFFU Rapid Intraday / Builder | 25, 50, 100, 150 | Exact evaluation tables and known funded ledger/distance/contracts. Rapid evaluation is EOD, funded is Intraday. Builder caps and minimums vary by size. Funded buffer retention/cycle rules remain unverified when incomplete. |
+| MFFU Rapid EOD / Flex | 25, 50 | Dedicated 25K articles used. Flex 25K article conflicts ($250 versus $500 cycle profit in example); minimum cycle profit left unknown. No Rapid EOD 100K/150K or Flex 100K/150K fabricated. |
+| MFFU Pro | 50, 100, 150 | Published targets/distance/contracts. Pro One-Day stays 50K only. Sim starting ledger and conflicting micro table remain unknown. Studio variants unchanged. |
+| Take Profit Trader Test / PRO | 25, 50, 75, 100, 150 | Already present; Test target/distance/contracts rechecked. PRO+ remains agreement-specific; no Test table copied into Live rules. |
+| Topstep Combine / XFA | 50, 100, 150 | Already present; standard size list and contract table rechecked. No 25K Combine inferred. Labs and discretionary Live agreements remain Custom. |
+| FundedNext Futures Rapid Pro / Daily; Flex; Direct | 25/50/100; 50/100/150; 50 only | Already present; current Rapid/Flex/Direct size tables rechecked. Futures catalog only, not FX challenge sizes. |
+
+Additional official sources used:
+
+- [Apex Intraday evaluation table](https://apextraderfunding.com/help-center/evaluation-accounts-ea/intraday-trailing-drawdown-evaluations/), [PA tiers](https://apextraderfunding.com/help-center/additional-helpful-items/daily-loss-limit-explained/), [Intraday payouts](https://apextraderfunding.com/help-center/uncategorized/intraday-trailing-drawdown-payouts/), [EOD payouts](https://apextraderfunding.com/help-center/eod-trailing-drawdown-accounts/eod-payouts/).
+- [Lucid Pro evaluation](https://support.lucidtrading.com/en/articles/12890029-lucidpro-evaluation-account), [Direct account](https://support.lucidtrading.com/en/articles/12890148-luciddirect-funded-account), [Flex customization](https://support.lucidtrading.com/en/articles/16226050-lucidflex-customization), [Flex payouts](https://support.lucidtrading.com/en/articles/12945796-lucidflex-payouts).
+- [MFFU evaluation tables](https://help.myfundedfutures.com/en/articles/11802636-traders-evaluation-simplified), [Rapid size-specific articles](https://help.myfundedfutures.com/en/collections/17350372-rapid-plans), [Builder tables](https://myfundedfutures.com/plans/builder), [Flex 25K](https://help.myfundedfutures.com/en/articles/15070844-flex-plan-25-000-a-comprehensive-guide), [Pro tables](https://help.myfundedfutures.com/en/articles/17573707-comprehensive-look-into-redesigned-pro-plan).
+- [TPT size/drawdown table](https://takeprofittraderhelp.zendesk.com/hc/en-us/articles/15170265979165-Rule-3-Do-Not-Hit-End-Of-Day-EOD-Maximum-Trailing-Drawdown), [Topstep size/contracts](https://help.topstep.com/en/articles/8284197-trading-combine-parameters), [FundedNext Futures contract/size tables](https://helpfutures.fundednext.com/en/articles/17230194-contract-limits-and-contract-types-at-fundednext-futures).
+
+No schema migration or new infrastructure. Unpublished/uncertain combinations remain Custom; unknown fees, equity highs and firm approval are not inferred by a preset.

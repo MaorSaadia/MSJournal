@@ -555,3 +555,37 @@ test("empty firm deletion is private and preserves active and archived accounts"
     expect((await (await page.request.get("/api/prop-firms")).json()).firms).toContain(name);
   } finally { await other.dispose(); }
 });
+
+
+test("current Apex Intraday sizes and official-rule reminder are visible", async ({ page }, info) => {
+  test.skip(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true", "Disposable accounts only");
+  test.setTimeout(90000);
+  page.setDefaultTimeout(20000);
+  expect((await page.request.post("/api/auth/sign-up/email", { headers: { Origin: origin }, data: disposableUser() })).status()).toBe(200);
+  await page.goto("/prop-accounts?add=1");
+  const dialog = page.getByRole("dialog");
+  await dialog.locator(".prop-firm-tiles button").filter({ hasText: "Apex Trader Funding" }).click();
+  await dialog.getByRole("button", { name: "Intraday", exact: true }).click();
+  await expect(dialog.locator(".prop-size-grid button")).toHaveCount(4);
+  await dialog.locator(".prop-size-grid button").filter({ hasText: "$150,000" }).click();
+  await expect(dialog.locator(".prop-size-grid button[aria-pressed=true]")).toContainText("Target $9,000");
+  await expect(dialog.locator(".prop-size-grid button[aria-pressed=true]")).toContainText("Drawdown $4,000");
+  await page.screenshot({ path: info.outputPath("apex-intraday-sizes-desktop.png") });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.evaluate(() => document.documentElement.classList.add("dark"));
+  await expect.poll(async () => {
+    const box = await dialog.boundingBox();
+    return box !== null && box.x >= -1 && box.x + box.width <= 391;
+  }).toBe(true);
+  await page.screenshot({ path: info.outputPath("apex-intraday-sizes-mobile.png") });
+  await dialog.getByLabel("Account label").fill("Size review fixture");
+  await dialog.getByRole("button", { name: "Continue", exact: true }).click();
+  await dialog.getByRole("checkbox", { name: /I reviewed the applicable rules/ }).check();
+  await dialog.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(dialog.locator(".prop-firm-rules-note")).toContainText("Before confirming, check all rules");
+  await expect(dialog.getByRole("link", { name: "Check official rules" })).toHaveAttribute("href", "https://apextraderfunding.com/help-center/");
+  await dialog.locator(".prop-firm-rules-note").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: info.outputPath("official-rules-reminder.png") });
+  expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+});

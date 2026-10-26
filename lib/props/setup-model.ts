@@ -60,3 +60,12 @@ export function firmKey(name: string | null) {
     firmTiles.find((f) => f.name === name || f.id === name)?.id ?? "Custom"
   );
 }
+
+export const firmRuleSites: Record<string, string> = {
+  Apex: "https://apextraderfunding.com/help-center/",
+  MyFundedFutures: "https://help.myfundedfutures.com/",
+  Lucid: "https://support.lucidtrading.com/",
+  "Take Profit Trader": "https://takeprofittraderhelp.zendesk.com/",
+  Topstep: "https://help.topstep.com/",
+  "FundedNext Futures": "https://helpfutures.fundednext.com/",
+};
