@@ -1,4 +1,5 @@
 import "server-only";
+import { alignImportedPhaseStart } from "@/lib/props/import-start-service";
 import { REAL_RECORD_KIND } from "./statistics";
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
@@ -217,6 +218,8 @@ export async function publish(
         sourceIds.map((sourceId) => ({ ...scoped, recordId: id, sourceId })),
       );
   }
+  const [trackingAccount] = await tx.select({ timezone: tradingAccounts.reportingTimezone }).from(tradingAccounts).where(and(eq(tradingAccounts.ownerId, ownerId), eq(tradingAccounts.id, accountId)));
+  if (trackingAccount) await alignImportedPhaseStart(tx, ownerId, accountId, parts, trackingAccount.timezone);
   await reconcileReviews(tx, ownerId, accountId, publishedGroups);
   await reconcileStrategies(tx, ownerId, accountId, publishedGroups);
   await tx

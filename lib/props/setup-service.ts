@@ -23,6 +23,8 @@ import { saveProp } from "./service";
 import { localTime, localInstant } from "./validation";
 import { toLegacyRules } from "./presets";
 import { getJournal } from "@/lib/journal/service";
+import { IMPORT_START_ENABLED } from "./import-start";
+import { alignImportedPhaseStart } from "./import-start-service";
 import { portionExit } from "@/lib/journal/processing";
 
 export async function previewSetup(
@@ -62,6 +64,7 @@ const setupSchema = z
     account: tradingAccountSchema,
     rules: trackingRulesSchema,
     origin: z.enum(["start", "snapshot"]),
+    automaticStart: z.boolean().default(false),
     startLocal: localTime,
     snapshotLocal: localTime.nullable(),
     baseline: z.string().regex(/^$|^-?\d{1,16}(?:\.\d{1,2})?$/),
@@ -223,7 +226,7 @@ export async function saveGuidedSetup(input: unknown, headers: Headers) {
               q.origin === "snapshot"
                 ? (q.rules.ledgerStart ?? "")
                 : q.baseline,
-            historyConfirmed: q.origin === "start" && q.historyConfirmed,
+            historyConfirmed: q.origin === "start" && !q.automaticStart && q.historyConfirmed,
             note: "Guided setup; activity preview confirmed. Source account mappings preserved.",
             initialRules: rawRules,
           },
@@ -253,6 +256,12 @@ export async function saveGuidedSetup(input: unknown, headers: Headers) {
             tx,
           );
         }
+      }
+      if (q.automaticStart && !q.phaseId && q.origin === "start") {
+        await tx.insert(propEvents).values({ ownerId: user.id, phaseId, at: new Date(), kind: IMPORT_START_ENABLED,
+          note: "Use the earliest imported entry for this original phase. Opening ledger follows the selected rules; prior compliance remains unverified." });
+        const journal = await getJournal(headers, tx);
+        await alignImportedPhaseStart(tx, user.id, account.id, journal.portions, account.reportingTimezone);
       }
       await tx.insert(propEvents).values({
         ownerId: user.id,

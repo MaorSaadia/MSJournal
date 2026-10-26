@@ -125,15 +125,8 @@ test("guided prop setup is atomic, private, reuses imports and fits both themes"
   await dialog
     .getByRole("checkbox", { name: /I reviewed the applicable rules/ })
     .check();
-  await dialog.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(dialog.getByLabel("Starting balance")).toHaveValue("0");
-  await dialog
-    .getByLabel("Phase start", { exact: true })
-    .fill("2026-10-01T00:00");
-  await dialog
-    .getByRole("checkbox", { name: /I confirmed complete activity/ })
-    .check();
-  await dialog.getByLabel("Confirm activity preview").check();
+  await expect(dialog.getByText("Starting point", { exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Save account & tracking", exact: true })).toBeEnabled();
   const request = page.waitForRequest(
     (r) =>
       r.url().endsWith("/api/prop-progress/setup") && r.method() === "POST",
@@ -328,20 +321,8 @@ test("guided prop setup is atomic, private, reuses imports and fits both themes"
   await dialog
     .getByRole("checkbox", { name: /I reviewed the applicable rules/ })
     .check();
-  await dialog.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(
-    dialog.getByText(/1 source records fit this phase cutoff/),
-  ).toBeVisible();
-  await dialog.locator(".prop-setup-body").evaluate((e) => {
-    e.scrollTop = 0;
-  });
-  await page.screenshot({
-    path: info.outputPath("starting-point-dark-390.png"),
-  });
-  await dialog
-    .getByRole("checkbox", { name: /I confirmed complete activity/ })
-    .check();
-  await dialog.getByLabel("Confirm activity preview").check();
+  await expect(dialog.getByText(/Your tracking date will come from the earliest trade/)).toBeVisible();
+  await page.screenshot({ path: info.outputPath("review-and-save-dark-390.png") });
   await dialog
     .getByRole("button", { name: "Save account & tracking", exact: true })
     .click();
@@ -351,10 +332,12 @@ test("guided prop setup is atomic, private, reuses imports and fits both themes"
   ).json();
   expect(data.accounts[0].activity.count).toBe(1);
   expect(data.accounts[0].phases).toHaveLength(1);
-  expect(data.accounts[0].phases[0].tracking).toMatchObject({
-    phaseProfit: "99",
+  expect(data.accounts[0].phases[0].imported).toMatchObject({
+    netProfit: "99",
     balance: "50099",
   });
+  expect(data.accounts[0].phases[0].phase.startAt).toBe("2026-10-02T12:00:00.000Z");
+  expect(data.accounts[0].phases[0].phase.historyConfirmed).toBe(false);
   expect(
     (
       await page.request.post("/api/trading-accounts", {
@@ -469,6 +452,7 @@ test("custom TPT account accepts an unlisted size and persists its own rules", a
     ).toBe(true);
   }
   await dialog.getByRole("button", { name: "Continue", exact: true }).click();
+  await dialog.getByLabel("Actual phase initial ledger balance", { exact: true }).fill("200000");
   await dialog.getByLabel("Profit target", { exact: true }).fill("10000");
   await dialog.getByLabel("Drawdown distance", { exact: true }).fill("5000");
   await dialog
@@ -480,12 +464,6 @@ test("custom TPT account accepts an unlisted size and persists its own rules", a
   await dialog
     .getByRole("checkbox", { name: /I reviewed and explicitly confirmed/ })
     .check();
-  await dialog.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(
-    dialog.getByLabel("Starting balance", { exact: true }),
-  ).toHaveValue("");
-  await dialog.getByLabel("Starting balance", { exact: true }).fill("200000");
-  await dialog.getByLabel("Confirm activity preview").check();
   const saved = page.waitForResponse(
     (r) =>
       r.url().endsWith("/api/prop-progress/setup") &&
@@ -582,7 +560,6 @@ test("current Apex Intraday sizes and official-rule reminder are visible", async
   await dialog.getByLabel("Account label").fill("Size review fixture");
   await dialog.getByRole("button", { name: "Continue", exact: true }).click();
   await dialog.getByRole("checkbox", { name: /I reviewed the applicable rules/ }).check();
-  await dialog.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(dialog.locator(".prop-firm-rules-note")).toContainText("Before confirming, check all rules");
   await expect(dialog.getByRole("link", { name: "Check official rules" })).toHaveAttribute("href", "https://apextraderfunding.com/help-center/");
   await dialog.locator(".prop-firm-rules-note").scrollIntoViewIfNeeded();
@@ -672,4 +649,68 @@ test("setup reloads current account options and supports retry without stale cho
   await dialog.locator(".prop-firm-tiles button").filter({ hasText: "Apex Trader Funding" }).click();
   await dialog.getByRole("button", { name: "Intraday", exact: true }).click();
   await expect(dialog.locator(".prop-size-grid button")).toHaveCount(4);
+});
+
+
+test("two-step setup takes its date from later Performance uploads without double counting", async ({ page }, info) => {
+  test.skip(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true", "Disposable accounts only");
+  test.setTimeout(90000);
+  page.setDefaultTimeout(20000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const headers = { Origin: origin };
+  expect((await page.request.post("/api/auth/sign-up/email", { headers, data: disposableUser() })).status()).toBe(200);
+  await page.goto("/prop-accounts?add=1");
+  const dialog = page.getByRole("dialog");
+  await dialog.locator(".prop-firm-tiles button").filter({hasText:"Apex Trader Funding"}).click();
+  await dialog.getByRole("button", {name:"EOD",exact:true}).click();
+  await dialog.locator(".prop-size-grid button").filter({hasText:"$50,000"}).click();
+  await dialog.getByLabel("Account label").fill("Imported start fixture");
+  await dialog.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(dialog.locator(".prop-setup-steps li")).toHaveCount(2);
+  await expect(dialog.getByLabel("Starting balance", {exact:true})).toHaveCount(0);
+  await expect(dialog.getByLabel(/Phase start/)).toHaveCount(0);
+  await dialog.getByRole("checkbox", {name:/I reviewed the applicable rules/}).check();
+  await page.screenshot({path:info.outputPath("two-step-review.png")});
+  const saved = page.waitForResponse((r) => r.url().endsWith("/api/prop-progress/setup") && r.request().method() === "POST");
+  await dialog.getByRole("button", {name:"Save account & tracking",exact:true}).click();
+  const response = await saved;
+  expect(response.status(),await response.text()).toBe(200);
+  const account = (await response.json()).account;
+  async function read() { return (await (await page.request.get(`/api/prop-progress?accountId=${account.id}`)).json()).accounts[0]; }
+  async function upload(rows: Record<string,string>[]) {
+    const input = { accountId:account.id, timezone:"UTC", confirmPerformance:"true", confirmOrders:"false", feeTotal:"1", performance:{name:"Performance.csv",mimeType:"text/csv",buffer:Buffer.from(csv("performance",rows))} };
+    const previewResponse = await page.request.post("/api/imports/preview",{headers,multipart:input});
+    expect(previewResponse.status(),await previewResponse.text()).toBe(200);
+    const preview = await previewResponse.json();
+    const result = await page.request.post("/api/imports/confirm",{headers,multipart:{...input,token:preview.token,feeFingerprint:preview.feeReview.fingerprint}});
+    expect(result.status(),await result.text()).toBe(200);
+  }
+  expect((await read()).phases[0].phase.baseline).toBe("50000.00");
+  const first = performance({pnl:"100",boughtTimestamp:"10/02/2026 12:00:00",soldTimestamp:"10/02/2026 12:05:00"});
+  await upload([first]);
+  let progress = await read();
+  expect(progress.phases[0].phase.startAt).toBe("2026-10-02T12:00:00.000Z");
+  expect(progress.phases[0].phase.historyConfirmed).toBe(false);
+  expect(progress.phases[0].imported.balance).toBe("50099");
+  const versions = progress.phases[0].periods.length;
+  await upload([first]);
+  progress = await read();
+  expect(progress.phases[0].imported.balance).toBe("50099");
+  expect(progress.phases[0].periods).toHaveLength(versions);
+  await upload([performance({buyFillId:"9007199254740993501",sellFillId:"9007199254740993502",pnl:"25",boughtTimestamp:"09/25/2026 11:00:00",soldTimestamp:"09/25/2026 11:01:00"})]);
+  progress = await read();
+  expect(progress.phases[0].phase.startAt).toBe("2026-09-25T11:00:00.000Z");
+  expect(progress.phases[0].phase.baseline).toBe("50000.00");
+  expect(progress.phases[0].imported.netProfit).toBe("123");
+  expect(progress.phases[0].imported.balance).toBe("50123");
+  const phaseId = progress.phases[0].phase.id;
+  const snapshot = await page.request.post("/api/prop-progress", { headers, data: {
+    action: "snapshot", accountId: account.id, phaseId, asOfLocal: "2026-10-25T16:00:00",
+    balance: "50123", threshold: "48123", qualifyingDays: "", details: {}, note: "Protected fixture anchor",
+  } });
+  expect(snapshot.status(), await snapshot.text()).toBe(200);
+  await upload([performance({buyFillId:"9007199254740993601",sellFillId:"9007199254740993602",pnl:"10",boughtTimestamp:"09/01/2026 11:00:00",soldTimestamp:"09/01/2026 11:01:00"})]);
+  progress = await read();
+  expect(progress.phases[0].phase.startAt).toBe("2026-09-25T11:00:00.000Z");
+  expect(progress.phases[0].snapshots).toHaveLength(1);
 });

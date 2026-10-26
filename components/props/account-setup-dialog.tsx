@@ -17,7 +17,6 @@ import type { AccountFormValues } from "@/lib/accounts/validation";
 import type { PropData } from "@/lib/props/service";
 import {
   customTrackingRules,
-  snapshotDetailsSchema,
   type TrackingRules,
 } from "@/lib/props/tracking-rules";
 import { propPresets as bundledPresets, type PropPreset } from "@/lib/props/presets";
@@ -189,73 +188,13 @@ export function AccountSetupDialog({
     (account?.startDate
       ? `${account.startDate}T00:00:00Z`
       : new Date().toISOString());
-  const [start, setStart] = useState(wallInput(initialDate, zone, true)),
-    [snapshotAt, setSnapshotAt] = useState(
-      wallInput(new Date().toISOString(), zone, true),
-    );
-  const [origin, setOrigin] = useState<"start" | "snapshot">("start"),
-    [balance, setBalance] = useState(
-      phase?.phase.baseline ??
-        account?.openingBalance ??
-        initialPreset?.ledger ??
-        "",
-    ),
-    [threshold, setThreshold] = useState("");
-  const [history, setHistory] = useState(
-      phase?.phase.historyConfirmed ?? false,
-    ),
-    [confirmActivity, setConfirmActivity] = useState(false);
-  const [opening, setOpening] = useState(snapshotDetailsSchema.parse({}));
+  const start = wallInput(initialDate, zone, true);
+  const balance = phase?.phase.baseline ?? account?.openingBalance ?? rules.ledgerStart ?? "";
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [saved, setSaved] = useState(false),
     [dirty, setDirty] = useState(false);
   const [requestId] = useState(() => crypto.randomUUID());
-  const [preview, setPreview] = useState<{
-    included: number;
-    before: number;
-    crossing: number;
-    pending: boolean;
-    cutoff: string;
-  } | null>(null);
-  const [previewError, setPreviewError] = useState("");
-  useEffect(() => {
-    if (step !== 2 || !account) return;
-    const controller = new AbortController();
-    let alive = true;
-    const timer = setTimeout(() => {
-      setPreview(null);
-      setPreviewError("");
-      setConfirmActivity(false);
-      requestJson<{
-        included: number;
-        before: number;
-        crossing: number;
-        pending: boolean;
-        cutoff: string;
-      }>(
-        `/api/prop-progress/setup?${new URLSearchParams({ accountId: account.id, startLocal: start })}`,
-        { signal: controller.signal },
-      )
-        .then((p) => {
-          if (alive) setPreview(p);
-        })
-        .catch((e) => {
-          if (alive)
-            setPreviewError(
-              e instanceof Error
-                ? e.message
-                : "Could not load activity preview.",
-            );
-        });
-    }, 200);
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [step, account, start]);
-
   const preset = propPresets.find((p) => p.id === selected);
   const available = propPresets.filter(
     (p) => p.rules.firm === rules.firm && (older || !p.legacy),
@@ -280,24 +219,16 @@ export function AccountSetupDialog({
     setCustom(!!account && account.platform !== p.rules.platform);
     setEditingRules(false);
     setDirty(true);
-    setConfirmActivity(false);
     if (!account) setPlatform(p.rules.platform);
     if (!nameEdited)
       setName(
         `${p.rules.firm} ${Number(p.rules.size) / 1000}K ${p.rules.product} ${p.rules.stage}`,
       );
-    if (
-      origin === "start" &&
-      !account?.openingBalance &&
-      !phase?.phase.baseline
-    )
-      setBalance(p.ledger ?? "");
   };
   const changeRules = (next: TrackingRules) => {
     setRules(next);
     setCustom(true);
     setDirty(true);
-    setConfirmActivity(false);
   };
   async function close() {
     if (busy) return;
@@ -318,17 +249,12 @@ export function AccountSetupDialog({
     try {
       const next = structuredClone(rules);
       next.platform = platform;
-      if (origin === "snapshot") {
-        next.drawdown.initialThreshold = threshold || null;
-        next.drawdown.highWater = opening.highWater;
-        next.drawdown.locked = opening.locked;
-      }
       if (custom && next.preset) next.preset.customized = true;
       const firm = firmTiles.find((f) => f.id === next.firm)!;
       const identity: AccountFormValues = {
         displayName: name,
         programName: next.product,
-        startDate: phase ? (account?.startDate ?? "") : start.slice(0, 10),
+        startDate: account?.startDate ?? "",
         firmChoice:
           next.firm === "Custom"
             ? "Other"
@@ -355,13 +281,14 @@ export function AccountSetupDialog({
             phaseId: phase?.phase.id ?? null,
             account: identity,
             rules: next,
-            origin,
+            origin: "start",
+            automaticStart: !phase,
             startLocal: start,
-            snapshotLocal: origin === "snapshot" ? snapshotAt : null,
+            snapshotLocal: null,
             baseline: balance,
-            historyConfirmed: history,
-            opening,
-            confirmActivity,
+            historyConfirmed: phase?.phase.historyConfirmed ?? false,
+            opening: {},
+            confirmActivity: next.manualConfirmed,
           }),
         },
       );
@@ -429,7 +356,7 @@ export function AccountSetupDialog({
           </Button>
         </header>
         <ol className="prop-setup-steps">
-          {["Choose account", "Review rules", "Starting point"].map((s, i) => (
+          {["Choose account", "Review & save"].map((s, i) => (
             <li key={s} aria-current={i === step ? "step" : undefined}>
               <span>{i < step ? <Check size={13} /> : i + 1}</span>
               {s}
@@ -657,9 +584,7 @@ export function AccountSetupDialog({
                       });
                       setRules(next);
                       setDirty(true);
-                      setConfirmActivity(false);
-                      if (!account && origin === "start") setBalance("");
-                      if (!nameEdited) setName("");
+                                        if (!nameEdited) setName("");
                     }}
                   >
                     <Plus size={18} />
@@ -938,6 +863,15 @@ export function AccountSetupDialog({
                       />
                     </>
                   )}
+                  <section className="prop-setup-preview">
+                    <h3>Ready to track</h3>
+                    <p>{phase ? "Your existing phase dates, balance and history will be preserved." : "Your tracking date will come from the earliest trade in your imported Performance.csv. Upload it after saving, or reuse activity already imported to this account."}</p>
+                    <p>Starting balance: {money(balance || null)}. This comes from your account rules; Performance.csv supplies trading activity, not the opening balance. You can adjust the balance in account details.</p>
+                    <p className="prop-firm-rules-note">
+                      Before confirming, check all rules on your prop firm&apos;s official website for changes. Your purchased account agreement takes priority over these presets.{" "}
+                      {firmRuleSites[rules.firm] && <a href={firmRuleSites[rules.firm]} target="_blank" rel="noreferrer">Check official rules</a>}
+                    </p>
+                  </section>
                   {!editingRules && (
                     <label className="prop-check">
                       <input
@@ -961,327 +895,6 @@ export function AccountSetupDialog({
                   )}
                 </>
               )}
-              {step === 2 && (
-                <>
-                  <div className="prop-origin-options">
-                    {[
-                      ["start", "Track from the beginning"],
-                      ["snapshot", "Continue an account in progress"],
-                    ].map(([id, label]) => (
-                      <button
-                        key={id}
-                        aria-pressed={origin === id}
-                        onClick={() => {
-                          setOrigin(id as typeof origin);
-                          setConfirmActivity(false);
-                          if (id === "snapshot") setBalance("");
-                          else
-                            setBalance(
-                              phase?.phase.baseline ??
-                                account?.openingBalance ??
-                                preset?.ledger ??
-                                "",
-                            );
-                        }}
-                      >
-                        {label}
-                        {origin === id && <Check size={15} />}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="prop-form-grid">
-                    <label>
-                      Phase start / activity cutoff ({zone})
-                      <input
-                        aria-label="Phase start"
-                        type="datetime-local"
-                        step="1"
-                        value={start}
-                        disabled={!!phase}
-                        onChange={(e) => {
-                          setStart(e.target.value);
-                          setConfirmActivity(false);
-                        }}
-                      />
-                    </label>
-                    {origin === "snapshot" && (
-                      <label>
-                        Snapshot timestamp ({zone})
-                        <input
-                          aria-label="Snapshot timestamp"
-                          type="datetime-local"
-                          step="1"
-                          value={snapshotAt}
-                          onChange={(e) => {
-                            setSnapshotAt(e.target.value);
-                            setConfirmActivity(false);
-                          }}
-                        />
-                      </label>
-                    )}
-                    <label>
-                      {origin === "start"
-                        ? "Actual starting ledger balance"
-                        : "Current confirmed balance"}
-                      <input
-                        aria-label="Starting balance"
-                        inputMode="decimal"
-                        value={balance}
-                        onChange={(e) => setBalance(e.target.value)}
-                      />
-                    </label>
-                    {origin === "snapshot" && (
-                      <label>
-                        Current loss threshold
-                        <input
-                          aria-label="Current loss threshold"
-                          inputMode="decimal"
-                          value={threshold}
-                          onChange={(e) => setThreshold(e.target.value)}
-                        />
-                      </label>
-                    )}
-                  </div>
-                  <p className="small muted">
-                    Nominal size {money(rules.size)} is separate from the actual
-                    ledger. Accurate progress needs activity from the recorded
-                    cutoff. Blank values remain unknown.
-                  </p>
-                  {origin === "start" ? (
-                    <label className="prop-check">
-                      <input
-                        type="checkbox"
-                        checked={history}
-                        onChange={(e) => setHistory(e.target.checked)}
-                      />
-                      I confirmed complete activity from the phase start
-                      (missing fees still remain unknown).
-                    </label>
-                  ) : (
-                    <details open>
-                      <summary>
-                        Opening values needed for this plan (optional)
-                      </summary>
-                      <div className="prop-form-grid">
-                        <label>
-                          Confirmed high-water mark
-                          <input
-                            value={opening.highWater ?? ""}
-                            onChange={(e) =>
-                              setOpening({
-                                ...opening,
-                                highWater: e.target.value || null,
-                              })
-                            }
-                          />
-                        </label>
-                        <label>
-                          Phase net profit at snapshot
-                          <input
-                            value={opening.phaseProfit ?? ""}
-                            onChange={(e) =>
-                              setOpening({
-                                ...opening,
-                                phaseProfit: e.target.value || null,
-                              })
-                            }
-                          />
-                        </label>
-                        {rules.payout.enabled && (
-                          <>
-                            <label>
-                              Cycle net profit
-                              <input
-                                value={opening.cycleProfit ?? ""}
-                                onChange={(e) =>
-                                  setOpening({
-                                    ...opening,
-                                    cycleProfit: e.target.value || null,
-                                  })
-                                }
-                              />
-                            </label>
-                            <label>
-                              Current cycle number
-                              <input
-                                type="number"
-                                min="1"
-                                value={opening.cycleNumber}
-                                onChange={(e) =>
-                                  setOpening({
-                                    ...opening,
-                                    cycleNumber: Number(e.target.value),
-                                  })
-                                }
-                              />
-                            </label>
-                            <label>
-                              Next payout number
-                              <input
-                                type="number"
-                                min="1"
-                                value={opening.payoutNumber ?? ""}
-                                onChange={(e) =>
-                                  setOpening({
-                                    ...opening,
-                                    payoutNumber: e.target.value
-                                      ? Number(e.target.value)
-                                      : null,
-                                  })
-                                }
-                              />
-                            </label>
-                            {!!rules.payout.requiredDays && (
-                              <label>
-                                Opening{" "}
-                                {rules.payout.dayBasis === "trading"
-                                  ? "trading"
-                                  : "qualifying"}{" "}
-                                days
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={
-                                    (rules.payout.dayBasis === "trading"
-                                      ? opening.tradingDays
-                                      : opening.qualifyingDays) ?? ""
-                                  }
-                                  onChange={(e) =>
-                                    setOpening({
-                                      ...opening,
-                                      [rules.payout.dayBasis === "trading"
-                                        ? "tradingDays"
-                                        : "qualifyingDays"]: e.target.value
-                                        ? Number(e.target.value)
-                                        : null,
-                                    })
-                                  }
-                                />
-                              </label>
-                            )}
-                          </>
-                        )}
-                        {rules.consistency.percent !== null && (
-                          <label>
-                            Opening best session
-                            <input
-                              value={opening.bestDay ?? ""}
-                              onChange={(e) =>
-                                setOpening({
-                                  ...opening,
-                                  bestDay: e.target.value || null,
-                                })
-                              }
-                            />
-                          </label>
-                        )}
-                      </div>
-                      <label className="prop-check">
-                        <input
-                          type="checkbox"
-                          checked={opening.locked}
-                          onChange={(e) =>
-                            setOpening({ ...opening, locked: e.target.checked })
-                          }
-                        />
-                        Trailing is confirmed locked
-                      </label>
-                      {rules.payout.bufferObservation === "sessionClose" && (
-                        <label className="prop-check">
-                          <input
-                            type="checkbox"
-                            checked={opening.eodBufferConfirmed}
-                            onChange={(e) =>
-                              setOpening({
-                                ...opening,
-                                eodBufferConfirmed: e.target.checked,
-                              })
-                            }
-                          />
-                          The firm dashboard confirms the required buffer was
-                          retained at session close
-                        </label>
-                      )}
-                      <label className="prop-check">
-                        <input
-                          type="checkbox"
-                          checked={opening.openingConfirmed}
-                          onChange={(e) =>
-                            setOpening({
-                              ...opening,
-                              openingConfirmed: e.target.checked,
-                            })
-                          }
-                        />
-                        These supplied opening values and cutoff are confirmed
-                      </label>
-                      <p className="small muted">
-                        Partial information is supported. A snapshot does not
-                        prove previous compliance; dated daily opening details
-                        remain available in account details.
-                      </p>
-                    </details>
-                  )}
-                  <section className="prop-setup-preview">
-                    <h3>Review before saving</h3>
-                    <p className="prop-firm-rules-note">
-                      Before confirming, check all rules on your prop firm&apos;s official website for changes. Your purchased account agreement takes priority over these presets.{" "}
-                      {firmRuleSites[rules.firm] && <a href={firmRuleSites[rules.firm]} target="_blank" rel="noreferrer">Check official rules</a>}
-                    </p>
-                    <strong>{name || "Choose an account label"}</strong>
-                    <p>
-                      {rules.firm} / {rules.product} / {rules.stage} /{" "}
-                      {money(rules.size)} / {rules.drawdown.mode}
-                    </p>
-                    <p>
-                      {item?.activity.count ?? 0} existing published source
-                      records in this account.{" "}
-                      {item?.needsProcessing
-                        ? "Some imports still need journal processing. "
-                        : ""}
-                      {phase
-                        ? "Existing phase boundaries and previous rule versions are preserved. New rules take effect now."
-                        : "Matching records are included by their exit timestamp and phase dates; no source mappings are changed."}
-                    </p>
-                    {item?.activity.firstEntry && (
-                      <p>
-                        Existing activity starts {item.activity.firstEntry}.
-                        Chosen local cutoff: {start} ({zone}). Records before
-                        the cutoff and phase-spanning activity remain excluded;
-                        review the exact dates.
-                      </p>
-                    )}
-                    {account &&
-                      (preview ? (
-                        <p>
-                          {preview.included} source records fit this phase
-                          cutoff; {preview.before} earlier records and{" "}
-                          {preview.crossing} boundary-spanning records stay
-                          excluded.
-                          {preview.pending
-                            ? " Some sources still need processing."
-                            : ""}{" "}
-                          UTC cutoff: {preview.cutoff}.
-                        </p>
-                      ) : (
-                        <p role="status">
-                          {previewError ||
-                            "Loading the owned activity preview..."}
-                        </p>
-                      ))}
-                    <label className="prop-check">
-                      <input
-                        aria-label="Confirm activity preview"
-                        type="checkbox"
-                        checked={confirmActivity}
-                        onChange={(e) => setConfirmActivity(e.target.checked)}
-                      />
-                      I reviewed the starting point, rules and existing-activity
-                      scope. Save without moving or duplicating imports.
-                    </label>
-                  </section>
-                </>
-              )}
             </motion.div>
           </AnimatePresence>
           {error && (
@@ -1294,7 +907,7 @@ export function AccountSetupDialog({
           <Button variant="ghost" disabled={busy} onClick={() => void close()}>
             Cancel
           </Button>
-          <span>{step + 1} of 3</span>
+          <span>{step + 1} of 2</span>
           <Button
             variant="outline"
             disabled={step === 0 || busy}
@@ -1305,7 +918,7 @@ export function AccountSetupDialog({
           >
             Back
           </Button>
-          {step < 2 ? (
+          {step === 0 ? (
             <Button
               disabled={
                 catalogLoading || catalogError || !name || (!selected && !custom && rules.firm !== "Custom")
@@ -1321,8 +934,6 @@ export function AccountSetupDialog({
                   );
                   return;
                 }
-                setConfirmActivity(false);
-                setPreview(null);
                 setStep(step + 1);
                 setError("");
               }}
@@ -1331,7 +942,7 @@ export function AccountSetupDialog({
             </Button>
           ) : (
             <Button
-              disabled={busy || !confirmActivity || (!!account && !preview)}
+              disabled={busy || !rules.manualConfirmed}
               onClick={() => void save()}
             >
               {saved ? <Check size={15} /> : null}

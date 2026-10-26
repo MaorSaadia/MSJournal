@@ -2,11 +2,11 @@
 
 ## Setup and existing accounts
 
-Prop Accounts groups accounts by actual firm with compact two-column desktop cards and a single-column mobile layout. Add Account and Finish setup share a three-section dialog: exact firm/product/stage/size/options, rules review, and tracking starting point. Unsupported combinations require Customize. Advanced rules remain collapsed. Edits mark the preset Customized; resetting restores the selected preset. Purchased account settings only affect this journal, never the firm account.
+Prop Accounts groups accounts by actual firm with compact two-column desktop cards and a single-column mobile layout. Add Account and Finish setup share a two-step dialog: exact firm/product/stage/size/options, then review rules and save. The separate starting-point step has been removed. Unsupported combinations require Customize. Advanced rules remain collapsed. Edits mark the preset Customized; resetting restores the selected preset. Purchased account settings only affect this journal, never the firm account.
 
 Account identity, phase, immutable rule version, actual baseline and optional opening snapshot are written in one transaction. A request identifier plus payload fingerprint makes identical save retries idempotent. Failures roll back all setup writes. Server-side ownership checks cover accounts, phases and previews. Existing metadata editing, archiving and explicit phase/reset history remain available.
 
-A read-only inspection found Apex02 has 75 stored source rows and Apex006 has 7, but both have zero phases and zero rule versions. That is why imported P&L existed without rule-based progress. Choose Finish setup, select the actual agreement, review the cutoff/activity preview and confirm the real starting balance or a dashboard snapshot. Do not reupload the same history. This implementation does not guess or configure either account automatically.
+Use Finish setup to configure an existing imported account without uploading the same activity again. A new original tracking phase aligns to its earliest imported trade entry. Existing phases retain their explicit cutoffs.
 
 A snapshot is an anchor, not a deposit. Only later source contributions project its balance. Opening cycle values have an explicit cutoff. History completeness is a user confirmation, not inferred from having a CSV. Platform is editable and may be Unknown; explicit destination-account Tradovate CSV imports no longer reject a different platform label. This does not add any other broker parser or integration.
 
@@ -36,3 +36,14 @@ The page-level action is now Add Firm. Selecting a known or custom firm saves an
 Migration `0013_orange_madripoor.sql` only adds `user_preferences.prop_firm_names` with an empty-array default. It was reviewed and applied to the configured development database; other environments need `npm.cmd run db:migrate -- --reviewed` before releasing this change. The existing v5 backup catalog automatically includes the new preference column. No account/import/rule data is migrated or reassigned.
 
 Checks: TypeScript and scoped ESLint passed; five focused export tests passed. The updated disposable browser scenario passed, checking persistence, idempotent firm adds, cross-user isolation, firm-specific setup and existing-import reuse. Desktop/mobile captures in both themes were reviewed. A contrast issue in the new dialog search input was corrected after that review. No full suite, production build or deployment was performed.
+
+
+## Automatic Performance.csv tracking start (2026-10-26)
+
+Normal setup now has only Choose account and Review & save. No date picker, starting-point mode or complete-history checkbox is required. The existing rules-review confirmation and official-site reminder remain. Known actual starting ledger balances come from saved account rules; nominal size is never used as a substitute for an unknown ledger. Custom initial balances remain editable in the advanced rule editor and account details.
+
+New original phases opt in through an owned audit event. Setup reuses already-published activity; future Performance.csv publication aligns the original cutoff to the earliest account-scoped entry (minimum buy/sell timestamp, supporting shorts). The selected opening ledger is unchanged. An older backfill can extend that imported history earlier; repeated publication is idempotent, and deletions do not push the cutoff forward. A dated copy of the original rules covers the earlier interval without removing original rule versions. Every alignment is audited.
+
+This automatic behavior does not move existing manually configured phases, reset/transition boundaries, confirmed history, explicit baseline/date corrections, snapshots, payout history or manual balance adjustments. Those anchors retain the existing manual reconciliation workflow in account details. Imports never certify that the uploaded history covers the actual firm account's entire lifetime. `historyConfirmed` remains false for automatic starts; fees still remain unknown when missing.
+
+No SQL migration or backup-format change is needed: phase dates, immutable rules and audit events already participate in backup export. Focused checks cover the two-step save, existing-import reuse, later uploads, duplicates, older backfills, snapshot protection, custom baseline rules and cross-user rejection. No full suite, production build or deployment.
