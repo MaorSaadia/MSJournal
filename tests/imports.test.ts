@@ -330,13 +330,32 @@ describe("normalized Performance overlap comparison", () => {
     expect(incoming.errors[0].message).toContain(label);
     expect(incoming.rows[0].matchedSource).toBeUndefined();
   });
-  it("blocks a changed source timezone when it changes actual UTC timestamps", () => {
+  it("keeps saved copies when only the timezone interpretation changes", () => {
     const old = parse("performance", [performance()]);
     const incoming = parseReport(Buffer.from(csv("performance", [performance()])),"different-zone.csv","performance","America/New_York");
     classify(incoming,saved(old));
-    expect(incoming.rows[0].disposition).toBe("conflict");
-    expect(incoming.errors[0].message).toContain("CSV source timezone");
-    expect(incoming.errors[0].message).toContain("saved");
+    expect(incoming.rows[0].disposition).toBe("duplicate");
+    expect(incoming.errors).toEqual([]);
+    expect(incoming.warnings.some((w) => w.column === "Existing trade times")).toBe(true);
+    expect(incoming.rows[0].matchedSource).toEqual({fingerprint:old.rows[0].fingerprint,occurrence:1});
+  });
+  it("keeps both matching saved portions for a one-hour export shift and imports a new fill normally", () => {
+    const old = parse("performance", [performance(), performance({pnl:"-45.0"})]);
+    const incoming = parse("performance", [performance({boughtTimestamp:"09/02/2026 15:52:32",soldTimestamp:"09/02/2026 15:52:15"}), performance({boughtTimestamp:"09/02/2026 15:52:32",soldTimestamp:"09/02/2026 15:52:15"}),performance({buyFillId:"new"})]);
+    classify(incoming,saved(old));
+    expect(incoming.rows.map((r) => r.disposition)).toEqual(["duplicate","duplicate","new"]);
+    expect(new Set(incoming.rows.slice(0,2).map((r) => JSON.stringify(r.matchedSource))).size).toBe(2);
+    expect(incoming.errors).toEqual([]);
+    expect(incoming.warnings.filter((w) => w.column === "Existing trade times")).toHaveLength(1);
+    expect(old.rows[0].values).toEqual(saved(old)[0].values);
+  });
+  it("still blocks changed intervals and unrelated dates for the same fill pair", () => {
+    const old = parse("performance", [performance()]);
+    for (const changed of [performance({boughtTimestamp:"09/02/2026 15:52:32"}), performance({boughtTimestamp:"08/02/2026 16:52:32",soldTimestamp:"08/02/2026 16:52:15"})]) {
+      const incoming = parse("performance",[changed]);
+      classify(incoming,saved(old));
+      expect(incoming.rows[0].disposition).toBe("conflict");
+    }
   });
   it("retains new portions with different fill IDs and detects pair-wise changes even if field totals match", () => {
     const old = parse("performance", [performance({qty:"1",pnl:"10"}),performance({qty:"2",pnl:"20"})]);

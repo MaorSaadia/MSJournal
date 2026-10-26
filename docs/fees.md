@@ -65,3 +65,14 @@ Saved raw fingerprints, source IDs, provenance and fee allocations remain immuta
 Conflict messages identify changed financial fields (with saved/uploaded values for a single portion), UTC times or stored/uploaded portion counts. No account data is changed by preview. This does not automatically correct a source timezone, merge partial fill pairs, or infer which conflicting broker report is authoritative.
 
 Verification: focused import/request unit checks, plus a disposable browser/API scenario covering formatting-only duplicates, multiplicity, mixed duplicate/new imports, fee replacement and preserved net totals, repeat imports, actual P&L conflicts and cross-user rejection. TypeScript, scoped lint and diff checks passed. No schema migration, full suite or deployment.
+
+
+### Keep saved copies for export-time shifts (2026-10-26)
+
+Parser `tradovate-1.3` retains saved Performance portions when the fill-ID pair, normalized financial fields, multiplicity and elapsed interval match, and the only change is a uniform timezone-sized offset for both buy and sell timestamps. These rows count as duplicates and produce one review warning; incoming copies are not inserted or allowed to change existing timestamps. Different contract/quantity/prices/P&L, changed intervals, unrelated dates and partial/regrouped fill-pair multiplicities remain conflicts. Orders retain the previous strict behavior.
+
+This is an explicit keep-existing policy, not a timezone correction or an assertion that either export's time is authoritative. New fill IDs use the selected CSV source timezone normally. An identical Performance report selected with a different source timezone may be skipped when all its portions are verified saved matches; it does not overwrite the earlier import. If any rows are not verified duplicates, the existing identical-report/timezone block remains.
+
+Fee preview and confirmation use saved source IDs and saved times for retained duplicates, preserving the fee range, allocation fingerprint, journal links and date-based progress. Newly uploaded raw rows remain in import provenance. No stored source data, existing fees or journal records are overwritten by duplicate classification. To apply the change, create a fresh import preview.
+
+Focused verification covers the screenshot's one-hour shift, preserved repeated portions, only-new insertion, saved fee-date fingerprints, actual financial/interval conflicts, unrelated dates and account ownership. No migration is required.

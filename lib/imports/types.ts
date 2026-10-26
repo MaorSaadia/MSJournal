@@ -1,5 +1,5 @@
 export type ReportType = "orders" | "performance";
-export const PARSER_VERSION = "tradovate-1.2";
+export const PARSER_VERSION = "tradovate-1.3";
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_ROWS = 10000;
 export type Diagnostic = { row: number; column: string; message: string };

@@ -36,6 +36,58 @@ function normalized(v: PerformanceValues) {
 function signature(values: PerformanceValues) {
   return JSON.stringify(normalized(values));
 }
+// Existing saved copies win when only a uniform timezone-sized offset differs.
+// Keep exact quantity/price/P&L, multiplicity, direction and elapsed time checks.
+function savedTimeMatches(old: StoredIdentity[], rows: ParsedFile["rows"]) {
+  if (!old.length || old.length !== rows.length || !old.every((r) => r.values))
+    return null;
+  const withoutTimes = (v: PerformanceValues) => {
+    const n = normalized(v);
+    return JSON.stringify([
+      n.symbol,
+      n.quantity,
+      n.buyPrice,
+      n.sellPrice,
+      n.grossPnl,
+      Date.parse(n.soldAt) - Date.parse(n.boughtAt),
+    ]);
+  };
+  const sortedOld = [...old].sort(
+    (a, b) =>
+      withoutTimes(a.values!).localeCompare(withoutTimes(b.values!)) ||
+      a.values!.boughtAt.localeCompare(b.values!.boughtAt),
+  );
+  const sortedNew = [...rows].sort(
+    (a, b) =>
+      withoutTimes(a.values as PerformanceValues).localeCompare(
+        withoutTimes(b.values as PerformanceValues),
+      ) ||
+      (a.values as PerformanceValues).boughtAt.localeCompare(
+        (b.values as PerformanceValues).boughtAt,
+      ),
+  );
+  const matches = new Map<ParsedFile["rows"][number], StoredIdentity>();
+  let shift: number | null = null;
+  for (let i = 0; i < sortedOld.length; i++) {
+    const stored = sortedOld[i],
+      incoming = sortedNew[i];
+    const a = stored.values!,
+      b = incoming.values as PerformanceValues;
+    if (withoutTimes(a) !== withoutTimes(b)) return null;
+    const delta = Date.parse(b.boughtAt) - Date.parse(a.boughtAt);
+    if (
+      delta !== Date.parse(b.soldAt) - Date.parse(a.soldAt) ||
+      Math.abs(delta) > 26 * 3600000 ||
+      delta % 900000 !== 0 ||
+      (shift !== null && delta !== shift)
+    )
+      return null;
+    shift = delta;
+    matches.set(incoming, stored);
+  }
+  return matches;
+}
+
 function conflictMessage(old: StoredIdentity[], rows: ParsedFile["rows"]) {
   const prefix = "These fill IDs already exist in this account. ";
   if (old.length !== rows.length)
@@ -62,6 +114,7 @@ function conflictMessage(old: StoredIdentity[], rows: ParsedFile["rows"]) {
 }
 
 export function classify(file: ParsedFile, existing: StoredIdentity[]) {
+  let keptTimes = 0;
   const stored = new Map<string, StoredIdentity[]>();
   for (const row of existing)
     stored.set(row.identity, [...(stored.get(row.identity) ?? []), row]);
@@ -91,10 +144,15 @@ export function classify(file: ParsedFile, existing: StoredIdentity[]) {
           ? signature(row.values as PerformanceValues)
           : row.fingerprint;
       const multiset = (items: string[]) => items.sort().join("|");
+      const exact =
+        multiset(old.map(oldSignature)) ===
+        multiset(rows.map(incomingSignature));
+      const timeMatches =
+        !exact && hasValues ? savedTimeMatches(old, rows) : null;
+      if (timeMatches) keptTimes += rows.length;
       const disposition = !old.length
         ? "new"
-        : multiset(old.map(oldSignature)) ===
-            multiset(rows.map(incomingSignature))
+        : exact || timeMatches !== null
           ? "duplicate"
           : "conflict";
       const matches = new Map<string, StoredIdentity[]>();
@@ -107,7 +165,9 @@ export function classify(file: ParsedFile, existing: StoredIdentity[]) {
         row.disposition = disposition;
         delete row.matchedSource;
         if (disposition === "duplicate") {
-          const match = matches.get(incomingSignature(row))!.shift()!;
+          const match =
+            timeMatches?.get(row) ??
+            matches.get(incomingSignature(row))!.shift()!;
           row.matchedSource = {
             fingerprint: match.fingerprint,
             occurrence: match.occurrence,
@@ -125,4 +185,10 @@ export function classify(file: ParsedFile, existing: StoredIdentity[]) {
             : conflictMessage(old, rows),
       });
   }
+  if (keptTimes)
+    file.warnings.push({
+      row: 0,
+      column: "Existing trade times",
+      message: `${keptTimes} existing portions have different export times but matching fill IDs and financial values. The saved trades and their times will be kept; these uploaded copies will be skipped. Only new trades will be added. Check the CSV source timezone for new trades before confirming.`,
+    });
 }

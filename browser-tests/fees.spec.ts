@@ -400,6 +400,24 @@ test("normalized Performance copies reuse saved portions and fees without double
   expect(changed.result.canConfirm).toBe(false);
   expect(changed.result.files[0].errors.some((e: {message:string}) => e.message.includes("gross P&L"))).toBe(true);
   expect(await activity()).toMatchObject({count:3,net:"-83"});
+  const shifted = mixed.map((row) => ({...row,boughtTimestamp:"09/02/2026 15:52:32",soldTimestamp:"09/02/2026 15:52:15"}));
+  const timeCopy = await preview(shifted,"3");
+  expect(timeCopy.result.canConfirm).toBe(true);
+  expect(timeCopy.result.counts).toMatchObject({duplicates:3,new:0,conflicts:0});
+  expect(timeCopy.result.files[0].warnings.some((w:{message:string}) => w.message.includes("saved trades and their times will be kept"))).toBe(true);
+  const originalTimes = await preview(mixed,"3");
+  expect(timeCopy.result.feeReview.fingerprint).toBe(originalTimes.result.feeReview.fingerprint);
+  expect((await confirm(timeCopy)).added).toBe(0);
+  expect(await activity()).toMatchObject({count:3,gross:"-80",net:"-83"});
+  const oldFileNewZone = await page.request.post("/api/imports/preview",{headers,multipart:{...duplicate.multipart,timezone:"Europe/London"}});
+  expect(oldFileNewZone.status()).toBe(200);
+  const zonePreview = await oldFileNewZone.json();
+  expect(zonePreview.canConfirm).toBe(true);
+  expect(zonePreview.counts).toMatchObject({duplicates:2,new:0,conflicts:0});
+  const withNewTrade = await preview([...shifted,performance({buyFillId:"only-new-buy",sellFillId:"only-new-sell",pnl:"5"})],"4");
+  expect(withNewTrade.result.counts).toMatchObject({duplicates:3,new:1,conflicts:0});
+  expect((await confirm(withNewTrade)).added).toBe(1);
+  expect(await activity()).toMatchObject({count:4,gross:"-75",net:"-79"});
   const other = await playwright.request.newContext({baseURL:origin});
   try {
     expect((await other.post("/api/auth/sign-up/email",{headers,data:disposableUser()})).status()).toBe(200);

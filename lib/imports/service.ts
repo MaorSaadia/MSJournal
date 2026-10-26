@@ -38,8 +38,11 @@ const sourceKey = (r: Pick<StoredIdentity, "identity" | "fingerprint" | "occurre
 function importFeeParts(files: ParsedFile[], stored: Map<string, Stored[]>) {
   const file = files.find((f) => f.type === "performance");
   if (!file?.rows.length || file.errors.length) throw new ImportError("Resolve Performance CSV errors before adding a fee total.");
-  const ids = new Map((stored.get("performance") ?? []).map((r) => [sourceKey(r), r.id]));
-  return file.rows.map((r) => ({ ...(r.values as PerformanceValues), id: ids.get(sourceKey(r)) ?? `new:${sourceKey(r)}` }));
+  const saved = new Map((stored.get("performance") ?? []).map((r) => [sourceKey(r), r]));
+  return file.rows.map((r) => {
+    const existing = saved.get(sourceKey(r));
+    return { ...(existing?.values ?? r.values as PerformanceValues), id: existing?.id ?? `new:${sourceKey(r)}` };
+  });
 }
 async function displayZone(db: DB | TX, userId: string) {
   const [pref] = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId));
@@ -99,12 +102,6 @@ async function evaluate(
         ),
       );
     const different = previous.find((p) => p.timezone !== options.timezone);
-    if (different)
-      file.errors.push({
-        row: 0,
-        column: "Source timezone",
-        message: `This identical report was already imported using ${different.timezone}. Changing its source timezone requires an explicit correction workflow, which is not available yet. Nothing will be imported again.`,
-      });
     if (file.type === "orders") {
       const ids = [...new Set(file.rows.map((r) => r.identity))];
       const rows = ids.length
@@ -196,6 +193,12 @@ async function evaluate(
           message:
             "Performance has no account identifier. Explicitly confirm this report belongs to the selected account.",
         });
+    }
+    if (different) {
+      const keepSaved = file.type === "performance" && file.rows.length > 0 && file.rows.every((r) => r.disposition === "duplicate");
+      (keepSaved ? file.warnings : file.errors).push({ row: 0, column: "Source timezone", message: keepSaved
+        ? `This report was previously imported using ${different.timezone}. All portions already exist; the saved copies and timestamps will be kept. No source trades will be replaced.`
+        : `This identical report was already imported using ${different.timezone}. Changing its source timezone requires an explicit correction workflow, which is not available yet. Nothing will be imported again.` });
     }
     if (!file.total && !file.errors.length)
       file.errors.push({
@@ -349,6 +352,7 @@ export async function confirmImport(
     const summary = counts(files);
     const scope = { ownerId: user.id, tradingAccountId: options.accountId };
     const feeParts: FeePart[] = [];
+    const savedPerformance = new Map((existing.get("performance") ?? []).map((r) => [sourceKey(r), r.values]));
     const [batch] = await tx
       .insert(importBatches)
       .values({
@@ -441,7 +445,7 @@ export async function confirmImport(
         }
       }
       if (file.type === "performance" && options.feeTotal !== undefined)
-        for (const r of file.rows) feeParts.push({ ...(r.values as PerformanceValues), id: references.get(key(r))! });
+        for (const r of file.rows) feeParts.push({ ...(savedPerformance.get(key(r)) ?? r.values as PerformanceValues), id: references.get(key(r))! });
       for (const group of chunks(file.rows))
         await tx.insert(importProvenance).values(
           group.map((r) => {
