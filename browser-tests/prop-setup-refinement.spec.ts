@@ -589,3 +589,56 @@ test("current Apex Intraday sizes and official-rule reminder are visible", async
   await page.screenshot({ path: info.outputPath("official-rules-reminder.png") });
   expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 });
+
+
+test("every current firm product shows its full size list in account setup", async ({ page }, info) => {
+  test.skip(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true", "Disposable accounts only");
+  test.setTimeout(120000);
+  page.setDefaultTimeout(15000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect((await page.request.post("/api/auth/sign-up/email", { headers: { Origin: origin }, data: disposableUser() })).status()).toBe(200);
+  await page.goto("/prop-accounts?add=1");
+  const dialog = page.getByRole("dialog");
+  const cases: [string, string, string[], number[]][] = [
+    ["Apex Trader Funding", "EOD", ["Evaluation", "Sim Funded"], [25000,50000,100000,150000]],
+    ["Apex Trader Funding", "Intraday", ["Evaluation", "Sim Funded"], [25000,50000,100000,150000]],
+    ["Lucid Trading", "Pro", ["Evaluation", "Sim Funded"], [25000,50000,100000,150000]],
+    ["Lucid Trading", "Flex", ["Evaluation", "Sim Funded"], [25000,50000,100000,150000]],
+    ["Lucid Trading", "Daily", ["Evaluation", "Sim Funded"], [25000,50000,100000,150000]],
+    ["Lucid Trading", "Direct", ["Sim Funded"], [25000,50000,100000,150000]],
+    ["MyFundedFutures", "Rapid Intraday", ["Evaluation", "Sim Funded"], [25000,50000,100000,150000]],
+    ["MyFundedFutures", "Rapid EOD", ["Evaluation", "Sim Funded"], [25000,50000]],
+    ["MyFundedFutures", "Builder", ["Evaluation", "Sim Funded"], [25000,50000,100000,150000]],
+    ["MyFundedFutures", "Pro", ["Evaluation", "Sim Funded"], [50000,100000,150000]],
+    ["MyFundedFutures", "Flex", ["Evaluation", "Sim Funded"], [25000,50000]],
+    ["Take Profit Trader", "Test", ["Evaluation"], [25000,50000,75000,100000,150000]],
+    ["Take Profit Trader", "PRO", ["Sim Funded"], [25000,50000,75000,100000,150000]],
+    ["Topstep", "Trading Combine", ["Evaluation"], [50000,100000,150000]],
+    ["Topstep", "XFA Standard", ["Sim Funded"], [50000,100000,150000]],
+    ["FundedNext Futures", "Rapid Pro", ["Evaluation", "Sim Funded"], [25000,50000,100000]],
+    ["FundedNext Futures", "Rapid Daily", ["Evaluation", "Sim Funded"], [25000,50000,100000]],
+    ["FundedNext Futures", "Flex", ["Evaluation", "Sim Funded"], [50000,100000,150000]],
+    ["FundedNext Futures", "Direct", ["Sim Funded"], [50000]],
+  ];
+  for (const [firm, product, stages, sizes] of cases) {
+    await dialog.locator(".prop-firm-tiles button").filter({ hasText: firm }).click();
+    await dialog.locator(".prop-product-options").getByRole("button", { name: product, exact: true }).click();
+    for (const stage of stages) {
+      await dialog.getByLabel("Account stage").selectOption(stage);
+      await expect(dialog.locator(".prop-size-grid button > strong"), `${firm} ${product} ${stage}`).toHaveText(sizes.map((size) => new Intl.NumberFormat("en-US", {style:"currency", currency:"USD"}).format(size)));
+    }
+    if (firm === "Lucid Trading") await page.screenshot({ path: info.outputPath(`lucid-${product.toLowerCase()}-sizes.png`) });
+  }
+  for (const [firm, products] of [["Apex Trader Funding", ["EOD", "Intraday"]], ["Lucid Trading", ["Pro", "Flex", "Daily", "Direct"]]] as const) {
+    expect((await page.request.post("/api/prop-firms", { headers: { Origin: origin }, data: { name: firm } })).status()).toBe(200);
+    await page.goto("/prop-accounts");
+    const group = page.locator(".prop-firm-group").filter({ has: page.getByRole("heading", { name: firm, exact: true }) });
+    await group.getByRole("button", { name: "+ Add account", exact: true }).click();
+    await expect(dialog.locator(".prop-firm-tiles")).toHaveCount(0);
+    for (const product of products) {
+      await dialog.locator(".prop-product-options").getByRole("button", { name: product, exact: true }).click();
+      await expect(dialog.locator(".prop-size-grid button > strong"), `${firm} group / ${product}`).toHaveText(["$25,000.00", "$50,000.00", "$100,000.00", "$150,000.00"]);
+    }
+    await page.screenshot({ path: info.outputPath(firm === "Lucid Trading" ? "lucid-group-sizes.png" : "apex-group-sizes.png") });
+  }
+});
