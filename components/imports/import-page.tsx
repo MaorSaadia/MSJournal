@@ -10,6 +10,7 @@ import {
   LoaderCircle,
   ShieldCheck,
   ArrowRight,
+  ReceiptText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { TradingAccount } from "@/lib/accounts/types";
@@ -310,7 +311,34 @@ export function ImportPage({
                   </label>
                 )}
             </fieldset>
-            {files.performance && <details className="import-fees"><summary>Trading fees & commissions (optional)</summary><label className="field-label">Total fees for this Performance report (USD)<input inputMode="decimal" value={feeTotal} disabled={!!busy} placeholder="Leave blank if unknown" onChange={(e) => { setFeeTotal(e.target.value); setFeesConfirmed(false); setReplaceFees(false); invalidate(); }} /></label><p className="small muted">Copy the all-in trading fees for these same report records from Tradovate. Include commissions, exchange, clearing and regulatory fees. Exclude deposits, withdrawals and subscription costs. Enter 0 only if fees are actually zero.</p>{feeTotal.trim() && <label className="import-confirm"><input type="checkbox" disabled={!!busy} checked={feesConfirmed} onChange={(e) => { setFeesConfirmed(e.target.checked); invalidate(); }} />I confirm these fees apply to all closed Performance records in this file, including duplicates—not only the newly imported rows. Fees for unrelated records or open positions are excluded.</label>}<p className="small muted">You can also add or correct totals later in <Link href="/fees">Fees</Link>. Leaving this blank preserves existing fees and account estimates.</p></details>}
+            {files.performance && (
+              <section className="import-fees" aria-labelledby="import-fees-heading">
+                <header className="import-fees-heading">
+                  <span className="import-fees-icon" aria-hidden="true"><ReceiptText size={21} /></span>
+                  <div>
+                    <h3 id="import-fees-heading">Trading fees &amp; commissions <span>Optional</span></h3>
+                    <p>Add your broker-report fees to see your net P&amp;L after trading costs.</p>
+                  </div>
+                </header>
+                <label className="field-label">
+                  Total fees for this Performance report (USD)
+                  <input inputMode="decimal" value={feeTotal} disabled={!!busy} placeholder="For example, 24.96" onChange={(e) => {
+                    setFeeTotal(e.target.value);
+                    setFeesConfirmed(false);
+                    setReplaceFees(false);
+                    invalidate();
+                  }} />
+                </label>
+                <p className="small muted">Copy the all-in trading fees for these same report records from Tradovate. Include commissions, exchange, clearing and regulatory fees. Exclude deposits, withdrawals and subscription costs. Enter 0 only if fees are actually zero.</p>
+                {feeTotal.trim() && (
+                  <label className="import-confirm">
+                    <input type="checkbox" disabled={!!busy} checked={feesConfirmed} onChange={(e) => { setFeesConfirmed(e.target.checked); invalidate(); }} />
+                    <span>I confirm these fees apply to all closed Performance records in this file, including duplicates, not only the newly imported rows. Fees for unrelated records or open positions are excluded.</span>
+                  </label>
+                )}
+                <p className="small muted import-fees-note">You can also add or correct totals later in <Link href="/fees">Fees</Link>. Leave blank if unknown; existing fees and account estimates are preserved.</p>
+              </section>
+            )}
             {error && (
               <div role="alert" className="import-error">
                 {error}
