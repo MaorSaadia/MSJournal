@@ -39,18 +39,18 @@ export function BalanceChart({
   timezone,
 }: {
   points: BalancePoint[];
-  entering: string;
+  entering: string | null;
   start: string;
   adjustments: CashAdjustment[];
   timezone: string;
 }) {
   const reduced = useReducedMotion(),
     rows = [
-      { date: `${start} · Entering`, exact: entering, value: Number(entering) },
+      ...(entering === null ? [] : [{ date: `${start} · Entering`, exact: entering, value: Number(entering) }]),
       ...points.map((p) => ({
         date: p.date,
         exact: p.value,
-        value: Number(p.value),
+        value: p.value === null ? null : Number(p.value),
       })),
     ];
   const cashDates = new Set(
@@ -103,12 +103,12 @@ export function BalanceChart({
             }}
           />
           {rows
-            .filter((p) => cashDates.has(p.date))
+            .filter((p) => p.value !== null && cashDates.has(p.date))
             .map((p) => (
               <ReferenceDot
                 key={p.date}
                 x={p.date}
-                y={p.value}
+                y={p.value!}
                 r={3}
                 fill="var(--violet)"
                 stroke="var(--card)"

@@ -1,10 +1,12 @@
 import "server-only";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { dashboardSchema } from "./model";
 import { getPreferences } from "@/lib/preferences";
 import { getDb } from "@/db/client";
 import {
   balanceAdjustments,
+  propPhases,
+  propRuleVersions,
   journalReviews,
   reviewAttachments,
 } from "@/db/schema";
@@ -15,6 +17,7 @@ import { reportSchema, summarizeReports } from "@/lib/reports/model";
 import { D, portionEntry, portionExit, sum } from "@/lib/journal/processing";
 import { localDay, realizedPerformance } from "@/lib/journal/calculations";
 import { summary, isCompleteTrade } from "@/lib/journal/statistics";
+import { automaticBaselines, type BalancePhase } from "@/lib/balances/automatic";
 import { balanceEstimates } from "@/lib/balances/model";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
 export async function dashboardData(input: unknown, headers?: Headers) {
@@ -183,11 +186,23 @@ export async function dashboardData(input: unknown, headers?: Headers) {
             ),
           )
       : [];
+    const phaseRows = ids.length ? await getDb().select({
+      id: propPhases.id, tradingAccountId: propPhases.tradingAccountId,
+      startAt: propPhases.startAt, endAt: propPhases.endAt, baseline: propPhases.baseline, rules: propRuleVersions.rules,
+    }).from(propPhases).leftJoin(propRuleVersions, and(eq(propRuleVersions.phaseId, propPhases.id), eq(propRuleVersions.ownerId, user.id)))
+      .where(and(eq(propPhases.ownerId, user.id), inArray(propPhases.tradingAccountId, ids)))
+      .orderBy(asc(propRuleVersions.effectiveAt)) : [];
+    const anchors = new Map<string, BalancePhase>();
+    for (const phase of phaseRows) if (!anchors.has(phase.id)) anchors.set(phase.id, {
+      tradingAccountId: phase.tradingAccountId, startAt: phase.startAt.toISOString(), endAt: phase.endAt?.toISOString() ?? null,
+      baseline: phase.baseline, ledgerStart: phase.rules?.tracking?.ledgerStart ?? null,
+    });
+    const balanceMovements = cash.map((c) => ({ ...c, effectiveAt: c.effectiveAt.toISOString() }));
     const balances = balanceEstimates(
-      selectedAccounts,
+      automaticBaselines(selectedAccounts, journal.portions, [...anchors.values()], q.start, q.end, timezone, balanceMovements),
       journal.portions,
       journal.fees,
-      cash.map((c) => ({ ...c, effectiveAt: c.effectiveAt.toISOString() })),
+      balanceMovements,
       q.start,
       q.end,
       timezone,

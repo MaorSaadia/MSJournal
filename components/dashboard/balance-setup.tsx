@@ -57,7 +57,8 @@ export function BalanceSetup({
           {account.estimated ? " Includes estimated fees." : ""}
         </p>
       )}
-      {account.baselineInstant && (
+      {account.baselineSource && account.baselineSource !== "manual" && <p className="panel-note">Starting balance {journalMoney(account.baseline)} / automatic from {account.baselineSource === "phase" ? "Prop Accounts" : "account size"}.</p>}
+      {account.baselineInstant && account.baselineSource === "manual" && (
         <p className="panel-note">
           Baseline {journalMoney(account.baseline)} immediately before{" "}
           {account.baselineDate} 00:00 · {account.timezone} (
@@ -111,7 +112,7 @@ export function BalanceSetup({
             </label>
             <p className="panel-note">
               Balance immediately before 00:00 on this date in{" "}
-              {account.timezone}. Nominal account size is not used.
+              {account.timezone}. Saving here overrides the automatic starting balance.
             </p>
             <button type="submit" className="balance-save">
               Save starting balance

@@ -442,7 +442,7 @@ export function RealDashboard({
             <Panel
               title="Account balance"
               className="dashboard-balance-panel"
-              help={`Baseline plus subsequent realized P&L less known/estimated fees, plus dated cash adjustments. Includes every instrument and direction in each account; incomplete imports are not broker balances. ${data.balances.covered}/${data.balances.selected} account baselines cover the range start. ${data.balances.combined?.missingFees ?? 0} portions have unknown fees. Cash movements stay separate from P&L.`}
+              help={`Automatic starting balance from account settings plus subsequent realized P&L less known/estimated fees and dated cash adjustments. Manually entered balances take priority. Includes every instrument and direction in each account; incomplete imports are not broker balances. ${data.balances.covered}/${data.balances.selected} account balances are included where supported. ${data.balances.combined?.missingFees ?? 0} portions have unknown fees. Cash movements stay separate from P&L.`}
               action={
                 data.balances.combined ? (
                   <span className="panel-value">
@@ -459,7 +459,7 @@ export function RealDashboard({
                       : data.balances.combined.estimated
                         ? "Estimated balance"
                         : "Journal balance estimate"}{" "}
-                    · {data.balances.covered}/{data.balances.selected} baselines
+                    · {data.balances.covered}/{data.balances.selected} accounts
                   </p>
                   <BalanceChart
                     points={data.balances.combined.points}
@@ -473,15 +473,14 @@ export function RealDashboard({
                 </>
               ) : (
                 <p className="dashboard-action-state">
-                  Set a starting balance for each selected account, on or before
-                  the tracking range starts.
+                  Select an account with a configured balance or account size.
                 </p>
               )}
               <details className="balance-management">
                 <summary>
                   {data.balances.combined
-                    ? "Manage baselines & cash adjustments"
-                    : "Set up account baselines"}
+                    ? "Balance settings & adjustments"
+                    : "Balance settings"}
                 </summary>
                 {data.balances.accounts.map((a) => (
                   <BalanceSetup account={a} end={q.end} key={a.id} />

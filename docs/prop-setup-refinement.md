@@ -47,3 +47,12 @@ New original phases opt in through an owned audit event. Setup reuses already-pu
 This automatic behavior does not move existing manually configured phases, reset/transition boundaries, confirmed history, explicit baseline/date corrections, snapshots, payout history or manual balance adjustments. Those anchors retain the existing manual reconciliation workflow in account details. Imports never certify that the uploaded history covers the actual firm account's entire lifetime. `historyConfirmed` remains false for automatic starts; fees still remain unknown when missing.
 
 No SQL migration or backup-format change is needed: phase dates, immutable rules and audit events already participate in backup export. Focused checks cover the two-step save, existing-import reuse, later uploads, duplicates, older backfills, snapshot protection, custom baseline rules and cross-user rejection. No full suite, production build or deployment.
+
+
+## Automatic dashboard starting balances (2026-10-29)
+
+Dashboard Account balance no longer asks for a separate starting balance for sized accounts. Explicitly saved dashboard balances take priority. Otherwise it reuses the applicable Prop Account phase baseline or initial rule ledger, including a funded zero ledger. If no configured amount exists, account size is the user's automatic default (for example 50K becomes 50,000). Optional overrides and balance adjustments remain collapsed under Balance settings & adjustments.
+
+These are read-time defaults: opening balances are not written back to account records and historical rules/imports are not modified. A size-based default begins before recorded trading/cash activity so earlier profit or deposits are carried into a later selected period once. Phase-based balances use the exact saved cutoff, exclude crossing-entry portions and stop at the phase end; reset/evaluation profit is not carried into a new funded ledger. Pre-phase chart dates remain gaps when no supported balance exists. Unknown fees retain the existing before-unrecorded-fees label.
+
+The phase/rule lookup is restricted to the signed-in owner and selected authorized accounts. No migration or backup format change is required. Focused unit checks cover default 50K, manual and zero baselines, net fees, phase/date boundaries, cash carry-forward and account isolation. A disposable browser check verifies the automatic chart, no required baseline form, responsive light/dark layouts, preserved zero funding and no guessed persisted manual balance.

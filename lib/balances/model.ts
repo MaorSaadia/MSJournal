@@ -13,6 +13,9 @@ export type BalanceAccount = {
   openingBalance: string | null;
   openingBalanceDate: string | null;
   reportingTimezone: string;
+  openingBalanceInstant?: string;
+  balanceThrough?: string | null;
+  baselineSource?: "manual" | "phase" | "account-size";
 };
 export type CashAdjustment = {
   id: string;
@@ -22,7 +25,7 @@ export type CashAdjustment = {
   kind: "deposit" | "withdrawal" | "other";
   explanation: string;
 };
-export type BalancePoint = { date: string; value: string };
+export type BalancePoint = { date: string; value: string | null };
 export type AccountBalance = {
   id: string;
   name: string;
@@ -30,6 +33,7 @@ export type AccountBalance = {
   baseline: string | null;
   baselineDate: string | null;
   baselineInstant: string | null;
+  baselineSource: "manual" | "phase" | "account-size" | null;
   entering: string | null;
   ending: string | null;
   missingFees: number;
@@ -55,24 +59,26 @@ export function balanceEstimates(
   for (let date = start; date <= end; date = shiftDay(date, 1))
     dates.push(date);
   const rows: AccountBalance[] = accounts.map((a) => {
-    const baselineInstant = a.openingBalanceDate
+    const baselineInstant = a.openingBalanceInstant ?? (a.openingBalanceDate
       ? new Date(
           dayBounds(a.openingBalanceDate, a.reportingTimezone).start,
         ).toISOString()
-      : null;
+      : null);
+    const stop = a.balanceThrough && a.balanceThrough < bounds.end ? a.balanceThrough : bounds.end;
     const applicable = portions.filter(
       (p) =>
         p.tradingAccountId === a.id &&
         baselineInstant !== null &&
         Date.parse(portionExit(p)) >= Date.parse(baselineInstant) &&
-        Date.parse(portionExit(p)) < Date.parse(bounds.end),
+        Date.parse(portionExit(p)) < Date.parse(stop) &&
+        (!a.openingBalanceInstant || (p.boughtAt < p.soldAt ? p.boughtAt : p.soldAt) >= a.openingBalanceInstant),
     );
     const cash = adjustments.filter(
       (c) =>
         c.tradingAccountId === a.id &&
         baselineInstant !== null &&
         Date.parse(c.effectiveAt) >= Date.parse(baselineInstant) &&
-        Date.parse(c.effectiveAt) < Date.parse(bounds.end),
+        Date.parse(c.effectiveAt) < Date.parse(stop),
     );
     const valueBefore = (instant: string) =>
       new D(a.openingBalance!)
@@ -110,6 +116,7 @@ export function balanceEstimates(
       baseline: a.openingBalance,
       baselineDate: a.openingBalanceDate,
       baselineInstant,
+      baselineSource: a.baselineSource ?? (a.openingBalance !== null ? "manual" : null),
       entering: coversStart ? valueBefore(bounds.start) : null,
       ending: validEnd ? valueBefore(bounds.end) : null,
       missingFees: applicable.filter((p) => fees[p.id]?.amount == null).length,
@@ -133,17 +140,15 @@ export function balanceEstimates(
         .slice(0, 10),
     };
   });
-  const covered = rows.filter((r) => r.coversStart),
+  const covered = rows.filter((r) => r.coversStart || (r.baselineSource !== "manual" && r.ending !== null)),
     combined = covered.length
       ? {
-          entering: sum(covered.map((r) => r.entering!)),
+          entering: covered.every((r) => r.entering !== null) ? sum(covered.map((r) => r.entering!)) : null,
           ending: sum(covered.map((r) => r.ending!)),
-          points: dates.map((date) => ({
-            date,
-            value: sum(
-              covered.map((r) => r.points.find((p) => p.date === date)!.value),
-            ),
-          })),
+          points: dates.map((date) => {
+            const values = covered.map((r) => r.points.find((p) => p.date === date)?.value ?? null);
+            return { date, value: values.every((v) => v !== null) ? sum(values as string[]) : null };
+          }),
           missingFees: covered.reduce((n, r) => n + r.missingFees, 0),
           estimated: covered.some((r) => r.estimated),
         }
