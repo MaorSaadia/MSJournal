@@ -163,7 +163,7 @@ export function ImportPage({
             Import Trades<span className="title-dot">.</span>
           </h1>
           <p className="muted">
-            Import matched portions and reported gross P&L into your journal.
+            Import matched exits and reported gross P&L into your journal.
           </p>
         </div>
         <Button asChild variant="outline">

@@ -52,7 +52,7 @@ export function BalanceSetup({
       {account.ending !== null && (
         <p className="panel-note">
           {account.missingFees
-            ? `Balance before unrecorded fees · ${account.missingFees} portions with unknown fees.`
+            ? `Balance before unrecorded fees · ${account.missingFees} trades with unknown fees.`
             : "Journal balance estimate."}
           {account.estimated ? " Includes estimated fees." : ""}
         </p>

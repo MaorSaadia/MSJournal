@@ -1,6 +1,6 @@
 export function authError(
   error: { status?: number; code?: string },
-  mode: "login" | "signup" | "recovery" | "reset" | "verify",
+  mode: "login" | "signup" | "recovery" | "reset" | "verify" | "change",
 ) {
   if (error.status === 429)
     return "Too many attempts. Please wait one minute and try again.";
@@ -8,6 +8,19 @@ export function authError(
     return mode === "recovery" || mode === "verify"
       ? "Email recovery is temporarily unavailable. Please try again later."
       : "Authentication is temporarily unavailable. Please try again later.";
+  if (mode === "change") {
+    if (error.code === "INVALID_PASSWORD")
+      return "Your current password is incorrect.";
+    if (
+      error.code === "PASSWORD_TOO_SHORT" ||
+      error.code === "PASSWORD_TOO_LONG"
+    )
+      return "Use 8 to 128 characters for your new password.";
+    if (error.code === "CREDENTIAL_ACCOUNT_NOT_FOUND")
+      return "Password changes are not available for this sign-in method.";
+    if (error.status === 401 || error.code === "SESSION_NOT_FRESH")
+      return "Please sign in again before changing your password.";
+  }
   if (error.code === "EMAIL_NOT_VERIFIED")
     return "Verify your email before signing in. You can request a new verification link.";
   if (

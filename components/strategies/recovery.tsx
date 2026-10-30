@@ -76,7 +76,7 @@ function RecoveryCard({
         {row.name} · {row.symbol}
       </h3>
       <p>
-        {row.sourceIds.length} original portions · snapshot and responses kept
+        {row.sourceIds.length} original trades · snapshot and responses kept
       </p>
       <details>
         <summary>

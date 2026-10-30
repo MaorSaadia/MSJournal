@@ -133,7 +133,7 @@ export function DashboardFilters({
         <PopoverContent className="date-popover" align="end">
           <strong>Date range</strong>
           <p className="small muted">
-            {demo ? "Close dates" : "Portion realized exit dates"} · {timezone}
+            {demo ? "Close dates" : "Exit realized exit dates"} · {timezone}
           </p>
           {demo && (
             <div className="date-presets">

@@ -18,7 +18,10 @@ import {
 import { DISPLAY_TIMEZONES, timestampLabel } from "@/lib/dates";
 import { DashboardFilters } from "./filters";
 import { MetricCards } from "./metrics";
-import { FinancialChart, ProfileChart, TimeChart, TimeData } from "./charts";
+import { PerformanceProfile, profileConvention } from "./performance";
+import { summary } from "@/lib/journal/statistics";
+import { D } from "@/lib/journal/processing";
+import { FinancialChart, TimeChart, TimeData } from "./charts";
 import { Panel, Empty } from "./panel";
 import { Heatmap } from "./heatmap";
 import { TradingCalendar } from "@/components/calendar/trading-calendar";
@@ -121,12 +124,23 @@ export function Dashboard({
       </div>
       <MetricCards stats={stats} />
       <div className="analysis-grid">
-        <Panel
-          title="Performance profile"
-          help="These are explicitly illustrative demo values out of 100. They are independent of trade filters. A scoring methodology has not been implemented; no composite score is calculated."
-          action={<span className="badge violet-badge">Illustrative</span>}
-        >
-          <ProfileChart />
+        <Panel title="MS Score" help={profileConvention}>
+          <PerformanceProfile
+            complete
+            data={{
+              basis: "net",
+              requestedBasis: "net",
+              outcomes: summary(
+                selected.map((trade) =>
+                  new D(netCents(trade)).div(100).toFixed(),
+                ),
+              ),
+              days: daily.map((day) => ({
+                date: day.date,
+                total: new D(day.netCents).div(100).toFixed(),
+              })),
+            }}
+          />
         </Panel>
         <Panel
           title="Activity tracker"

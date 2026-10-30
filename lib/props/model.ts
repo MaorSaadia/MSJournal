@@ -167,11 +167,11 @@ export function phaseProgress(
     if (pending) warnings.push("Some source activity is not processed.");
     if (ambiguous.length || crossing.length)
       warnings.push(
-        `${ambiguous.length + crossing.length} portions spanning a phase/rule boundary are excluded; inspect their sources.`,
+        `${ambiguous.length + crossing.length} trades spanning a phase/rule boundary are excluded; inspect their sources.`,
       );
     if (unknown)
       warnings.push(
-        `${unknown} portions have unknown fees; net progress is incomplete.`,
+        `${unknown} trades have unknown fees; net progress is incomplete.`,
       );
     const dayMap = new Map<
       string,

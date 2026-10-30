@@ -65,7 +65,7 @@ export function SignupForm({
       description="A private space for your trading progress."
       configured={configured}
     >
-      <form onSubmit={handleSubmit(submit)} noValidate aria-busy={isSubmitting}>
+      <form method="post" onSubmit={handleSubmit(submit)} noValidate aria-busy={isSubmitting}>
         <fieldset
           className="auth-fields"
           disabled={!configured || isSubmitting}

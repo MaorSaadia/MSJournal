@@ -91,7 +91,7 @@ function savedTimeMatches(old: StoredIdentity[], rows: ParsedFile["rows"]) {
 function conflictMessage(old: StoredIdentity[], rows: ParsedFile["rows"]) {
   const prefix = "These fill IDs already exist in this account. ";
   if (old.length !== rows.length)
-    return `${prefix}Stored portions: ${old.length}; uploaded portions: ${rows.length}. Export the complete matching period; partial or regrouped fill pairs cannot be safely merged.`;
+    return `${prefix}Stored trades: ${old.length}; uploaded trades: ${rows.length}. Export the complete matching period; partial or regrouped fill pairs cannot be safely merged.`;
   if (!old.every((r) => r.values))
     return `${prefix}Source values differ. This batch is blocked to prevent double counting.`;
   const previous = old.map((r) => normalized(r.values!));
@@ -110,7 +110,7 @@ function conflictMessage(old: StoredIdentity[], rows: ParsedFile["rows"]) {
           )
           .join("; ")
       : changed.map((field) => labels[field]).join(", ");
-  return `${prefix}${detail ? `Different ${detail}.` : "The matched portions differ as a set."} Check the selected account and CSV source timezone. Existing trades have not been changed; this batch is blocked.`;
+  return `${prefix}${detail ? `Different ${detail}.` : "The matched exits differ as a set."} Check the selected account and CSV source timezone. Existing trades have not been changed; this batch is blocked.`;
 }
 
 export function classify(file: ParsedFile, existing: StoredIdentity[]) {
@@ -189,6 +189,6 @@ export function classify(file: ParsedFile, existing: StoredIdentity[]) {
     file.warnings.push({
       row: 0,
       column: "Existing trade times",
-      message: `${keptTimes} existing portions have different export times but matching fill IDs and financial values. The saved trades and their times will be kept; these uploaded copies will be skipped. Only new trades will be added. Check the CSV source timezone for new trades before confirming.`,
+      message: `${keptTimes} existing trades have different export times but matching fill IDs and financial values. The saved trades and their times will be kept; these uploaded copies will be skipped. Only new trades will be added. Check the CSV source timezone for new trades before confirming.`,
     });
 }

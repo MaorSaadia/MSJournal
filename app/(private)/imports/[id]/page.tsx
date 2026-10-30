@@ -63,7 +63,7 @@ export default async function Page({
           {batch.outcome === "Already imported"
             ? "These source records were already saved. No source records were added."
             : performanceOnly
-              ? "Performance matched-portion records saved successfully. Reported P&L is gross; missing fees remain unknown."
+              ? "Performance matched-exit records saved successfully. Reported P&L is gross; missing fees remain unknown."
               : "Source records saved successfully. Orders never add a second copy of Performance P&L."}
         </p>
       )}

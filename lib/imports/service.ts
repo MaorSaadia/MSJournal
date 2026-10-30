@@ -197,7 +197,7 @@ async function evaluate(
     if (different) {
       const keepSaved = file.type === "performance" && file.rows.length > 0 && file.rows.every((r) => r.disposition === "duplicate");
       (keepSaved ? file.warnings : file.errors).push({ row: 0, column: "Source timezone", message: keepSaved
-        ? `This report was previously imported using ${different.timezone}. All portions already exist; the saved copies and timestamps will be kept. No source trades will be replaced.`
+        ? `This report was previously imported using ${different.timezone}. All trades already exist; the saved copies and timestamps will be kept. No source trades will be replaced.`
         : `This identical report was already imported using ${different.timezone}. Changing its source timezone requires an explicit correction workflow, which is not available yet. Nothing will be imported again.` });
     }
     if (!file.total && !file.errors.length)

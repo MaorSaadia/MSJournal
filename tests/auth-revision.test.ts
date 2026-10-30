@@ -1,6 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { authError } from "@/lib/auth-messages";
-import { signupInput, resetInput } from "@/lib/auth-validation";
+import {
+  signupInput,
+  resetInput,
+  changePasswordInput,
+} from "@/lib/auth-validation";
 import { readConfig } from "@/lib/config";
 const email = vi.hoisted(() => ({ send: vi.fn() }));
 vi.mock("resend", () => ({
@@ -10,13 +14,55 @@ vi.mock("resend", () => ({
 }));
 import { sendAuthEmail, EmailDeliveryError } from "@/lib/auth-email";
 describe("standard authentication", () => {
+  it("validates password changes and provides clear current-password/session errors", () => {
+    const valid = {
+      currentPassword: "previous-password",
+      newPassword: "new-password",
+      confirmPassword: "new-password",
+      revokeOtherSessions: true,
+    };
+    expect(changePasswordInput.safeParse(valid).success).toBe(true);
+    expect(
+      changePasswordInput.safeParse({ ...valid, currentPassword: "" }).success,
+    ).toBe(false);
+    expect(
+      changePasswordInput.safeParse({ ...valid, confirmPassword: "different" })
+        .success,
+    ).toBe(false);
+    expect(
+      changePasswordInput.safeParse({
+        ...valid,
+        currentPassword: valid.newPassword,
+      }).success,
+    ).toBe(false);
+    for (const length of [7, 8, 128, 129]) {
+      expect(
+        changePasswordInput.safeParse({
+          ...valid,
+          newPassword: "a".repeat(length),
+          confirmPassword: "a".repeat(length),
+        }).success,
+      ).toBe(length >= 8 && length <= 128);
+    }
+    expect(
+      authError({ code: "INVALID_PASSWORD", status: 400 }, "change"),
+    ).toContain("current password is incorrect");
+    expect(authError({ status: 401 }, "change")).toContain("sign in again");
+  });
+
   it("accepts 8–128 character passwords for signup and reset, rejecting values outside that range", () => {
     for (const length of [7, 8, 128, 129]) {
       const password = "a".repeat(length);
       const fields = { password, confirmPassword: password };
       const expected = length >= 8 && length <= 128;
       expect(resetInput.safeParse(fields).success).toBe(expected);
-      expect(signupInput.safeParse({ ...fields, name: "Trader", email: "trader@example.com" }).success).toBe(expected);
+      expect(
+        signupInput.safeParse({
+          ...fields,
+          name: "Trader",
+          email: "trader@example.com",
+        }).success,
+      ).toBe(expected);
     }
   });
   it("does not require an owner allowlist and refuses a verification gate without email delivery", () => {

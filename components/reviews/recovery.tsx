@@ -103,7 +103,7 @@ function RecoveryCard({
         {review.symbol} · {review.status}
       </h2>
       <p className="small muted">
-        Original source portions: {review.originalSourceIds.join(", ")}
+        Original source records: {review.originalSourceIds.join(", ")}
       </p>
       {noteFields
         .filter(([key]) => review.fields[key])
@@ -157,7 +157,7 @@ function RecoveryCard({
             href={`/trade-view/${target}?archived=1&accounts=${review.accountId}`}
             target="_blank"
           >
-            Inspect selected record and source portions ↗
+            Inspect selected record and source records ↗
           </Link>
         </p>
       )}

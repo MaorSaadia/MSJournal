@@ -24,7 +24,7 @@ export function StrategyComparison({
   return (
     <section className="report-card strategy-comparison">
       <h2>
-        Strategy comparison · {complete ? "Complete trades" : "Closed portions"}
+        Strategy comparison · {complete ? "Complete trades" : "Closed trades"}
       </h2>
       <p className="muted">
         All revisions unless a revision filter is selected. User assignments,
@@ -45,10 +45,10 @@ export function StrategyComparison({
           <thead>
             <tr>
               <th>Strategy</th>
-              <th>{complete ? "Trades" : "Portions"}</th>
+              <th>{"Trades"}</th>
               <th>P&L · USD</th>
-              <th>Average / {complete ? "trade" : "portion"}</th>
-              <th>{complete ? "Win percentage" : "Winning portions %"}</th>
+              <th>Average / {"trade"}</th>
+              <th>{complete ? "Win percentage" : "Trade Win %"}</th>
               <th>Profit factor</th>
             </tr>
           </thead>
@@ -81,10 +81,7 @@ export function StrategyComparison({
                 <td>
                   {g.summary.profitFactor ??
                     (g.summary.count
-                      ? g.summary.profitFactorNote.replaceAll(
-                          "trades",
-                          complete ? "trades" : "portions",
-                        )
+                      ? g.summary.profitFactorNote
                       : "No sample")}
                 </td>
               </tr>
@@ -212,7 +209,7 @@ export function StrategyResults({ strategyId }: { strategyId: string }) {
             value={filters.analysis}
             onChange={(e) => update("analysis", e.target.value)}
           >
-            <option value="portions">Closed portions</option>
+            <option value="portions">Closed trades</option>
             <option value="complete">Complete trades</option>
           </select>
         </label>
@@ -259,7 +256,7 @@ export function StrategyResults({ strategyId }: { strategyId: string }) {
       <p className="muted">
         {filters.analysis === "complete"
           ? "Complete trades use final-close dates; Performance-only matched records do not prove completed positions."
-          : "Closed portions use each realized exit date. Parent records and constituent portions are not added to the same denominator."}{" "}
+          : "Closed trades use each realized exit date. Parent records and constituent trades are not added to the same denominator."}{" "}
         {timezone} · USD ·{" "}
         {filters.revision === "all"
           ? "All revisions"
@@ -285,30 +282,27 @@ export function StrategyResults({ strategyId }: { strategyId: string }) {
               [
                 filters.analysis === "complete"
                   ? "Included trades"
-                  : "Included portions",
+                  : "Included trades",
                 String(summary.count),
               ],
               ["Total P&L", journalMoney(summary.total, true)],
               [
                 filters.analysis === "complete"
                   ? "Win percentage"
-                  : "Winning portions %",
+                  : "Trade Win %",
                 summary.winRate === null
                   ? "Unavailable"
                   : `${summary.winRate}%`,
               ],
               [
-                `Average P&L / ${filters.analysis === "complete" ? "trade" : "portion"}`,
+                `Average P&L / trade`,
                 journalMoney(summary.average, true),
               ],
               [
                 "Profit factor",
                 summary.profitFactor ??
                   (summary.count
-                    ? summary.profitFactorNote.replaceAll(
-                        "trades",
-                        filters.analysis === "complete" ? "trades" : "portions",
-                      )
+                    ? summary.profitFactorNote
                     : "No sample"),
               ],
             ].map(([label, value]) => (
@@ -352,7 +346,7 @@ export function StrategyResults({ strategyId }: { strategyId: string }) {
                   {r.symbol} ·{" "}
                   {r.type === "trade"
                     ? "Complete trade"
-                    : "Matched record / closed portions"}
+                    : "Matched record / closed trades"}
                 </Link>
               </p>
             ))

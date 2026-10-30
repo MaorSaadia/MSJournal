@@ -60,7 +60,7 @@ export function LoginForm({
           Authentication is temporarily unavailable. Please try again later.
         </p>
       )}
-      <form onSubmit={handleSubmit(signIn)} noValidate>
+      <form method="post" onSubmit={handleSubmit(signIn)} noValidate>
         <fieldset
           disabled={!configured || isSubmitting}
           className="auth-fields"

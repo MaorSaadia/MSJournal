@@ -662,3 +662,15 @@
     animation: none;
   }
 }
+
+.settings-password .panel-header h2 { display: flex; align-items: center; gap: 8px; }
+.settings-password .panel-header svg { color: var(--primary); }
+.settings-password fieldset { display: grid; gap: 20px; min-width: 0; }
+.settings-password-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.settings-password-sessions { display: flex; gap: 10px; align-items: flex-start; font-size: 12px; cursor: pointer; }
+.settings-password-sessions input { margin-top: 2px; accent-color: var(--primary); width: 15px; height: 15px; flex-shrink: 0; }
+.settings-password-sessions small { display: block; margin-top: 4px; font-size: 11px; color: var(--muted-foreground); }
+.settings-password-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+.settings-password-actions a { font-size: 11px; color: var(--primary); }
+.settings-password .success-notice { margin: 0; }
+@media (max-width: 600px) { .settings-password-fields { grid-template-columns: minmax(0, 1fr); } }

@@ -36,6 +36,7 @@ export const publicAuthPaths = new Set([
   "/sign-up/email",
   "/request-password-reset",
   "/reset-password",
+  "/change-password",
   "/send-verification-email",
   "/verify-email",
 ]);

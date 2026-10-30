@@ -46,7 +46,7 @@ export function MetricCards({ stats }: { stats: ReturnType<typeof metrics> }) {
       kind: "net",
     },
     {
-      label: "Trade win %",
+      label: "Trade Win",
       value: pct(stats.winRate),
       help: "Winning closed trades divided by all closed trades, including breakeven trades.",
       foot: `${stats.wins} wins · ${stats.losses} losses · ${stats.breakeven} flat`,

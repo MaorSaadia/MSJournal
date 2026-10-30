@@ -62,7 +62,7 @@ export function RealActivity({
               {week.map((date) => {
                 const day = byDate.get(date),
                   outside = date < start || date > end;
-                const text = `${date} · ${outside ? "Outside selected range" : day ? journalMoney(day.total, true) + ` ${data.basis} · ${day.count} closed portions` : "No imported realized activity"} · ${data.timezone}`;
+                const text = `${date} · ${outside ? "Outside selected range" : day ? journalMoney(day.total, true) + ` ${data.basis} · ${day.count} closed trades` : "No imported realized activity"} · ${data.timezone}`;
                 return (
                   <Tooltip key={date}>
                     <TooltipTrigger asChild>
@@ -84,7 +84,7 @@ export function RealActivity({
         </div>
       </div>
       <div className="heatmap-legend">
-        <span>Closed portions / day</span>
+        <span>Closed trades / day</span>
         <div>
           <span>None</span>
           {[0, 1, 2, 3, 4].map((v) => (
@@ -94,7 +94,7 @@ export function RealActivity({
         </div>
       </div>
       <p className="panel-note">
-        {data.portionCount} closed portions · {data.days.length} active days in
+        {data.portionCount} closed trades · {data.days.length} active days in
         selection <i className="heat-flat-key" title="Breakeven activity" />
       </p>
     </div>

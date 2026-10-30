@@ -1,4 +1,5 @@
 "use client";
+import { tradeText } from "@/lib/journal/labels";
 import { LoadingIndicator, LoadingState } from "@/components/ui/loading";
 
 import { useWorkspaceSearch } from "@/components/calendar/cache-provider";
@@ -80,8 +81,8 @@ const chipValues: Record<string, string> = {
   net: "Net",
   gross: "Gross",
   trade: "Complete trades",
-  portion: "Closed portions",
-  matched: "Matched portions",
+  portion: "Closed trades",
+  matched: "Matched trades",
   review: "Needs review",
   profit: "Profitable",
   loss: "Losing",
@@ -270,7 +271,8 @@ export function JournalList() {
       return value === null
         ? "—"
         : new D(value as string).toDecimalPlaces(8).toFixed();
-    if (key === "type") return r.type === "trade" ? "Trade" : "Closed portion";
+    if (key === "status") return tradeText(String(value));
+    if (key === "type") return r.type === "trade" ? "Trade" : "Closed exit";
     if (key === "direction")
       return <span className={`tv-badge ${r.direction}`}>{r.direction}</span>;
     return (value as string) ?? "—";
@@ -371,8 +373,8 @@ export function JournalList() {
               <strong>{summary.trades}</strong>
             </div>
             {summary.portions > 0 && (
-              <div title="Reported closed portions and shared-fill groups do not establish complete flat-to-flat trades.">
-                <small>Closed-portion records</small>
+              <div title="Reported closed trades and shared-fill groups do not establish complete flat-to-flat trades.">
+                <small>Trade records</small>
                 <strong>{summary.portions}</strong>
               </div>
             )}
@@ -406,23 +408,6 @@ export function JournalList() {
           value={q.search}
           change={(v) => update("search", v)}
         />
-        {q.outcomeBasis === "portions" && data?.summary.statistics && (
-          <p className="dashboard-scope-note">
-            {data.summary.statistics.count} closed portions ·{" "}
-            {data.summary.statistics.winRate === null
-              ? "Unavailable"
-              : `${data.summary.statistics.winRate}%`}{" "}
-            winning portions · profit factor · portions:{" "}
-            {data.summary.statistics.profitFactor ??
-              data.summary.statistics.profitFactorNote.replaceAll(
-                "trades",
-                "portions",
-              )}{" "}
-            · average winning/losing portion:{" "}
-            {journalMoney(data.summary.statistics.averageWin, true)} /{" "}
-            {journalMoney(data.summary.statistics.averageLoss, true)}
-          </p>
-        )}
         {q.mode === "real" &&
           control("strategy", "Strategy", [
             ["", "All strategies"],
@@ -521,11 +506,11 @@ export function JournalList() {
         </label>
         <div
           className="tv-date-basis"
-          title={`Dates use ${timezone}. Closed in range uses the full result at final close. Realized activity includes only portions exiting in range.`}
+          title={`Dates use ${timezone}. Closed in range uses the full result at final close. Realized activity includes only trades exiting in range.`}
         >
           <Help
             label="Date basis"
-            text={`Dates use ${timezone}. Closed in range includes the full result at final close. Realized activity includes only portions exiting in range.`}
+            text={`Dates use ${timezone}. Closed in range includes the full result at final close. Realized activity includes only trades exiting in range.`}
           />
           {control("dateBasis", "Date basis", [
             ["closed", "Closed in range"],
@@ -533,7 +518,7 @@ export function JournalList() {
           ])}
         </div>
         {control("outcomeBasis", "Statistics basis", [
-          ["portions", "Closed portions"],
+          ["portions", "Closed trades"],
           ["complete", "Complete trades"],
         ])}
         {control("basis", "P&L basis", [
@@ -576,11 +561,11 @@ export function JournalList() {
             {control("type", "Record type", [
               ["all", "All records"],
               ["trade", "Complete trades"],
-              ["portion", "Closed portions"],
+              ["portion", "Closed trades"],
             ])}
             {control("status", "Grouping status", [
               ["all", "All statuses"],
-              ["matched", "Matched portions"],
+              ["matched", "Matched trades"],
               ["review", "Needs review"],
             ])}
             {control("review", "Review status", [
@@ -970,7 +955,7 @@ export function JournalList() {
             </div>
             <small>
               {r.account} · {r.direction} ·{" "}
-              {r.type === "trade" ? "Trade" : "Closed portion"}
+              {r.type === "trade" ? "Trade" : "Closed exit"}
             </small>
             <small>
               {journalTimestamp(r.exit, timezone)}

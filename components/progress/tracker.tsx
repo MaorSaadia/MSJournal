@@ -799,7 +799,7 @@ export function ProgressTracker() {
               done={data.summary.reviews.done}
               total={data.summary.reviews.total}
               detail={<>records explicitly reviewed.</>}
-              help={`${data.recordBasis}, selected by final close date in your display timezone. One parent record per shared-fill group; underlying portions are never counted again. Notes alone do not mark a review complete.`}
+              help={`${data.recordBasis}, selected by final close date in your display timezone. One parent record per shared-fill group; underlying trades are never counted again. Notes alone do not mark a review complete.`}
             />
             <Metric
               label="Plan adherence"

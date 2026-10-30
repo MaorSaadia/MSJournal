@@ -1,3 +1,4 @@
+import { tradeText } from "@/lib/journal/labels";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -119,7 +120,7 @@ export default async function Page({
             </div>
             <p className="small muted">
               The deterministic demo fixture models complete trades and
-              fictional fees. Quantity, entry/exit prices, execution portions
+              fictional fees. Quantity, entry/exit prices, execution trades
               and source imports are not modeled.
             </p>
           </section>
@@ -186,7 +187,7 @@ export default async function Page({
             {record.direction === "unknown"
               ? "Direction unknown"
               : record.direction}{" "}
-            · Closed-portion record · {record.status}
+            · Trade record · {tradeText(record.status)}
           </p>
         </div>
       </header>
@@ -207,8 +208,8 @@ export default async function Page({
         }
       >
         <section className="import-card">
-          <h2>Closed-portion record · full result</h2>
-          <p className="muted">{record.explanation}</p>
+          <h2>Trade record · full result</h2>
+          <p className="muted">{tradeText(record.explanation)}</p>
           {(record.feeKind === "Allocated" || record.feeKind === "Mixed") && <p className="muted">Some or all fees may be allocated from an entered report total by closed quantity. These are not broker-reported per-trade charges. <Link href={`/fees?accountId=${record.tradingAccountId}`}>Review fee totals →</Link></p>}
           <div className="journal-summary">
             <div>
@@ -261,7 +262,7 @@ export default async function Page({
           <p className="small muted">
             Source gross sum {journalMoney(sum(parts.map((p) => p.grossPnl)))} =
             derived gross {journalMoney(record.grossPnl)}. Daily realized P&L
-            uses each portion’s exit date; this group’s final exit is only for
+            uses each exit’s exit date; this group’s final exit is only for
             list order. Fees are never added twice.
           </p>
         </section>
@@ -292,7 +293,7 @@ export default async function Page({
               </div>
             </div>
             <p className="small muted">
-              {contribution.selected.length} of {parts.length} closed portions
+              {contribution.selected.length} of {parts.length} closed trades
               selected. The full record result is shown above.
             </p>
           </section>
@@ -396,9 +397,9 @@ export default async function Page({
           <summary>Processing and original source diagnostics</summary>
           <p className="small muted">
             Version {record.version} · Record {record.id}. Shared fill
-            identifiers connect matched portions, not inferred event order or
+            identifiers connect matched exits, not inferred event order or
             full fill quantities. Same-second events are not ordered by ID. Open
-            portions may be missing even when the represented graph balances.
+            trades may be missing even when the represented graph balances.
           </p>
           {parts.map((p) => (
             <div key={p.id}>

@@ -8,11 +8,11 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { useReducedMotion } from "motion/react";
 import type { DashboardData } from "@/lib/dashboard/service";
 import type { Summary } from "@/lib/journal/statistics";
 import { journalMoney } from "@/lib/journal/calculations";
 import { Help } from "./panel";
+import { calculateMsScore, msScoreConvention } from "@/lib/dashboard/ms-score";
 
 function OutcomeGauge({ stats }: { stats: Summary }) {
   const counts = [stats.wins, stats.zeros, stats.losses];
@@ -72,7 +72,7 @@ export function RealMetricCards({
 }) {
   const s = data.outcomes,
     days = data.realizedSummary,
-    unit = complete ? "trades" : "portions";
+    unit = complete ? "trades" : "recorded trades";
   // Monetary weights are used only to paint the visualization. Displayed statistics remain server values.
   const gain = Number(s.averageWin ?? 0) * (s.wins ?? 0),
     loss = Math.abs(Number(s.averageLoss ?? 0)) * (s.losses ?? 0);
@@ -87,7 +87,7 @@ export function RealMetricCards({
       kind: "pnl",
     },
     {
-      label: complete ? "Winning trades" : "Winning portions",
+      label: "Trade Win",
       value: s.winRate == null ? "—" : `${s.winRate}%`,
       help: `Winning ${unit} divided by all selected ${unit}, including breakevens. Counts: wins / breakevens / losses.`,
       kind: "outcomes",
@@ -170,49 +170,35 @@ export function RealMetricCards({
   );
 }
 
-export const profileConvention =
-  "MSJournal visual profile, without an overall score. Percentages use 0–100. Ratio axes use min(ratio / 3, 1) × 100: a ratio of 3 or more reaches the display cap. This monotonic visual convention is not a validated measure of skill. Undefined axes are omitted. Review completion is reviewed / eligible contributing records.";
+export const profileConvention = msScoreConvention;
 export function PerformanceProfile({
   data,
   complete,
 }: {
-  data: DashboardData;
+  data: {
+    outcomes: Summary;
+    days: { date: string; total: string | null }[];
+    basis: "gross" | "net";
+    requestedBasis: "gross" | "net";
+  };
   complete: boolean;
 }) {
-  const reduced = useReducedMotion(),
-    s = data.outcomes;
-  const review =
-    data.reviewCoverage.total > 0
-      ? (data.reviewCoverage.reviewed / data.reviewCoverage.total) * 100
-      : null;
-  const candidates = [
-    { axis: "Win %", raw: s.winRate, ratio: false },
-    { axis: "Profit factor", raw: s.profitFactor, ratio: true },
-    { axis: "Avg win/loss", raw: s.averageRatio, ratio: true },
-    {
-      axis: "Reviews",
-      raw: review === null ? null : review.toFixed(1),
-      ratio: false,
-    },
-    { axis: "Winning days", raw: data.realizedSummary.winRate, ratio: false },
-  ];
-  const points = candidates
-    .filter((p) => p.raw !== null)
-    .map((p) => ({
-      ...p,
-      value: p.ratio ? Math.min(Number(p.raw) / 3, 1) * 100 : Number(p.raw),
-    }));
-  const omitted = candidates.filter((p) => p.raw === null).map((p) => p.axis);
+  const score = calculateMsScore(data.outcomes, data.days);
+  const fallback = data.requestedBasis !== data.basis;
   return (
-    <>
+    <div className="ms-score">
       <div
         className="real-profile-chart"
         role="img"
-        aria-label="MSJournal performance radar; ratios have a display cap of 3; no overall score"
+        aria-label={
+          score.value === null
+            ? "MS Score needs trading data"
+            : `MS Score ${score.value} out of 100. ${data.basis} P&L. Daily drawdown, not intraday equity.`
+        }
       >
-        {points.length >= 3 ? (
+        {score.value !== null ? (
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={points} outerRadius="67%">
+            <RadarChart data={score.axes} outerRadius="66%">
               <PolarGrid stroke="var(--border)" />
               <PolarAngleAxis
                 dataKey="axis"
@@ -225,18 +211,17 @@ export function PerformanceProfile({
               />
               <Tooltip
                 content={({ active, payload }) => {
-                  const p = payload?.[0]?.payload;
-                  return active && p ? (
+                  const point = payload?.[0]?.payload;
+                  return active && point ? (
                     <div className="chart-tooltip">
-                      <span>{p.axis}</span>
+                      <span>{point.axis}</span>
                       <strong>
-                        {p.raw}
-                        {p.ratio ? " : 1" : "%"}
+                        {point.axis === "Drawdown"
+                          ? journalMoney(point.raw)
+                          : point.raw}
                       </strong>
                       <small>
-                        {p.ratio
-                          ? "Visual cap: 3 : 1"
-                          : "Natural percentage scale"}
+                        {Number(point.value).toFixed(1)} / 100 normalized
                       </small>
                     </div>
                   ) : null;
@@ -248,27 +233,43 @@ export function PerformanceProfile({
                 fill="var(--violet)"
                 fillOpacity={0.28}
                 dot={{ r: 3, fill: "var(--violet)" }}
-                isAnimationActive={!reduced}
+                isAnimationActive={false}
               />
             </RadarChart>
           </ResponsiveContainer>
         ) : (
-          <p className="dashboard-action-state">
-            At least three supported measures are needed for a profile. Select a
-            range with realized activity.
-          </p>
+          <p className="dashboard-action-state">{score.reason}</p>
         )}
       </div>
-      <div className="profile-footer">
-        <span>
-          {complete ? "Complete trades" : "Closed portions"} · {s.count}{" "}
-          outcomes · {data.basis}
-        </span>
-        <Help label="Profile normalization" text={profileConvention} />
+      <div className="ms-score-footer">
+        <div>
+          <span>
+            Your MS Score{" "}
+            <Help label="How MS Score works" text={profileConvention} />
+          </span>
+          <strong>
+            {score.value ?? "—"}
+            <small> / 100</small>
+          </strong>
+        </div>
+        <div className="ms-score-scale">
+          <div className="ms-score-track">
+            {score.value !== null && <i style={{ left: `${score.value}%` }} />}
+          </div>
+          <div className="ms-score-ticks">
+            <span>0</span>
+            <span>25</span>
+            <span>50</span>
+            <span>75</span>
+            <span>100</span>
+          </div>
+        </div>
       </div>
-      {omitted.length > 0 && (
-        <p className="profile-omissions">Unavailable: {omitted.join(", ")}</p>
-      )}
-    </>
+      <p className="ms-score-context">
+        {complete ? "Full positions" : "Closed trades"} / {data.basis} P&L
+        {fallback ? " / fees incomplete" : ""}
+        {score.value !== null && score.early ? " / early sample" : ""}
+      </p>
+    </div>
   );
 }

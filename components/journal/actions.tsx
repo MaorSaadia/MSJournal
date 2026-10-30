@@ -29,7 +29,7 @@ export function ProcessButton({
         { method: "POST", body: JSON.stringify({ accountId }) },
       );
       setMessage(
-        `Processed ${result.portions} portions into ${result.records} journal records.`,
+        `Processed ${result.portions} trades into ${result.records} journal records.`,
       );
       router.refresh();
     } catch (e) {
@@ -118,8 +118,8 @@ export function ManualFeeForm({
         />
       </label>
       <p className="small muted">
-        Overrides the total for these portions. Enter 0 deliberately; leave
-        unknown fees unset. The total is allocated to source portions by
+        Overrides the total for these trades. Enter 0 deliberately; leave
+        unknown fees unset. The total is allocated to source records by
         quantity and survives reprocessing.
       </p>
       <div className="journal-buttons">

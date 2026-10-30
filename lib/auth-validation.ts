@@ -28,3 +28,22 @@ export const resetInput = z
     path: ["confirmPassword"],
     message: "Passwords do not match.",
   });
+
+export const changePasswordInput = z
+  .object({
+    currentPassword: z
+      .string()
+      .min(1, "Enter your current password.")
+      .max(128, "Use no more than 128 characters."),
+    newPassword: passwordInput,
+    confirmPassword: z.string(),
+    revokeOtherSessions: z.boolean(),
+  })
+  .refine((values) => values.newPassword === values.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match.",
+  })
+  .refine((values) => values.currentPassword !== values.newPassword, {
+    path: ["newPassword"],
+    message: "Choose a password different from your current one.",
+  });

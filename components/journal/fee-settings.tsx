@@ -63,8 +63,8 @@ export function FeeSettings({
       setSavedSignature(signature);
       setMessage(
         apply
-          ? "Fee settings saved and applied to existing nonmanual portions. Entered fee totals and manual overrides were preserved."
-          : "Fee settings saved for newly processed portions. Existing estimates, entered totals and manual overrides were preserved.",
+          ? "Fee settings saved and applied to existing nonmanual trades. Entered fee totals and manual overrides were preserved."
+          : "Fee settings saved for newly processed trades. Existing estimates, entered totals and manual overrides were preserved.",
       );
       router.refresh();
     } catch (e) {
@@ -154,7 +154,7 @@ export function FeeSettings({
             checked={apply}
             onChange={(e) => setApply(e.target.checked)}
           />
-          Apply these settings to existing portions, including previously unknown
+          Apply these settings to existing trades, including previously unknown
           fees. Preserve entered totals and manual overrides.
         </label>
         <Button disabled={busy} aria-busy={busy}>{busy ? <><LoadingSpinner />Saving</> : "Save fee settings"}</Button>

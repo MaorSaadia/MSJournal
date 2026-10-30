@@ -1,4 +1,5 @@
 "use client";
+import { tradeText } from "@/lib/journal/labels";
 import { LoadingIndicator, LoadingState } from "@/components/ui/loading";
 
 import { useWorkspaceSearch } from "@/components/calendar/cache-provider";
@@ -125,10 +126,9 @@ export function RealDashboard({
     });
   const basis = data?.basis ?? q.basis,
     complete = q.outcomeBasis === "complete",
-    outcomes = data?.outcomes,
     dayStats = data?.realizedSummary;
   const statisticsHelp =
-    "Closed portions count each matched exit portion once, including breakevens. Several portions may belong to one position. Complete trades require verified flat-to-flat coverage. Daily realized P&L always follows local exit dates.";
+    "Closed trades count recorded exits, including breakevens. Several exits may belong to one position. Complete trades require verified flat-to-flat coverage. Daily realized P&L always follows local exit dates.";
 
   const dayHref = (date: string) =>
     `/trade-view?${new URLSearchParams({ accounts: ids.join(","), archived: q.archived, start: date, end: date, dateBasis: "activity", basis: q.basis, outcomeBasis: "portions", dashboardFrom: href, ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`;
@@ -183,7 +183,7 @@ export function RealDashboard({
             value={q.outcomeBasis}
             onChange={(e) => update({ outcomeBasis: e.target.value })}
           >
-            <option value="portions">Closed portions</option>
+            <option value="portions">Closed trades</option>
             <option value="complete">Complete trades</option>
           </select>
         </label>
@@ -247,24 +247,6 @@ export function RealDashboard({
       ) : data ? (
         <>
           <div className="dashboard-scope-note">
-            <details className="dashboard-coverage">
-              <summary>
-                {complete ? "Complete trades" : "Closed portions"} · {basis}
-                {data.requestedBasis !== basis
-                  ? " · gross fallback"
-                  : ""} · {data.portionCount} portions
-              </summary>{" "}
-              <span>
-                {data.portionCount} closed portions · {data.completeCount}{" "}
-                verified complete trades · {basis}
-                {basis === "net" && outcomes?.estimated
-                  ? " (estimated fees)"
-                  : ""}
-                {data.requestedBasis !== basis
-                  ? " used because fees are incomplete"
-                  : ""}
-              </span>
-            </details>
             <Link
               href={`/reports?${new URLSearchParams({ start: q.start, end: q.end, accounts: ids.join(","), archived: q.archived, basis: q.basis, analysis: complete ? "complete" : "portions", ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`}
               onClick={save}
@@ -309,12 +291,12 @@ export function RealDashboard({
             <p className="dashboard-scope-note">
               Performance matching does not verify complete positions.{" "}
               <button onClick={() => update({ outcomeBasis: "portions" })}>
-                Use closed-portion statistics
+                Use trade statistics
               </button>
             </p>
           )}
           <div className="analysis-grid app-loading-reveal" aria-busy={state.pending && !state.error}>
-            <Panel title="Performance profile" help={profileConvention}>
+            <Panel title="MS Score" help={profileConvention}>
               <PerformanceProfile data={data} complete={complete} />
             </Panel>
             <Panel
@@ -340,7 +322,7 @@ export function RealDashboard({
                     opening,
                     ...data.days.map((d) => ({ ...d, href: dayHref(d.date) })),
                   ]}
-                  basis={`${basis} · closed portions`}
+                  basis={`${basis} · closed trades`}
                   field="cumulative"
                   line
                   onInspect={inspect}
@@ -361,12 +343,12 @@ export function RealDashboard({
                 <ReportChart
                   dashboard
                   rows={data.days.map((d) => ({ ...d, href: dayHref(d.date) }))}
-                  basis={`${basis} · closed portions`}
+                  basis={`${basis} · closed trades`}
                   onInspect={inspect}
                 />
               ) : (
                 <p className="dashboard-action-state">
-                  No matching exit portions. Select an account and date range
+                  No matching exit trades. Select an account and date range
                   with imported activity.
                 </p>
               )}
@@ -384,7 +366,7 @@ export function RealDashboard({
                   View all
                 </Link>
               }
-              help="Selected-period contributions inside published shared-fill groups; counts of groups differ from counts of exit portions."
+              help="Selected-period contributions inside published shared-fill groups; counts of groups differ from counts of exit trades."
             >
               <div className="recent-table-scroll">
                 <table className="recent-table">
@@ -412,8 +394,8 @@ export function RealDashboard({
                           </Link>
                           <span
                             className="record-kind"
-                            title={r.status}
-                            aria-label={r.status}
+                            title={tradeText(r.status)}
+                            aria-label={tradeText(r.status)}
                           >
                             ·
                           </span>
@@ -443,7 +425,7 @@ export function RealDashboard({
             <Panel
               title="Account balance"
               className="dashboard-balance-panel"
-              help={`Automatic starting balance from account settings plus subsequent realized P&L less known/estimated fees and dated cash adjustments. Manually entered balances take priority. Includes every instrument and direction in each account; incomplete imports are not broker balances. ${data.balances.covered}/${data.balances.selected} account balances are included where supported. ${data.balances.combined?.missingFees ?? 0} portions have unknown fees. Cash movements stay separate from P&L.`}
+              help={`Automatic starting balance from account settings plus subsequent realized P&L less known/estimated fees and dated cash adjustments. Manually entered balances take priority. Includes every instrument and direction in each account; incomplete imports are not broker balances. ${data.balances.covered}/${data.balances.selected} account balances are included where supported. ${data.balances.combined?.missingFees ?? 0} trades have unknown fees. Cash movements stay separate from P&L.`}
               action={
                 data.balances.combined ? (
                   <span className="panel-value">
@@ -544,7 +526,7 @@ export function RealDashboard({
                         href: dayHref(d.date),
                       })),
                     ]}
-                    basis={`${basis} · closed portions`}
+                    basis={`${basis} · closed trades`}
                     field="drawdown"
                     line
                     onInspect={inspect}
@@ -558,7 +540,7 @@ export function RealDashboard({
               </Panel>
               <Panel
                 title="Entry time performance"
-                help={`Known local entry times in ${displayTimezone}. ${data.timePoints.length}/${data.timeCount} supported points; ${data.excludedEntry} unknown entries excluded. Short portions open with the earlier sell; long portions with the earlier buy. Several points may belong to one position. ${basis}.`}
+                help={`Known local entry times in ${displayTimezone}. ${data.timePoints.length}/${data.timeCount} supported points; ${data.excludedEntry} unknown entries excluded. Short trades open with the earlier sell; long trades with the earlier buy. Several points may belong to one position. ${basis}.`}
               >
                 {data.timePoints.length ? (
                   <>
@@ -600,7 +582,7 @@ export function RealDashboard({
                 ) : (
                   <p className="dashboard-action-state">
                     {complete
-                      ? "Complete-trade entry times are not verified. Choose closed portions to inspect supported entries."
+                      ? "Complete-trade entry times are not verified. Choose closed trades to inspect supported entries."
                       : "No reliable entry times in this selection. Equal timestamps or conflicting fill metadata are excluded."}
                   </p>
                 )}
@@ -608,7 +590,7 @@ export function RealDashboard({
             </div>
           </div>
           <p className="panel-note">
-            Calendar counts are closed exit portions. Complete-trade outcomes,
+            Calendar counts follow recorded exits. Complete-trade outcomes,
             when supported, use final-close dates; daily realized results follow
             each exit.{" "}
             <button onClick={state.refresh}>Refresh dashboard</button>

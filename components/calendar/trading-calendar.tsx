@@ -754,7 +754,7 @@ export function TradingCalendar({
               </Link>
               {mode === "real" && (
                 <p className="calendar-scope-note">
-                  Related report portions are combined into one journal trade. A
+                  Related report trades are combined into one journal trade. A
                   trade with exits on different days counts once on each active
                   day; amounts and win percentages reflect only this day&apos;s
                   exits.

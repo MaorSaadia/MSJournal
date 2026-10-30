@@ -142,7 +142,7 @@ export function trackingProgress(
   ).length;
   if (estimatedFees)
     warnings.push(
-      `${estimatedFees} source portions use estimated fees; net figures are estimates. Confirm actual fees before interpreting eligibility.`,
+      `${estimatedFees} source records use estimated fees; net figures are estimates. Confirm actual fees before interpreting eligibility.`,
     );
   const netOf = (p: Portion) =>
     fees[p.id]?.amount == null
@@ -167,7 +167,7 @@ export function trackingProgress(
   const missingFees = afterAnchor.filter((p) => netOf(p) === null).length;
   if (missingFees)
     warnings.push(
-      `${missingFees} later source portions need fees. Missing fees are not zero.`,
+      `${missingFees} later source records need fees. Missing fees are not zero.`,
     );
   if (!phase.historyConfirmed && !anchor)
     warnings.push(

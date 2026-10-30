@@ -88,7 +88,7 @@ export function ResetForm({ configured }: { configured: boolean }) {
           <Link href="/forgot-password">Request a new reset link</Link>
         </div>
       ) : (
-        <form onSubmit={handleSubmit(submit)} noValidate aria-busy={isSubmitting}>
+        <form method="post" onSubmit={handleSubmit(submit)} noValidate aria-busy={isSubmitting}>
           <fieldset
             className="auth-fields"
             disabled={!configured || isSubmitting}

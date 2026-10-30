@@ -75,7 +75,7 @@ export const goalTypes = {
   "trade-review": "Review trading records",
   habit: "Custom daily habit",
 };
-export const recordBasis = "Grouped closed-portion records";
+export const recordBasis = "Grouped trade records";
 export function presetRange(
   preset: string,
   today: string,

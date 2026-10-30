@@ -413,7 +413,7 @@ export function parseReport(
     message:
       expected === "orders"
         ? "Orders are source snapshots with aggregate fills. Canceled orders are retained, not counted as trades."
-        : "Performance rows are matched portions, not completed trades. Reported P&L is gross; fees remain unknown.",
+        : "Performance rows are matched exits, not completed trades. Reported P&L is gross; fees remain unknown.",
   });
   return file;
 }

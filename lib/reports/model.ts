@@ -472,9 +472,9 @@ export function summarizeReports({
           aggregate(
             key,
             {
-              profit: complete ? "Winning trades" : "Winning portions",
-              loss: complete ? "Losing trades" : "Losing portions",
-              zero: complete ? "Breakeven trades" : "Breakeven portions",
+              profit: complete ? "Winning trades" : "Trade Win",
+              loss: complete ? "Losing trades" : "Losing trades",
+              zero: complete ? "Breakeven trades" : "Breakeven trades",
             }[key]!,
             items.filter(
               (i) =>

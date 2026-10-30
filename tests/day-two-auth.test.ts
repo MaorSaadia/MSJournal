@@ -22,6 +22,7 @@ describe("public authentication API", () => {
     for (const [path, method] of [
       ["sign-up/email", "POST"],
       ["sign-in/email", "POST"],
+      ["change-password", "POST"],
       ["get-session", "GET"],
     ]) {
       const { GET } = await import("@/app/api/auth/[...all]/route");

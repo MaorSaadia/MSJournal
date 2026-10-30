@@ -93,7 +93,7 @@ export function RecoveryForm({
           </p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit(submit)} noValidate aria-busy={isSubmitting}>
+        <form method="post" onSubmit={handleSubmit(submit)} noValidate aria-busy={isSubmitting}>
           <fieldset
             className="auth-fields"
             disabled={!configured || !emailReady || isSubmitting}

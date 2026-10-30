@@ -72,7 +72,7 @@ function Table({
             <th>{denominator}</th>
             <th>P&L · USD</th>
             <th>Avg / {denominator}</th>
-            {complete && <th>{portions ? "Winning portions" : "Win rate"}</th>}
+            {complete && <th>{portions ? "Trade Win" : "Win rate"}</th>}
             {curves && (
               <>
                 <th>Cumulative P&L</th>
@@ -214,7 +214,7 @@ export function Reports() {
       : q.tab === "behavior"
         ? "records"
         : "active days",
-    basis = `${q.basis} · ${complete ? "complete trades" : portions ? "closed portions" : q.tab === "behavior" ? "closed records" : "realized activity"}`,
+    basis = `${q.basis} · ${complete ? "complete trades" : portions ? "closed trades" : q.tab === "behavior" ? "closed records" : "realized activity"}`,
     s = data?.summary;
   const inspect = (target: string) => {
     save();
@@ -402,7 +402,7 @@ export function Reports() {
           select("analysis", "Analyze", [
             ["activity", "Realized activity"],
             ["complete", "Complete trades"],
-            ["portions", "Closed portions"],
+            ["portions", "Closed trades"],
           ])}
         <details className="report-extra">
           <summary>Instrument filters</summary>
@@ -454,7 +454,7 @@ export function Reports() {
         <section className="report-toolbar" aria-label="Behavior filters">
           {select("behaviorBasis", "Compare", [
             ["complete", "Complete trades"],
-            ["records", "Closed-portion records"],
+            ["records", "Trade records"],
           ])}
           {select("review", "Review coverage", [
             ["reviewed", "Reviewed only"],
@@ -554,7 +554,7 @@ export function Reports() {
             <section className="report-card report-empty">
               <h2>Complete trades aren’t available for this selection</h2>
               <p>
-                Performance imports contain closed portions and shared-fill
+                Performance imports contain closed trades and shared-fill
                 groups. Their results remain available as realized activity and
                 closed-record behavior comparisons.
               </p>
@@ -615,7 +615,7 @@ export function Reports() {
                       : q.tab === "behavior"
                         ? "Included records"
                         : portions
-                          ? "Closed portions"
+                          ? "Closed trades"
                           : "Active days"
                   }
                   value={String(s.count)}
@@ -624,25 +624,23 @@ export function Reports() {
                   }
                 />
                 <Metric
-                  label={`Average / ${complete ? "trade" : portions ? "portion" : q.tab === "behavior" ? "record" : "active day"}`}
+                  label={`Average / ${complete || portions ? "trade" : q.tab === "behavior" ? "record" : "active day"}`}
                   value={journalMoney(s.average, true)}
                 />
                 {outcomeMode ? (
                   <>
                     <Metric
-                      label={complete ? "Win rate" : "Winning portions"}
+                      label={complete ? "Win rate" : "Trade Win"}
                       value={s.winRate === null ? "—" : s.winRate + "%"}
                       detail="Breakevens included"
                     />
                     <Metric
                       label={
-                        complete ? "Profit factor" : "Profit factor · portions"
+                        "Profit factor"
                       }
                       value={
                         s.profitFactor ??
-                        (portions
-                          ? s.profitFactorNote.replaceAll("trades", "portions")
-                          : s.profitFactorNote)
+                        s.profitFactorNote
                       }
                     />
                   </>
@@ -680,7 +678,7 @@ export function Reports() {
                         {outcomeMode
                           ? complete
                             ? "Trade outcomes"
-                            : "Portion outcomes"
+                            : "Exit outcomes"
                           : "Daily realized P&L"}
                       </h2>
                       <span>{basis} · USD</span>
@@ -708,25 +706,23 @@ export function Reports() {
                   {outcomeMode ? (
                     <section className="report-card">
                       <h2>
-                        {complete
-                          ? "Trade statistics"
-                          : "Closed-portion statistics"}
+                        Trade statistics
                       </h2>
                       <div className="report-secondary">
                         <Metric
-                          label={`Average winning ${complete ? "trade" : "portion"}`}
+                          label={`Average winning trade`}
                           value={journalMoney(s.averageWin, true)}
                         />
                         <Metric
-                          label={`Average losing ${complete ? "trade" : "portion"}`}
+                          label={`Average losing trade`}
                           value={journalMoney(s.averageLoss, true)}
                         />
                         <Metric
-                          label={`Largest winning ${complete ? "trade" : "portion"}`}
+                          label={`Largest winning trade`}
                           value={journalMoney(s.best, true)}
                         />
                         <Metric
-                          label={`Largest losing ${complete ? "trade" : "portion"}`}
+                          label={`Largest losing trade`}
                           value={journalMoney(s.worst, true)}
                         />
                         <Metric

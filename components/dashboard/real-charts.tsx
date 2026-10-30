@@ -140,7 +140,7 @@ export function PortionTimeChart({
     <div
       className="chart-container"
       role="img"
-      aria-label={`Entry time by closed portion, ${data.basis} USD, ${data.timezone}; click a point for its record`}
+      aria-label={`Entry time by closed exit, ${data.basis} USD, ${data.timezone}; click a point for its record`}
     >
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ left: 0, right: 14, top: 12, bottom: 10 }}>

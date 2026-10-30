@@ -16,6 +16,7 @@ import { ThemeControl } from "@/components/shell";
 import { LogoutButton } from "@/components/auth/logout";
 import Link from "next/link";
 import { TimezoneSelector } from "@/components/ui/timezone-selector";
+import { ChangePassword } from "./change-password";
 import { DataBackups } from "@/components/exports/download-controls";
 export function SettingsForm({ preferences }: { preferences: Preferences }) {
   const router = useRouter();
@@ -159,6 +160,7 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
           </Button>
         </form>
       </section>
+      <ChangePassword email={preferences.email} />
       <section className="import-card"><h2>Trading fees & net P&L</h2><p className="muted">Add or reconcile broker-reported fee totals for existing imports.</p><Link href="/fees">Manage fees →</Link></section>
       <DataBackups />
       <section className="panel settings-session">
@@ -169,10 +171,7 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
             Your session is stored in the database. Sign out to invalidate it on
             this device.
           </p>
-          <p>
-            <Link href="/forgot-password">Reset your password</Link> by email. A
-            successful reset invalidates previous sessions.
-          </p>
+
         </div>
         <LogoutButton />
       </section>

@@ -152,7 +152,7 @@ export function processPortions(input: Portion[]): Group[] {
       direction: side,
       status: known ? "Matched portions" : "Needs review",
       explanation: known
-        ? `${parts.length} matched portion${parts.length === 1 ? "" : "s"}${parts.length > 1 ? " connected by shared fill identifiers" : ""}. Chronology supports ${side} direction. Open portions may be absent: these records do not prove a complete flat-to-flat position or its maximum size.`
+        ? `${parts.length} matched exit${parts.length === 1 ? "" : "s"}${parts.length > 1 ? " connected by shared fill identifiers" : ""}. Chronology supports ${side} direction. Open positions may be absent: these records do not prove a complete flat-to-flat position or its maximum size.`
         : "Direction/grouping needs review: equal timestamps, inconsistent fill metadata, or mixed chronology do not establish event ordering. Reported gross P&L is retained. Complete position history and maximum size are unknown.",
       entryAt: known ? entryTimes[0] : null,
       exitAt: parts.map(portionExit).sort().at(-1)!,
