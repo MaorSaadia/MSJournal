@@ -1,11 +1,13 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { LoaderCircle, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { authError } from "@/lib/auth-messages";
 import { resetInput } from "@/lib/auth-validation";
@@ -86,7 +88,7 @@ export function ResetForm({ configured }: { configured: boolean }) {
           <Link href="/forgot-password">Request a new reset link</Link>
         </div>
       ) : (
-        <form onSubmit={handleSubmit(submit)} noValidate>
+        <form onSubmit={handleSubmit(submit)} noValidate aria-busy={isSubmitting}>
           <fieldset
             className="auth-fields"
             disabled={!configured || isSubmitting}
@@ -114,7 +116,7 @@ export function ResetForm({ configured }: { configured: boolean }) {
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                <LoaderCircle size={16} className="pending-spinner" />
+                <LoadingSpinner size={16} className="pending-spinner" />
               ) : (
                 <Save size={16} />
               )}{" "}

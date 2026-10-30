@@ -1,11 +1,13 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "motion/react";
-import { Save, LoaderCircle, ShieldCheck } from "lucide-react";
+import { Save, ShieldCheck } from "lucide-react";
 import { preferencesSchema } from "@/lib/accounts/validation";
 import type { Preferences } from "@/lib/accounts/types";
 import { requestJson } from "@/lib/client-api";
@@ -149,7 +151,7 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
           )}
           <Button type="submit" disabled={isSubmitting || !isDirty}>
             {isSubmitting ? (
-              <LoaderCircle className="pending-spinner" size={15} />
+              <LoadingSpinner className="pending-spinner" size={15} />
             ) : (
               <Save size={15} />
             )}{" "}

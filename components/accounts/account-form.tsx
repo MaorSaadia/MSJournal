@@ -1,8 +1,10 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoaderCircle, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -370,7 +372,7 @@ export function AccountForm({
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
-                <LoaderCircle size={15} className="pending-spinner" />
+                <LoadingSpinner size={15} className="pending-spinner" />
               ) : (
                 <Save size={15} />
               )}{" "}

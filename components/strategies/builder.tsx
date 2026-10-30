@@ -1,4 +1,6 @@
 "use client";
+import { LoadingState } from "@/components/ui/loading";
+
 import { confirmAction } from "@/components/ui/confirm-action";
 import { useCallback, useState } from "react";
 import { Sparkles, Plus, Check, BookOpen, ArrowRight } from "lucide-react";
@@ -266,7 +268,7 @@ export function StrategyBuilder({
                   <button onClick={mine.refresh}>Retry templates</button>
                 </p>
               ) : !mine.data ? (
-                <p role="status">Loading your templates…</p>
+                <LoadingState variant="cards" label="Loading your templates…" />
               ) : mine.data.templates.length ? (
                 <div className="builder-template-grid">
                   {mine.data.templates.map((t) => (
@@ -566,7 +568,7 @@ export function StrategyBuilder({
           </span>
           <div>
             <button
-              disabled={busy}
+              disabled={busy} aria-busy={busy}
               onClick={async () => {
                 if (await confirmDiscard()) close();
               }}

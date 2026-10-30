@@ -151,6 +151,14 @@ async function reviewData(
     .select()
     .from(reviewTags)
     .where(eq(reviewTags.ownerId, ownerId));
+  // Reuse only this owner's saved emotion labels; no extra library table is needed.
+  const emotionRows = await tx.execute<{ name: string }>(sql`
+    select distinct label.value as name from journal_reviews r
+    cross join lateral jsonb_each(r.fields->'emotions') stage
+    cross join lateral jsonb_array_elements_text(stage.value) label
+    where r.owner_id=${ownerId} and length(label.value) between 1 and 60
+    order by name limit 200
+  `);
   const images = row
     ? (
         await tx
@@ -184,6 +192,7 @@ async function reviewData(
     fields: row?.fields ?? emptyFields(),
     needsReassignment: row?.needsReassignment ?? false,
     tags: tags.map(({ id, name, archived }) => ({ id, name, archived })),
+    emotionChoices: emotionRows.rows.map((row) => row.name),
     images,
     storageEnabled: storageEnabled(),
   };
@@ -793,7 +802,9 @@ export async function cleanupScreenshots(ownerId: string, accountId?: string) {
     .where(
       and(
         eq(reviewAttachments.ownerId, ownerId),
-        accountId ? eq(reviewAttachments.tradingAccountId, accountId) : undefined,
+        accountId
+          ? eq(reviewAttachments.tradingAccountId, accountId)
+          : undefined,
         or(
           eq(reviewAttachments.state, "deleting"),
           and(

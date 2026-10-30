@@ -1,4 +1,5 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { confirmAction } from "@/components/ui/confirm-action";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
@@ -8,6 +9,8 @@ import { requestJson } from "@/lib/client-api";
 import { ReviewSaveController } from "@/lib/reviews/save-controller";
 import {
   emotions,
+  emotionNameSchema,
+  emotionOptions,
   stages,
   mistakes,
   noteFields,
@@ -50,6 +53,7 @@ function Note({
       <textarea
         ref={ref}
         aria-label={label}
+        dir="auto"
         value={value}
         maxLength={5000}
         placeholder={placeholder}
@@ -76,7 +80,7 @@ export function RecordWorkspace({
     tabValue = search.get("tab"),
     tab =
       tabValue === "review" || tabValue === "screenshots"
-        ? tabValue
+        ? "review"
         : "overview";
   const [controller] = useState(
     () =>
@@ -92,6 +96,9 @@ export function RecordWorkspace({
     controller.read,
     controller.read,
   );
+  const [mediaBusy, setMediaBusy] = useState(false);
+  const [noteTab, setNoteTab] =
+    useState<(typeof noteFields)[number][0]>("entryRationale");
   const [tags, setTags] = useState(initial.tags),
     [comparison, setComparison] = useState<ReviewData | null>(null),
     [compareError, setCompareError] = useState("");
@@ -135,10 +142,7 @@ export function RecordWorkspace({
   function edit(fields: ReviewFields) {
     controller.edit({ fields, status: state.draft.status });
   }
-  function toggle(
-    stage: (typeof stages)[number],
-    emotion: (typeof emotions)[number],
-  ) {
+  function toggle(stage: (typeof stages)[number], emotion: string) {
     const values = state.draft.fields.emotions[stage];
     edit({
       ...state.draft.fields,
@@ -190,6 +194,7 @@ export function RecordWorkspace({
     <div className="review-workspace">
       {!demo && tab === "review" && (
         <MobileSaveBar
+          pending={state.state === "saving"}
           status={
             state.state === "saving"
               ? "Saving..."
@@ -209,7 +214,7 @@ export function RecordWorkspace({
         />
       )}
       <div className="review-tabs" role="tablist" aria-label="Record sections">
-        {["overview", "review", "screenshots"].map((value, i) => (
+        {["overview", "review"].map((value, i) => (
           <button
             key={value}
             role="tab"
@@ -221,23 +226,15 @@ export function RecordWorkspace({
             onKeyDown={(e) => {
               if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
                 e.preventDefault();
-                const choices = ["overview", "review", "screenshots"],
+                const choices = ["overview", "review"],
                   next =
-                    e.key === "Home"
-                      ? 0
-                      : e.key === "End"
-                        ? 2
-                        : (i + (e.key === "ArrowRight" ? 1 : 2)) % 3;
+                    e.key === "Home" ? 0 : e.key === "End" ? 1 : (i + 1) % 2;
                 setTab(choices[next]);
                 document.getElementById(`record-tab-${choices[next]}`)?.focus();
               }
             }}
           >
-            {value === "overview"
-              ? "Overview"
-              : value === "review"
-                ? "Review"
-                : `Screenshots${state.data.images.length ? ` (${state.data.images.length})` : ""}`}
+            {value === "overview" ? "Overview" : "Review"}
           </button>
         ))}
       </div>
@@ -247,7 +244,6 @@ export function RecordWorkspace({
           <span className={`review-status ${status}`}>{status}</span>
         </div>
       )}
-      {!demo && <RecordStrategy recordId={recordId} />}
       <div
         role="tabpanel"
         id="record-panel-overview"
@@ -264,14 +260,21 @@ export function RecordWorkspace({
       >
         <div className="review-save-bar">
           <div>
-            <strong>A moment to reflect</strong>
+            <strong>Trade review</strong>
             <p className="muted small">
               A sentence is enough. Every field is optional.
               {demo ? " Fictional demo review · read-only." : ""}
             </p>
           </div>
           <div className="review-save-actions">
-            <span role="status" aria-live="polite">
+            <span
+              role="status"
+              aria-live="polite"
+              className={`review-save-status ${state.state === "saving" ? "is-saving" : ""}`}
+            >
+              {!demo && state.state === "saving" && (
+                <LoadingSpinner size={14} />
+              )}
               {demo
                 ? "Demo data"
                 : state.state === "saving"
@@ -291,6 +294,7 @@ export function RecordWorkspace({
                   onClick={() => void controller.save()}
                   disabled={
                     !state.dirty ||
+                    mediaBusy ||
                     state.state === "saving" ||
                     state.state === "conflict"
                   }
@@ -394,117 +398,227 @@ export function RecordWorkspace({
             </Button>
           </div>
         )}
-        <div className="review-writing">
-          {noteFields.map(([key, label, placeholder]) => (
-            <Note
-              key={key}
-              label={label}
-              placeholder={placeholder}
-              value={state.draft.fields[key]}
-              disabled={demo}
-              onChange={(value) =>
-                edit({ ...state.draft.fields, [key]: value })
-              }
-            />
-          ))}
-        </div>
-        <div className="review-structured">
-          <section>
-            <h3>Emotions</h3>
-            {stages.map((stage) => (
-              <fieldset key={stage}>
-                <legend>
-                  {stage[0].toUpperCase() + stage.slice(1)} the trade
-                </legend>
+        <div className="review-layout">
+          <aside className="review-assessment" aria-label="Trade assessment">
+            {!demo && <RecordStrategy recordId={recordId} />}
+            <div className="review-structured">
+              <section>
+                <h3>Emotions</h3>
+                {stages.map((stage) => (
+                  <fieldset key={stage}>
+                    <legend>
+                      {stage[0].toUpperCase() + stage.slice(1)} the trade
+                    </legend>
+                    <div className="review-chips">
+                      {emotionOptions([
+                        ...emotions,
+                        ...state.draft.fields.emotions[stage],
+                        ...stages.flatMap(
+                          (s) => state.draft.fields.emotions[s],
+                        ),
+                        ...(state.data.emotionChoices ?? []),
+                      ]).map((emotion) => (
+                        <button
+                          type="button"
+                          key={emotion}
+                          aria-pressed={state.draft.fields.emotions[
+                            stage
+                          ].includes(emotion)}
+                          disabled={
+                            demo ||
+                            mediaBusy ||
+                            (!state.draft.fields.emotions[stage].includes(
+                              emotion,
+                            ) &&
+                              state.draft.fields.emotions[stage].length >= 30)
+                          }
+                          onClick={() => toggle(stage, emotion)}
+                        >
+                          {emotion}
+                        </button>
+                      ))}
+                    </div>
+                    <CustomEmotion
+                      stage={stage}
+                      disabled={demo || mediaBusy}
+                      selected={state.draft.fields.emotions[stage]}
+                      onAdd={(emotion) => {
+                        const label =
+                          emotionOptions([
+                            ...emotions,
+                            ...(state.data.emotionChoices ?? []),
+                            ...stages.flatMap(
+                              (s) => state.draft.fields.emotions[s],
+                            ),
+                          ]).find(
+                            (value) =>
+                              value.toLowerCase() === emotion.toLowerCase(),
+                          ) ?? emotion;
+                        edit({
+                          ...state.draft.fields,
+                          emotions: {
+                            ...state.draft.fields.emotions,
+                            [stage]: emotionOptions([
+                              ...state.draft.fields.emotions[stage],
+                              label,
+                            ]),
+                          },
+                        });
+                      }}
+                    />
+                  </fieldset>
+                ))}
+              </section>
+              <section>
+                <h3>Mistakes</h3>
+                <p className="small muted">
+                  Choose only what fits. An empty selection leaves mistakes
+                  unspecified.
+                </p>
                 <div className="review-chips">
-                  {emotions.map((emotion) => (
+                  {[
+                    ...mistakes.map(([id, name]) => ({
+                      id,
+                      name,
+                      archived: false,
+                    })),
+                    ...tags.filter(
+                      (t) =>
+                        !t.archived ||
+                        state.draft.fields.mistakes.includes(t.id),
+                    ),
+                  ].map((tag) => (
                     <button
+                      key={tag.id}
                       type="button"
-                      key={emotion}
-                      aria-pressed={state.draft.fields.emotions[stage].includes(
-                        emotion,
+                      aria-pressed={state.draft.fields.mistakes.includes(
+                        tag.id,
                       )}
-                      disabled={demo}
-                      onClick={() => toggle(stage, emotion)}
+                      disabled={demo || mediaBusy}
+                      onClick={() => toggleMistake(tag.id)}
                     >
-                      {emotion}
+                      {tag.name}
+                      {tag.archived ? " · Archived" : ""}
                     </button>
                   ))}
                 </div>
-              </fieldset>
-            ))}
-          </section>
-          <section>
-            <h3>Mistakes</h3>
-            <p className="small muted">
-              Choose only what fits. An empty selection leaves mistakes
-              unspecified.
-            </p>
-            <div className="review-chips">
-              {[
-                ...mistakes.map(([id, name]) => ({
-                  id,
-                  name,
-                  archived: false,
-                })),
-                ...tags.filter(
-                  (t) =>
-                    !t.archived || state.draft.fields.mistakes.includes(t.id),
-                ),
-              ].map((tag) => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  aria-pressed={state.draft.fields.mistakes.includes(tag.id)}
-                  disabled={demo}
-                  onClick={() => toggleMistake(tag.id)}
-                >
-                  {tag.name}
-                  {tag.archived ? " · Archived" : ""}
-                </button>
-              ))}
+                {!demo && <TagManager tags={tags} changed={setTags} />}
+                <label className="review-plan">
+                  Plan adherence
+                  <select
+                    aria-label="Plan adherence"
+                    value={state.draft.fields.adherence ?? ""}
+                    disabled={demo || mediaBusy}
+                    onChange={(e) =>
+                      edit({
+                        ...state.draft.fields,
+                        adherence: e.target.value
+                          ? (e.target.value as ReviewFields["adherence"])
+                          : null,
+                      })
+                    }
+                  >
+                    <option value="">Not specified</option>
+                    <option value="followed">Followed my plan</option>
+                    <option value="partly">Partly followed my plan</option>
+                    <option value="not-followed">Did not follow my plan</option>
+                  </select>
+                </label>
+                <p className="small muted">
+                  Your assessment is independent of the result.
+                </p>
+              </section>
             </div>
-            {!demo && <TagManager tags={tags} changed={setTags} />}
-            <label className="review-plan">
-              Plan adherence
-              <select
-                aria-label="Plan adherence"
-                value={state.draft.fields.adherence ?? ""}
-                disabled={demo}
-                onChange={(e) =>
-                  edit({
-                    ...state.draft.fields,
-                    adherence: e.target.value
-                      ? (e.target.value as ReviewFields["adherence"])
-                      : null,
-                  })
-                }
+          </aside>
+          <div className="review-visual-main">
+            <Screenshots
+              layout="workspace"
+              onBusyChange={setMediaBusy}
+              recordId={recordId}
+              data={state.data}
+              blocked={state.dirty || state.state === "saving"}
+              demo={demo}
+              changed={(data) => controller.accept(data)}
+            />
+            <section
+              className="review-trade-notes"
+              aria-labelledby="trade-notes-title"
+            >
+              <header>
+                <h2 id="trade-notes-title">Trade notes</h2>
+                <p className="small muted">
+                  Your observations, decisions and lessons. Changes save
+                  automatically.
+                </p>
+              </header>
+              <div
+                role="tablist"
+                aria-label="Trade note sections"
+                className="review-note-tabs"
               >
-                <option value="">Not specified</option>
-                <option value="followed">Followed my plan</option>
-                <option value="partly">Partly followed my plan</option>
-                <option value="not-followed">Did not follow my plan</option>
-              </select>
-            </label>
-            <p className="small muted">
-              Your assessment is independent of the result.
-            </p>
-          </section>
+                {noteFields.map(([key, label], index) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    id={`note-tab-${key}`}
+                    aria-controls={`note-panel-${key}`}
+                    aria-selected={noteTab === key}
+                    tabIndex={noteTab === key ? 0 : -1}
+                    onClick={() => setNoteTab(key)}
+                    onKeyDown={(event) => {
+                      if (
+                        !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
+                          event.key,
+                        )
+                      )
+                        return;
+                      event.preventDefault();
+                      const next =
+                        event.key === "Home"
+                          ? 0
+                          : event.key === "End"
+                            ? noteFields.length - 1
+                            : (index +
+                                (event.key === "ArrowRight"
+                                  ? 1
+                                  : noteFields.length - 1)) %
+                              noteFields.length;
+                      setNoteTab(noteFields[next][0]);
+                      document
+                        .getElementById(`note-tab-${noteFields[next][0]}`)
+                        ?.focus();
+                    }}
+                  >
+                    {label}
+                    {state.draft.fields[key].trim() && (
+                      <span className="review-note-dot" aria-hidden="true" />
+                    )}
+                  </button>
+                ))}
+              </div>
+              {noteFields.map(([key, label, placeholder]) => (
+                <div
+                  key={key}
+                  role="tabpanel"
+                  id={`note-panel-${key}`}
+                  aria-labelledby={`note-tab-${key}`}
+                  hidden={noteTab !== key}
+                >
+                  <Note
+                    label={label}
+                    placeholder={placeholder}
+                    value={state.draft.fields[key]}
+                    disabled={demo || mediaBusy}
+                    onChange={(value) =>
+                      edit({ ...state.draft.fields, [key]: value })
+                    }
+                  />
+                </div>
+              ))}
+            </section>
+          </div>
         </div>
-      </section>
-      <section
-        role="tabpanel"
-        id="record-panel-screenshots"
-        aria-labelledby="record-tab-screenshots"
-        hidden={tab !== "screenshots"}
-      >
-        <Screenshots
-          recordId={recordId}
-          data={state.data}
-          blocked={state.dirty || state.state === "saving"}
-          demo={demo}
-          changed={(data) => controller.accept(data)}
-        />
       </section>
       {!demo && (
         <p className="review-recovery-link small">
@@ -514,6 +628,69 @@ export function RecordWorkspace({
         </p>
       )}
     </div>
+  );
+}
+function CustomEmotion({
+  stage,
+  selected,
+  disabled,
+  onAdd,
+}: {
+  stage: string;
+  selected: string[];
+  disabled: boolean;
+  onAdd: (value: string) => void;
+}) {
+  const [name, setName] = useState(""),
+    [error, setError] = useState("");
+  return (
+    <form
+      className="review-custom-emotion"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const parsed = emotionNameSchema.safeParse(name);
+        if (!parsed.success) {
+          setError(parsed.error.issues[0].message);
+          return;
+        }
+        if (
+          selected.length >= 30 &&
+          !selected.some(
+            (value) => value.toLowerCase() === parsed.data.toLowerCase(),
+          )
+        ) {
+          setError("Choose up to 30 emotions per stage.");
+          return;
+        }
+        onAdd(parsed.data);
+        setName("");
+        setError("");
+      }}
+    >
+      <label className="sr-only" htmlFor={`custom-emotion-${stage}`}>
+        Custom emotion {stage} the trade
+      </label>
+      <div>
+        <input
+          id={`custom-emotion-${stage}`}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Add your own emotion"
+          maxLength={60}
+          disabled={disabled}
+        />
+        <Button
+          type="submit"
+          variant="outline"
+          size="sm"
+          disabled={disabled || !name.trim()}
+          aria-label={`Add emotion ${stage} the trade`}
+        >
+          Add
+        </Button>
+      </div>
+      {error && <p role="alert">{error}</p>}
+    </form>
   );
 }
 function TagManager({
@@ -586,7 +763,7 @@ function TagManager({
             required
           />
         </label>
-        <Button disabled={busy}>
+        <Button disabled={busy} aria-busy={busy}>
           {selected ? "Save / restore tag" : "Create tag"}
         </Button>
         {selected && (
@@ -595,6 +772,7 @@ function TagManager({
               variant="outline"
               type="button"
               disabled={busy}
+              aria-busy={busy}
               onClick={() => void save(true)}
             >
               Archive tag

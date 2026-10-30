@@ -1,4 +1,6 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -155,7 +157,7 @@ export function FeeSettings({
           Apply these settings to existing portions, including previously unknown
           fees. Preserve entered totals and manual overrides.
         </label>
-        <Button disabled={busy}>{busy ? "Saving…" : "Save fee settings"}</Button>
+        <Button disabled={busy} aria-busy={busy}>{busy ? <><LoadingSpinner />Saving</> : "Save fee settings"}</Button>
       </fieldset>
       {error && (
         <p role="alert" className="negative">

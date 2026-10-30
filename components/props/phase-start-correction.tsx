@@ -1,4 +1,6 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useEffect, useState } from "react";
 import type { TradingAccount } from "@/lib/accounts/types";
 import type { PhaseProgress } from "@/lib/props/model";
@@ -74,7 +76,7 @@ export function PhaseStartCorrection({ account, progress, firstEntry, count, onS
               <input inputMode="decimal" required value={balance} onChange={(e) => { setBalance(e.target.value); setConfirmed(false); }} />
             </label>
             <p className="small muted" role="status">
-              {preview.pending ? "Loading activity preview..." : preview.error ?? (preview.data
+              {preview.pending ? <><LoadingSpinner /> Loading activity preview</> : preview.error ?? (preview.data
                 ? `${preview.data.included} source records fit this start; ${preview.data.before} earlier and ${preview.data.crossing} boundary-spanning records remain excluded. UTC cutoff: ${preview.data.cutoff}.`
                 : "Choose a valid start to preview activity.")}
             </p>
@@ -82,7 +84,7 @@ export function PhaseStartCorrection({ account, progress, firstEntry, count, onS
             <label className="prop-check"><input type="checkbox" checked={history} onChange={(e) => setHistory(e.target.checked)} />I confirm imported history from this start is complete.</label>
             <label className="prop-check"><input type="checkbox" required checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />I reviewed this preview. The balance is correct before the selected start and the original phase rules apply from that time.</label>
             <p className="small muted">This corrects the first evaluation only. It preserves imports and prior rule versions, records an audit event, and recalculates progress. It does not create a reset or deposit.</p>
-            <Button disabled={busy || !confirmed || !preview.data || preview.pending || !!preview.error}>{busy ? "Saving..." : "Correct evaluation start"}</Button>
+            <Button disabled={busy || !confirmed || !preview.data || preview.pending || !!preview.error}>{busy ? <><LoadingSpinner />Saving</> : "Correct evaluation start"}</Button>
           </fieldset>
           {error && <p role="alert" className="form-error">{error}</p>}
         </form>

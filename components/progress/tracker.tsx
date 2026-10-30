@@ -1,4 +1,6 @@
 "use client";
+import { LoadingIndicator, LoadingSpinner, LoadingState } from "@/components/ui/loading";
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -489,13 +491,13 @@ function GoalEditor({
             <Button
               type="button"
               variant="outline"
-              disabled={busy}
+              disabled={busy} aria-busy={busy}
               onClick={() => void dismiss()}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={busy}>
-              {busy ? "Saving…" : "Save goal"}
+            <Button type="submit" disabled={busy} aria-busy={busy}>
+              {busy ? <><LoadingSpinner />Saving</> : "Save goal"}
             </Button>
           </footer>
         </form>
@@ -644,7 +646,7 @@ function CheckinEditor({
             <Button
               type="button"
               variant="outline"
-              disabled={busy}
+              disabled={busy} aria-busy={busy}
               onClick={() => void dismiss()}
             >
               Cancel
@@ -652,7 +654,7 @@ function CheckinEditor({
             <Button
               disabled={busy || !date || (state === "done" && date > today)}
             >
-              {busy ? "Saving…" : "Save check-in"}
+              {busy ? <><LoadingSpinner />Saving</> : "Save check-in"}
             </Button>
           </footer>
         </form>
@@ -770,18 +772,14 @@ export function ProgressTracker() {
         </div>
       )}
       {!data && valid.success && !state.error && (
-        <div className="report-loading" role="status">
-          Loading progress…
-        </div>
+        <LoadingState variant="progress" label="Loading progress…" />
       )}
       {data && (
         <>
-          <div className="progress-status" role="status">
-            {state.pending
-              ? "Refreshing progress…"
-              : "Based on saved entries and reviews"}
+          <div className="progress-status">
+            {state.pending ? <LoadingIndicator label="Updating progress" /> : "Based on saved entries and reviews"}
           </div>
-          <div className="progress-summary">
+          <div className="progress-summary app-loading-reveal" aria-busy={state.pending && !state.error}>
             <Metric
               label="Preparation completion"
               done={data.summary.preparation.done}

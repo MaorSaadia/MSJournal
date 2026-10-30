@@ -1,4 +1,6 @@
 "use client";
+import { LoadingState } from "@/components/ui/loading";
+
 import { confirmAction } from "@/components/ui/confirm-action";
 import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
@@ -47,7 +49,7 @@ export function RecordStrategy({ recordId }: { recordId: string }) {
       ) : state.data ? (
         <AssignmentEditor key={recordId} initial={state.data} />
       ) : (
-        <p role="status">Loading classification…</p>
+        <LoadingState variant="form" label="Loading classification…" />
       )}
     </section>
   );

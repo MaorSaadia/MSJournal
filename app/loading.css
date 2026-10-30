@@ -1,0 +1,337 @@
+.app-loading-state {
+  width: 100%;
+  min-width: 0;
+  margin: 14px 0;
+}
+.app-skeleton-layout {
+  display: grid;
+  gap: 14px;
+}
+.app-skeleton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: color-mix(in srgb, var(--foreground) 7%, var(--card));
+  border-radius: 5px;
+  min-height: 11px;
+}
+.app-skeleton::after,
+.tv-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 15%,
+    color-mix(in srgb, var(--foreground) 6%, transparent) 48%,
+    transparent 80%
+  );
+  transform: translateX(-100%);
+  animation: app-loading-shimmer 2s linear infinite;
+  pointer-events: none;
+}
+.app-skeleton-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  padding: 18px;
+  display: grid;
+  align-content: start;
+  gap: 15px;
+}
+.app-skeleton-label {
+  width: 48%;
+  max-width: 155px;
+  height: 12px;
+}
+.app-skeleton-value {
+  width: 64%;
+  max-width: 170px;
+  height: 29px;
+}
+.app-skeleton-caption {
+  width: 36%;
+  max-width: 120px;
+  height: 10px;
+}
+.app-skeleton-metrics {
+  display: grid;
+  grid-template-columns: repeat(var(--loading-columns, 4), minmax(0, 1fr));
+  gap: 14px;
+}
+.app-skeleton-metrics > .app-skeleton-card {
+  min-height: 116px;
+}
+.app-skeleton-panels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.app-skeleton-chart {
+  min-height: 285px;
+}
+.app-skeleton-plot {
+  height: 196px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 15px 0;
+}
+.app-skeleton-plot > .app-skeleton {
+  width: 100%;
+  min-height: 1px;
+  height: 1px;
+  opacity: 0.65;
+}
+.app-skeleton-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+.app-skeleton-axis > span {
+  width: 35px;
+  height: 8px;
+  min-height: 8px;
+}
+.app-skeleton-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.app-skeleton-cards .app-skeleton-metrics {
+  gap: 7px;
+  margin: 8px 0;
+}
+.app-skeleton-cards .app-skeleton-metrics .app-skeleton-card {
+  padding: 10px;
+  min-height: 78px;
+  gap: 10px;
+  border: 0;
+  background: var(--background);
+}
+.app-skeleton-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-height: 42px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.app-skeleton-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.app-skeleton-row > div {
+  flex: 1;
+  display: grid;
+  gap: 9px;
+}
+.app-skeleton-row > .app-skeleton-caption {
+  width: 44px;
+}
+.app-skeleton-avatar {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 7px;
+}
+.app-skeleton-field {
+  height: 42px;
+  width: 100%;
+}
+.app-skeleton-form {
+  gap: 22px;
+}
+.app-skeleton-form > div {
+  display: grid;
+  gap: 9px;
+}
+.app-skeleton-button {
+  height: 36px;
+  width: 125px;
+}
+.app-skeleton-table-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 0.7fr 0.8fr;
+  gap: 22px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.app-skeleton-table-row:first-child {
+  padding-top: 0;
+}
+.app-skeleton-table-row:last-child {
+  border: 0;
+}
+.app-loading-spinner {
+  flex-shrink: 0;
+  animation: app-loading-spin 0.9s linear infinite;
+}
+.app-loading-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+.app-route-loading {
+  width: 100%;
+}
+.app-loading-reveal {
+  animation: app-loading-reveal 150ms ease-out;
+}
+.tv-skeleton {
+  position: relative;
+  overflow: hidden;
+  animation: none;
+  background: color-mix(in srgb, var(--foreground) 7%, var(--card));
+}
+.calendar-refined .skeleton-day {
+  position: relative;
+  overflow: hidden;
+}
+.calendar-refined .skeleton-day > i {
+  position: relative;
+  overflow: hidden;
+}
+.calendar-skeleton {
+  opacity: 1;
+}
+.calendar-skeleton .app-skeleton {
+  margin-top: 16px;
+  width: 45%;
+  height: 10px;
+}
+.calendar-skeleton .weekly-summary .app-skeleton {
+  margin: 16px 10px;
+  width: 60%;
+}
+.app-loading-inline-skeleton {
+  width: 130px;
+  display: inline-block;
+  margin: 0;
+  vertical-align: middle;
+}
+.app-loading-inline-skeleton .app-skeleton-card {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+@keyframes app-loading-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes app-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes app-loading-reveal {
+  from {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (max-width: 1100px) {
+  .app-skeleton-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .app-skeleton-panels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .app-skeleton-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .app-skeleton-panels,
+  .app-skeleton-cards {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .app-skeleton-card {
+    padding: 15px;
+  }
+  .app-skeleton-metrics .app-skeleton-card {
+    min-height: 106px;
+  }
+  .app-skeleton-chart {
+    min-height: 245px;
+  }
+  .app-skeleton-plot {
+    height: 160px;
+  }
+  .app-skeleton-cards .app-skeleton-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .app-skeleton-table-row {
+    gap: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-skeleton::after,
+  .tv-skeleton::after {
+    animation: none !important;
+    display: none;
+  }
+  .app-loading-spinner,
+  .pending-spinner,
+  .calendar-refreshing,
+  .app-loading-reveal {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.app-skeleton-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 7px;
+}
+.app-skeleton-calendar .app-skeleton-card {
+  min-height: 100px;
+  padding: 12px;
+}
+.prop-progress-card > .app-loading-metrics .app-skeleton-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.prop-progress-card > .app-loading-metrics .app-skeleton-card {
+  min-height: 86px;
+  padding: 10px;
+  border: 0;
+  background: var(--background);
+}
+@media (max-width: 640px) {
+  .app-skeleton-calendar {
+    gap: 4px;
+  }
+  .app-skeleton-calendar .app-skeleton-card {
+    min-height: 70px;
+    padding: 7px;
+  }
+}
+
+@media (max-width: 767px) {
+  .tv-table-wrap[aria-busy="true"] {
+    display: none;
+  }
+}
+
+.tv-summary > .app-loading-state {
+  margin: 0;
+}
+.tv-summary .app-skeleton-card {
+  min-height: 70px;
+  border: 0;
+  background: none;
+  padding: 0;
+  gap: 9px;
+}

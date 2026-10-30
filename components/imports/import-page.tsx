@@ -1,4 +1,6 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,7 +9,6 @@ import {
   Upload,
   FileSpreadsheet,
   X,
-  LoaderCircle,
   ShieldCheck,
   ArrowRight,
   ReceiptText,
@@ -346,6 +347,7 @@ export function ImportPage({
             )}
             <Button
               onClick={() => send("preview")}
+              aria-busy={busy === "preview"}
               disabled={
                 !!busy ||
                 checkingFile ||
@@ -355,7 +357,7 @@ export function ImportPage({
               }
             >
               {busy === "preview" ? (
-                <LoaderCircle size={16} className="pending-spinner" />
+                <LoadingSpinner size={16} className="pending-spinner" />
               ) : (
                 <FileSpreadsheet size={16} />
               )}{" "}
@@ -404,12 +406,13 @@ export function ImportPage({
               </p>
               <Button
                 onClick={() => send("confirm")}
+              aria-busy={busy === "confirm"}
                 disabled={
                   !!busy || checkingFile || fileBlocked || !preview.canConfirm || (!!preview.feeReview?.replaceRequired && !replaceFees)
                 }
               >
                 {busy === "confirm" ? (
-                  <LoaderCircle size={16} className="pending-spinner" />
+                  <LoadingSpinner size={16} className="pending-spinner" />
                 ) : (
                   <Upload size={16} />
                 )}{" "}

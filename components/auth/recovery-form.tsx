@@ -1,10 +1,12 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { LoaderCircle, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { authError } from "@/lib/auth-messages";
 import { emailInput } from "@/lib/auth-validation";
@@ -91,7 +93,7 @@ export function RecoveryForm({
           </p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit(submit)} noValidate>
+        <form onSubmit={handleSubmit(submit)} noValidate aria-busy={isSubmitting}>
           <fieldset
             className="auth-fields"
             disabled={!configured || !emailReady || isSubmitting}
@@ -124,7 +126,7 @@ export function RecoveryForm({
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                <LoaderCircle size={16} className="pending-spinner" />
+                <LoadingSpinner size={16} className="pending-spinner" />
               ) : (
                 <Mail size={16} />
               )}{" "}

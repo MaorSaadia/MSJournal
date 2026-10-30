@@ -1,4 +1,5 @@
 "use client";
+import { LoadingIndicator, LoadingSpinner, LoadingState } from "@/components/ui/loading";
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -224,10 +225,10 @@ export function FeeTotals({ accountId }: { accountId: string }) {
             </label>
           )}
           <Button
-            disabled={busy || !confirmed || (quote.replaceRequired && !replace)}
+            disabled={busy || !confirmed || (quote.replaceRequired && !replace)} aria-busy={busy}
             onClick={() => void save()}
           >
-            {busy ? "Saving…" : "Save fee total"}
+            {busy ? <><LoadingSpinner />Saving</> : "Save fee total"}
           </Button>
         </div>
       )}
@@ -242,20 +243,16 @@ export function FeeTotals({ accountId }: { accountId: string }) {
           {" "}<Link href={`/?${new URLSearchParams({ accounts: accountId, archived: "1", start: scope.start, end: scope.end, basis: "net", outcomeBasis: "portions" })}`}>View net P&L on dashboard →</Link>
         </p>
       )}
-      {state.pending && (
-        <p className="muted" role="status">
-          Refreshing fees…
-        </p>
-      )}
+      {state.pending && state.data && !state.error && <LoadingIndicator label="Updating fees" />}
       <h3>Fee history</h3>
       <p className="muted">
         Latest 100 totals. Replaced totals remain here for reference.
         “Allocated” in Trade View and exports identifies the per-record fee
         source.
       </p>
-      {!state.data?.history.length ? (
+      {!state.data && !state.error ? <LoadingState variant="list" label="Loading fee history" /> : state.data && !state.data.history.length ? (
         <p className="muted">No fee totals recorded yet.</p>
-      ) : (
+      ) : state.data ? (
         <div className="fee-history">
           {state.data.history.map((r) => (
             <article key={r.id}>
@@ -295,7 +292,7 @@ export function FeeTotals({ accountId }: { accountId: string }) {
             </article>
           ))}
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

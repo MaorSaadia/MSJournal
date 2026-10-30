@@ -1,4 +1,6 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { requestJson } from "@/lib/client-api";
@@ -197,8 +199,8 @@ export function PayoutLog({
               deduction replaces its single linked ledger adjustment and
               preserves the prior revision.
             </p>
-            <Button disabled={busy}>
-              {busy ? "Saving…" : "Save payout events"}
+            <Button disabled={busy} aria-busy={busy}>
+              {busy ? <><LoadingSpinner />Saving</> : "Save payout events"}
             </Button>
             <Button
               type="button"

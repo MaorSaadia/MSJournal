@@ -1,4 +1,5 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { confirmAction } from "@/components/ui/confirm-action";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
@@ -137,6 +138,7 @@ export function PlaybookEditor({ initial }: { initial: StrategyData }) {
     <div className="playbook-workspace">
       <MobileSaveBar
         status={stateLabel}
+        pending={state.state === "saving"}
         label="Save playbook"
         disabled={
           !state.dirty || state.state === "saving" || state.state === "conflict"
@@ -154,7 +156,7 @@ export function PlaybookEditor({ initial }: { initial: StrategyData }) {
           </p>
         </div>
         <div className="playbook-actions">
-          <span role="status">{stateLabel}</span>
+          <span role="status">{state.state === "saving" && <LoadingSpinner size={14} />} {stateLabel}</span>
           <button
             disabled={
               !state.dirty ||

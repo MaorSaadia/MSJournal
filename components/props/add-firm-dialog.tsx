@@ -1,6 +1,8 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useState } from "react";
-import { Check, LoaderCircle, Plus, Search } from "lucide-react";
+import { Check, Plus, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -132,7 +134,7 @@ export function AddFirmDialog({
           </p>
         )}
         <div className="prop-add-firm-actions">
-          <Button variant="outline" disabled={busy} onClick={onClose}>
+          <Button variant="outline" disabled={busy} aria-busy={busy} onClick={onClose}>
             Cancel
           </Button>
           <Button
@@ -140,7 +142,7 @@ export function AddFirmDialog({
             onClick={() => void save()}
           >
             {busy ? (
-              <LoaderCircle size={16} className="pending-spinner" />
+              <LoadingSpinner size={16} className="pending-spinner" />
             ) : (
               <Plus size={16} />
             )}

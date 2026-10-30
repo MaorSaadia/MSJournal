@@ -1,3 +1,4 @@
+import { Skeleton } from "@/components/ui/loading";
 import { CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { Help } from "@/components/dashboard/panel";
@@ -15,9 +16,10 @@ export function CalendarSkeleton({
     <div
       className="calendar-skeleton"
       role="status"
+      aria-busy="true"
       aria-label="Loading calendar"
     >
-      <div className="calendar-week-head">
+      <div className="calendar-week-head" aria-hidden="true">
         {Array.from({ length: 7 }, (_, i) => (
           <span key={i}>
             {
@@ -29,16 +31,16 @@ export function CalendarSkeleton({
         ))}
         <span>Weekly total</span>
       </div>
-      <div className="calendar-weeks">
+      <div className="calendar-weeks" aria-hidden="true">
         {calendarWeeks(month, weekStartsOn).map((week) => (
           <div className="calendar-week" key={week[0]}>
             {week.map((date) => (
               <div className="calendar-day skeleton-day" key={date}>
                 <span>{Number(date.slice(-2))}</span>
-                <i />
+                <Skeleton />
               </div>
             ))}
-            <div className="weekly-summary skeleton-day" />
+            <div className="weekly-summary skeleton-day"><Skeleton /></div>
           </div>
         ))}
       </div>

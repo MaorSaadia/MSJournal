@@ -1,4 +1,5 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { useEffect, useRef } from "react";
 import { Save } from "lucide-react";
 import { Button } from "./button";
@@ -7,11 +8,13 @@ export function MobileSaveBar({
   label,
   disabled,
   save,
+  pending = false,
 }: {
   status: string;
   label: string;
   disabled: boolean;
   save: () => void;
+  pending?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -36,8 +39,8 @@ export function MobileSaveBar({
       aria-label="Mobile save controls"
     >
       <span>{status}</span>
-      <Button disabled={disabled} onClick={save}>
-        <Save size={15} />
+      <Button disabled={disabled} aria-busy={pending} onClick={save}>
+        {pending ? <LoadingSpinner size={15} /> : <Save size={15} />}
         {label}
       </Button>
     </div>

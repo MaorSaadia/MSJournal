@@ -1,4 +1,6 @@
 "use client";
+import { LoadingIndicator, LoadingState } from "@/components/ui/loading";
+
 import { useWorkspaceSearch } from "@/components/calendar/cache-provider";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
@@ -315,7 +317,7 @@ export function JournalList() {
           </Button>
         </div>
       </header>
-      <div className="tv-summary" aria-live="polite" aria-busy={!data}>
+      <div className="tv-summary" aria-live="polite" aria-busy={state.pending && !state.error}>
         {summary ? (
           <>
             <div>
@@ -394,9 +396,9 @@ export function JournalList() {
               </p>
             )}
           </>
-        ) : (
-          <span className="muted">Loading filtered summary…</span>
-        )}
+        ) : !state.error ? (
+          <LoadingState variant="metrics" label="Loading filtered summary" />
+        ) : null}
       </div>
       <div className="tv-toolbar">
         <Search
@@ -776,11 +778,9 @@ export function JournalList() {
         </p>
       )}
       {state.pending && data && (
-        <p role="status" className="small muted">
-          Refreshing…
-        </p>
+        <LoadingIndicator label="Updating records" />
       )}
-      <div className="tv-table-wrap" aria-busy={!data}>
+      <div className="tv-table-wrap" aria-busy={state.pending && !state.error}>
         <table className="import-table tv-table">
           <caption className="sr-only">
             Trading history. USD amounts, times in {timezone}. Duration is the
@@ -937,8 +937,8 @@ export function JournalList() {
                     </td>
                   </tr>
                 ))
-              : Array.from({ length: 10 }, (_, i) => (
-                  <tr key={i}>
+              : !state.error ? Array.from({ length: 10 }, (_, i) => (
+                  <tr key={i} aria-hidden="true">
                     {prefs.visible.map((key) => (
                       <td key={key}>
                         <span className="tv-skeleton" />
@@ -948,11 +948,12 @@ export function JournalList() {
                       <span className="tv-skeleton" />
                     </td>
                   </tr>
-                ))}
+                )) : null}
           </tbody>
         </table>
       </div>
       <div className="tv-mobile">
+        {!data && !state.error && <LoadingState variant="list" label="Loading records" />}
         {data?.rows.map((r) => (
           <Link
             key={r.id}

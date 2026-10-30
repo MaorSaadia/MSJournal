@@ -1,6 +1,8 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useState } from "react";
-import { LogOut, LoaderCircle } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 export function LogoutButton({ compact = false }: { compact?: boolean }) {
@@ -31,10 +33,10 @@ export function LogoutButton({ compact = false }: { compact?: boolean }) {
         size={compact ? "icon" : "default"}
         aria-label="Sign out"
         onClick={logout}
-        disabled={pending}
+        disabled={pending} aria-busy={pending}
       >
         {pending ? (
-          <LoaderCircle className="pending-spinner" size={15} />
+          <LoadingSpinner className="pending-spinner" size={15} />
         ) : (
           <LogOut size={15} />
         )}{" "}

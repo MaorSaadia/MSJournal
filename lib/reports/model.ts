@@ -19,7 +19,7 @@ import {
   durationLabels,
   entryHour,
 } from "@/lib/journal/analysis-filters";
-import { emotions, stages, type ReviewTag } from "@/lib/reviews/model";
+import { emotionNameSchema, stages, type ReviewTag } from "@/lib/reviews/model";
 export const reportSchema = z
   .object({
     strategy: z.union([z.uuid(), z.literal("unassigned")]).optional(),
@@ -42,7 +42,7 @@ export const reportSchema = z
     behaviorBasis: z.enum(["complete", "records"]).default("complete"),
     review: z.enum(["reviewed", "all"]).default("reviewed"),
     emotionStage: z.enum(stages).default("before"),
-    emotion: z.enum(emotions).optional(),
+    emotion: emotionNameSchema.optional(),
     mistakes: z.string().max(2000).optional(),
     adherence: z.enum(["followed", "partly", "not-followed"]).optional(),
     instrument: z.enum(["root", "contract"]).default("root"),

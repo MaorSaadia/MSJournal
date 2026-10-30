@@ -1,4 +1,6 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -717,8 +719,8 @@ export function TrackingSetup({
             Continue
           </Button>
         ) : (
-          <Button disabled={busy} onClick={() => void save()}>
-            {busy ? "Saving…" : "Save tracking configuration"}
+          <Button disabled={busy} aria-busy={busy} onClick={() => void save()}>
+            {busy ? <><LoadingSpinner />Saving</> : "Save tracking configuration"}
           </Button>
         )}
       </div>

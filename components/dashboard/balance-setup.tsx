@@ -211,7 +211,7 @@ export function BalanceSetup({
                 </span>
                 <strong>{journalMoney(a.amount, true)}</strong>
                 <button
-                  disabled={busy}
+                  disabled={busy} aria-busy={busy}
                   aria-label={`Remove ${a.kind} adjustment`}
                   onClick={async () => {
                     if (

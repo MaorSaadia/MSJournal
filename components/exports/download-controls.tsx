@@ -1,6 +1,8 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useEffect, useRef, useState } from "react";
-import { Download, LoaderCircle, Archive, ShieldCheck } from "lucide-react";
+import { Download, Archive, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { downloadFile, DownloadError } from "@/lib/exports/download";
 import { confirmAction } from "@/components/ui/confirm-action";
@@ -69,15 +71,15 @@ export function TradeCsvExport({
       <div className="export-actions">
         <Button
           variant="outline"
-          disabled={disabled || state.busy}
+          disabled={disabled || state.busy} aria-busy={state.busy}
           onClick={() => void state.start(`/api/exports/trades?${query}`, {})}
         >
           {state.busy ? (
-            <LoaderCircle className="pending-spinner" size={15} />
+            <LoadingSpinner className="pending-spinner" size={15} />
           ) : (
             <Download size={15} />
           )}{" "}
-          {state.busy ? "Exporting..." : "Export CSV"}
+          {state.busy ? "Preparing download" : "Export CSV"}
         </Button>
         {state.busy && (
           <Button variant="ghost" onClick={state.cancel}>
@@ -120,7 +122,7 @@ export function DataBackups() {
           <input
             type="checkbox"
             checked={images}
-            disabled={state.busy}
+            disabled={state.busy} aria-busy={state.busy}
             onChange={(e) => setImages(e.target.checked)}
           />{" "}
           Include screenshots and playbook images
@@ -131,9 +133,9 @@ export function DataBackups() {
           listed in its manifest.
         </p>
         <div className="export-actions">
-          <Button disabled={state.busy} onClick={() => void run()}>
+          <Button disabled={state.busy} aria-busy={state.busy} onClick={() => void run()}>
             {state.busy ? (
-              <LoaderCircle className="pending-spinner" size={15} />
+              <LoadingSpinner className="pending-spinner" size={15} />
             ) : (
               <Download size={15} />
             )}{" "}

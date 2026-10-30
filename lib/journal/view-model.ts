@@ -1,5 +1,5 @@
 import {
-  emotions,
+  emotionNameSchema,
   stages,
   type ReviewFields,
   type ReviewTag,
@@ -66,7 +66,7 @@ export const viewSchema = z
         "Invalid Reports return link",
       )
       .optional(),
-    emotion: z.enum(emotions).optional(),
+    emotion: emotionNameSchema.optional(),
     emotionStage: z.enum(stages).default("before"),
     adherence: z.enum(["followed", "partly", "not-followed"]).optional(),
     min: amount.optional(),

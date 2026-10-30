@@ -516,3 +516,25 @@ Open **Prop Accounts > Archived > account menu > Delete permanently** (also in t
 Deletion is blocked if another account depends on its phase history. Screenshot removal uses the existing durable attachment cleanup metadata and bounded batches; if private storage is unavailable or a batch is incomplete, the account stays archived and the dialog offers a fresh summary for retry. Some images can already be removed after a failed attempt. Database records are removed together in a transaction only after screenshot cleanup completes. No new migration or storage provider is required. No existing user account is deleted during implementation.
 
 The prop account Overview now works from the saved starting balance, imported net trades and recorded adjustments, without requiring a snapshot or history-confirmation checkbox. Use Trades or completed-session Daily charts with All time / 30 days / Custom ranges. Static/EOD loss limits follow saved rules; closed-trade intraday limits are labeled estimates. Manual reconciliation remains optional in Manage/Rules, with its history preserved. Target progress does not certify passing or payout eligibility. See [overview calculations and limitations](docs/prop-account-overview.md#imported-trade-overview-refinement). No migration or new environment variables are needed.
+
+
+### Workspace loading states
+
+Layout-matched shimmer skeletons keep navigation available while data loads. Matching cached data stays visible with a compact Updating indicator during refresh. Pending actions use shared spinners, and reduced motion uses static placeholders. See [loading behavior and focused checks](docs/loading-states.md). No migration or new dependencies are required.
+
+
+### Recorded partial exits
+
+Trade details show an exit breakdown with closed quantity, share of recorded quantity, exit price, gross P&L, fee provenance and net P&L for each supported exit fill. Source records and import links remain expandable. The explicit manual-fee panel is removed from this page; existing saved fee overrides remain applied. Missing fees stay unknown, and imported exits do not establish any remaining open position. No migration is required.
+
+
+### Combined trade review workspace
+
+The trade detail Review tab combines assessment, screenshots and writing. Strategy, emotions, mistakes and plan adherence sit on the left; a full-size private screenshot, thumbnail switcher and enlarge/zoom controls sit on the right. All five existing note fields are retained as tabs below the screenshot and use the same autosave and conflict handling. Mobile stacks charts/notes before the assessment. Existing `tab=screenshots` links open the combined Review workspace.
+
+Screenshot upload, caption/stage edits, reordering and removal remain under Manage screenshots; existing attachments and private image endpoints are unchanged. Playbook galleries retain their standard layout. No migration, new dependency or storage setup change is required. Focused verification uses `tests/reviews.test.ts` and `browser-tests/trade-review-layout.spec.ts`; browser images are intercepted local fixtures, and note autosave is checked against a disposable user's real saved review.
+
+
+Trade screenshot controls now expose Delete beside the chart, with a preview and confirmation using the existing private removal/cleanup path. Uploads and image operations show an operation-specific saving panel, and written fields pause briefly during attachment updates to preserve revision integrity. The enlarged viewer opens fitted to the screen, with actual-size/zoom controls, keyboard shortcuts and mouse drag-to-pan.
+
+Add custom emotions under Before, During or After the trade. Labels are validated, stored in existing review JSON, and suggested from only the signed-in user's saved reviews on other trades. Built-in choices remain available; custom labels also work with report/journal drill-through filters. Backups already include these saved fields. No migration or external infrastructure is required. Focused checks cover invalid names, autosave, same-owner reuse, cross-user denial, screenshot confirmation/pending behavior, responsive fit and panning. Image storage actions in the browser check use local fixtures; no real user screenshots are deleted.

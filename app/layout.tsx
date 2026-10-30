@@ -19,6 +19,9 @@ import "./confirmations.css";
 import "./day-twelve.css";
 import "./day-thirteen.css";
 import "./fees.css";
+import "./loading.css";
+import "./page-headers.css";
+import "./trade-review.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {

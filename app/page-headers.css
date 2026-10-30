@@ -1,0 +1,60 @@
+/* Keep real page titles and route placeholders on the same visual baseline. */
+.main-region .page-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.6px;
+}
+
+.dashboard > .page-header,
+.app-route-loading-dashboard > .page-header {
+  min-height: 70px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+
+.app-route-loading {
+  max-width: 2100px;
+  margin: 0 auto;
+  padding: 23px 20px 28px;
+}
+
+.app-route-loading > .page-header {
+  margin-bottom: 18px;
+}
+
+.app-route-loading-dashboard {
+  padding: 0 18px 24px;
+}
+
+.app-route-loading-dashboard > .page-header {
+  margin: 0 -18px 14px;
+}
+
+@media (max-width: 800px) {
+  .app-route-loading {
+    padding: 20px 16px 24px;
+  }
+}
+
+@media (max-width: 700px) {
+  .main-region .page-header h1 {
+    font-size: 22px;
+    letter-spacing: -0.4px;
+  }
+
+  .dashboard > .page-header,
+  .app-route-loading-dashboard > .page-header {
+    padding: 14px 12px;
+  }
+
+  .app-route-loading-dashboard {
+    padding: 0 12px 20px;
+  }
+
+  .app-route-loading-dashboard > .page-header {
+    margin-inline: -12px;
+  }
+}

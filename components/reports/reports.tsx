@@ -1,4 +1,6 @@
 "use client";
+import { LoadingIndicator, LoadingState } from "@/components/ui/loading";
+
 import { useWorkspaceSearch } from "@/components/calendar/cache-provider";
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -468,7 +470,15 @@ export function Reports() {
             <div>
               {select("emotion", "Emotion", [
                 ["", "All recorded choices"],
-                ...emotions.map((v) => [v, v] as [string, string]),
+                ...[
+                  ...new Set([
+                    ...emotions,
+                    ...(data?.groups.emotion ?? [])
+                      .filter((group) => group.key !== "missing")
+                      .map((group) => group.key),
+                    ...(q.emotion ? [q.emotion] : []),
+                  ]),
+                ].map((v) => [v, v] as [string, string]),
               ])}
               {select("adherence", "Plan adherence", [
                 ["", "All choices"],
@@ -502,6 +512,9 @@ export function Reports() {
           </details>
         </section>
       )}
+      {state.pending && data && !state.error && (
+        <LoadingIndicator label="Updating report" />
+      )}
       {!parsed.success ? (
         <p role="alert" className="report-notice">
           Choose valid report filters and an ordered date range of at most 10
@@ -513,9 +526,7 @@ export function Reports() {
           <button onClick={state.refresh}>Try again</button>
         </div>
       ) : !data ? (
-        <div className="report-loading" role="status">
-          Loading report…
-        </div>
+        <LoadingState variant="report" label="Loading report…" />
       ) : (
         <>
           {data.pending && (
@@ -589,7 +600,10 @@ export function Reports() {
                   </button>
                 </p>
               )}
-              <div className="report-metrics">
+              <div
+                className="report-metrics app-loading-reveal"
+                aria-busy={state.pending && !state.error}
+              >
                 <Metric
                   label={q.tab === "behavior" ? "Associated P&L" : "Total P&L"}
                   value={journalMoney(s.total, true)}

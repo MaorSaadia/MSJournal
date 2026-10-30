@@ -1,4 +1,6 @@
 "use client";
+import { LoadingSpinner, LoadingState } from "@/components/ui/loading";
+
 import { firmRuleSites } from "@/lib/props/setup-model";
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -372,7 +374,7 @@ export function AccountSetupDialog({
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.18 }}
             >
-              {step === 0 && catalogLoading && <p className="small muted" role="status">Loading current account options...</p>}
+              {step === 0 && catalogLoading && <LoadingState variant="options" label="Loading current account options..." />}
               {step === 0 && catalogError && (
                 <div className="prop-catalog-error" role="status">
                   <p>Could not load current account options. Retry before choosing a plan.</p>
@@ -904,7 +906,7 @@ export function AccountSetupDialog({
           )}
         </div>
         <footer className="prop-setup-actions">
-          <Button variant="ghost" disabled={busy} onClick={() => void close()}>
+          <Button variant="ghost" disabled={busy} aria-busy={busy} onClick={() => void close()}>
             Cancel
           </Button>
           <span>{step + 1} of 2</span>
@@ -943,10 +945,11 @@ export function AccountSetupDialog({
           ) : (
             <Button
               disabled={busy || !rules.manualConfirmed}
+              aria-busy={busy}
               onClick={() => void save()}
             >
               {saved ? <Check size={15} /> : null}
-              {busy ? "Saving..." : "Save account & tracking"}
+              {busy ? <><LoadingSpinner />Saving</> : "Save account & tracking"}
             </Button>
           )}
         </footer>

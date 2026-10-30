@@ -13,7 +13,7 @@ import {
   portionExit,
   sum,
 } from "@/lib/journal/processing";
-import { ManualFeeForm } from "@/components/journal/actions";
+import { TradeExits } from "@/components/journal/trade-exits";
 import { DetailNavigation } from "@/components/journal/detail-navigation";
 import { demoRecords } from "@/lib/journal/view-service";
 import { viewSchema } from "@/lib/journal/view-model";
@@ -297,7 +297,7 @@ export default async function Page({
             </p>
           </section>
         )}
-        <section className="import-card">
+        {realized.days.length > 1 && <section className="import-card">
           <h2>Daily realized contributions</h2>
           <div className="tv-daily">
             {realized.days.map((day) => (
@@ -311,9 +311,10 @@ export default async function Page({
               </div>
             ))}
           </div>
-        </section>
-        <section className="import-card">
-          <h2>Contributing source portions</h2>
+        </section>}
+        <TradeExits parts={parts} fees={fees} timezone={timezone} accountId={record.tradingAccountId} />
+        <details className="import-card trade-exit-sources">
+          <summary>Source records &amp; imports</summary>
           <p className="small muted">
             Times in {timezone}. For shorts, sell is entry and buy is exit.
             Equal timestamps have unknown direction.
@@ -365,7 +366,7 @@ export default async function Page({
                           ? `${new D(p.quantity).toFixed()} × 2 × ${new D(fees[p.id].perSide!).toFixed()} USD`
                           : fees[p.id]?.kind === "Manual"
                             ? "Allocated explicit record total"
-                            : "No fee supplied"}
+                            : fees[p.id]?.kind === "Allocated" ? "Quantity-weighted report total" : "No fee supplied"}
                       </small>
                     </td>
                     <td>
@@ -390,20 +391,7 @@ export default async function Page({
               </tbody>
             </table>
           </div>
-        </section>
-        <section className="import-card journal-fee-card">
-          <h2>Explicit fee adjustment</h2>
-          <ManualFeeForm
-            recordId={record.id}
-            amount={record.feeKind === "Manual" ? record.fees : null}
-          />
-          <Link
-            className="back-link"
-            href={`/prop-accounts/${record.tradingAccountId}/fees`}
-          >
-            Account fee settings
-          </Link>
-        </section>
+        </details>
         <details className="import-card">
           <summary>Processing and original source diagnostics</summary>
           <p className="small muted">

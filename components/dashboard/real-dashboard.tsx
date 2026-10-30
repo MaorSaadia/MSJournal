@@ -1,4 +1,6 @@
 "use client";
+import { LoadingIndicator, LoadingState } from "@/components/ui/loading";
+
 import { useWorkspaceSearch } from "@/components/calendar/cache-provider";
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -233,17 +235,16 @@ export function RealDashboard({
           Choose valid local dates and a range of at most 10 years.
         </p>
       )}
+      {state.pending && data && !state.error && <LoadingIndicator label="Updating" />}
       {state.error && (
         <p role="alert" className="dashboard-fetch-note">
           Dashboard could not refresh. {state.error}{" "}
           <button onClick={state.refresh}>Try again</button>
         </p>
       )}
-      {!data ? (
-        <div className="dashboard-loading" role="status">
-          Loading journal measures…
-        </div>
-      ) : (
+      {!data && !state.error ? (
+        <LoadingState variant="dashboard" label="Loading journal measures…" />
+      ) : data ? (
         <>
           <div className="dashboard-scope-note">
             <details className="dashboard-coverage">
@@ -312,7 +313,7 @@ export function RealDashboard({
               </button>
             </p>
           )}
-          <div className="analysis-grid">
+          <div className="analysis-grid app-loading-reveal" aria-busy={state.pending && !state.error}>
             <Panel title="Performance profile" help={profileConvention}>
               <PerformanceProfile data={data} complete={complete} />
             </Panel>
@@ -613,7 +614,7 @@ export function RealDashboard({
             <button onClick={state.refresh}>Refresh dashboard</button>
           </p>
         </>
-      )}
+      ) : null}
     </motion.div>
   );
 }

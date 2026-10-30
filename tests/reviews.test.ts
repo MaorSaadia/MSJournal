@@ -24,6 +24,38 @@ const initial = (): ReviewData => ({
   needsReassignment: false,
 });
 describe("review saves and image validation", () => {
+  it("accepts bounded custom emotions, canonicalizes built-ins and rejects invalid labels", () => {
+    const fields = {
+      ...emptyFields(),
+      emotions: {
+        before: [" Patient ", "patient", "calm"],
+        during: [],
+        after: [],
+      },
+    };
+    expect(reviewFieldsSchema.parse(fields).emotions.before).toEqual([
+      "Patient",
+      "Calm",
+    ]);
+    for (const invalid of ["   ", "x".repeat(61), "Calm\nFocused"]) {
+      expect(
+        reviewFieldsSchema.safeParse({
+          ...fields,
+          emotions: { ...fields.emotions, before: [invalid] },
+        }).success,
+      ).toBe(false);
+    }
+    expect(
+      reviewFieldsSchema.safeParse({
+        ...fields,
+        emotions: {
+          ...fields.emotions,
+          before: Array.from({ length: 31 }, (_, i) => `Mood ${i}`),
+        },
+      }).success,
+    ).toBe(false);
+  });
+
   it("ignores an older restored read after a newer save was confirmed", async () => {
     const c = new ReviewSaveController(initial(), async (draft, revision) => ({
       ...initial(),

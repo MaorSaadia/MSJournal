@@ -1,10 +1,12 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { LoaderCircle, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { authError } from "@/lib/auth-messages";
 import { loginInput } from "@/lib/auth-validation";
@@ -97,7 +99,7 @@ export function LoginForm({
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <LoaderCircle size={16} className="pending-spinner" />
+              <LoadingSpinner size={16} className="pending-spinner" />
             ) : (
               <ArrowRight size={16} />
             )}{" "}

@@ -1,4 +1,6 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useState } from "react";
 import { RequestError, requestJson } from "@/lib/client-api";
 import {
@@ -194,7 +196,7 @@ export function PhaseForm({
           expenses are added.
         </p>
         <Button type="submit">
-          {busy ? "Saving…" : "Save tracking phase"}
+          {busy ? <><LoadingSpinner />Saving</> : "Save tracking phase"}
         </Button>
       </fieldset>
       {error && (
@@ -445,7 +447,7 @@ export function RulesForm({
           losing/nonqualifying days. This custom formula does not represent
           every firm’s policy.
         </p>
-        <Button type="submit">{busy ? "Saving…" : "Save rule version"}</Button>
+        <Button type="submit">{busy ? <><LoadingSpinner />Saving</> : "Save rule version"}</Button>
       </fieldset>
       {error && (
         <p className="form-error" role="alert">
@@ -512,7 +514,7 @@ export function SnapshotForm({
           threshold applies only to this dated observation; later closes do not
           imply a new official threshold or earlier compliance.
         </p>
-        <Button type="submit">{busy ? "Saving…" : "Save snapshot"}</Button>
+        <Button type="submit">{busy ? <><LoadingSpinner />Saving</> : "Save snapshot"}</Button>
       </fieldset>
       {error && (
         <p role="alert" className="form-error">
@@ -576,7 +578,7 @@ export function StatusForm({
           changes status automatically. An ended period cannot be reopened;
           create a reset or new phase instead.
         </p>
-        <Button type="submit">{busy ? "Saving…" : "Record status"}</Button>
+        <Button type="submit">{busy ? <><LoadingSpinner />Saving</> : "Record status"}</Button>
       </fieldset>
       {error && (
         <p role="alert" className="form-error">
@@ -654,7 +656,7 @@ export function CopyRulesForm({
           boundaries and starting high-water mark.
         </label>
         <Button type="submit">
-          {busy ? "Saving…" : "Load copied configuration"}
+          {busy ? <><LoadingSpinner />Saving</> : "Load copied configuration"}
         </Button>
       </fieldset>
       {!sources.length && (

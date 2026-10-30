@@ -1,8 +1,10 @@
 "use client";
+import { LoadingIndicator, LoadingSpinner } from "@/components/ui/loading";
+
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, Search, WalletCards, Archive, LoaderCircle, Trash2 } from "lucide-react";
+import { Plus, Search, WalletCards, Archive, Trash2 } from "lucide-react";
 import type { TradingAccount } from "@/lib/accounts/types";
 import { STAGES, STATUSES } from "@/lib/accounts/validation";
 import { requestJson } from "@/lib/client-api";
@@ -274,6 +276,7 @@ export function AccountsPage({
           {error}
         </p>
       )}
+      {progress.pending && progress.data && !progress.error && <LoadingIndicator label="Updating account progress" />}
       {progress.error && (
         <p role="alert" className="form-error">
           Prop progress unavailable. {progress.error}{" "}
@@ -325,7 +328,7 @@ export function AccountsPage({
                       disabled={busy !== null}
                       onClick={() => void removeFirm(group)}
                     >
-                      {busy === `firm:${group}` ? <LoaderCircle size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                      {busy === `firm:${group}` ? <LoadingSpinner size={16} className="animate-spin" /> : <Trash2 size={16} />}
                     </Button>
                   )}
                   <button
@@ -372,6 +375,7 @@ export function AccountsPage({
                             item={progress.data?.accounts.find(
                               (a) => a.account.id === account.id,
                             )}
+                            loading={!progress.data && !progress.error}
                             busy={busy === account.id}
                             onSetup={() => setSetup(account)}
                             onEdit={() => setEditing(account)}
@@ -516,7 +520,7 @@ export function AccountsPage({
               }}
             >
               {busy ? (
-                <LoaderCircle size={15} className="pending-spinner" />
+                <LoadingSpinner size={15} className="pending-spinner" />
               ) : (
                 <Archive size={15} />
               )}

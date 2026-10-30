@@ -1,9 +1,11 @@
 "use client";
+import { LoadingIndicator, LoadingState } from "@/components/ui/loading";
+
 import { useWorkspaceSearch } from "@/components/calendar/cache-provider";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import {
   SlidersHorizontal,
   ChevronLeft,
@@ -114,6 +116,7 @@ export function TradingCalendar({
         ? dayValue
         : null;
   const [monthDirection, setMonthDirection] = useState(1);
+  const reducedMotion = useReducedMotion();
   const [pickerYear, setPickerYear] = useState(month.slice(0, 4));
   const { remember, weekStartsOn } = useCalendarCache();
   const view: "auto" | "grid" | "agenda" = compact
@@ -553,9 +556,7 @@ export function TradingCalendar({
           {data?.timezone ?? timezone} · USD
         </span>
         {state.pending && data && (
-          <span className="calendar-background-status" role="status">
-            Updating…
-          </span>
+          <LoadingIndicator label="Updating" className="calendar-background-status" />
         )}
         {!compact && (
           <div
@@ -600,7 +601,8 @@ export function TradingCalendar({
       )}
       <motion.div
         key={month}
-        initial={{ opacity: 0, x: monthDirection * 6 }}
+        initial={{ opacity: 1, x: reducedMotion ? 0 : monthDirection * 6 }}
+        aria-busy={state.pending && !state.error}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.16 }}
       >
@@ -702,7 +704,7 @@ export function TradingCalendar({
               <Button onClick={() => refresh()}>Retry day details</Button>
             </div>
           ) : !details.data ? (
-            <p role="status">Loading day details…</p>
+            <LoadingState variant="list" label="Loading day details…" />
           ) : (
             <>
               <p className="calendar-detail-scope">

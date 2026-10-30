@@ -1,4 +1,6 @@
 "use client";
+import { LoadingIndicator, LoadingSpinner, LoadingState } from "@/components/ui/loading";
+
 import { confirmAction } from "@/components/ui/confirm-action";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -134,7 +136,7 @@ function ChecklistDefaults() {
               Add checklist item
             </button>
             <button disabled={!dirty()} onClick={() => void save()}>
-              {busy ? "Saving…" : "Save checklist defaults"}
+              {busy ? <><LoadingSpinner />Saving</> : "Save checklist defaults"}
             </button>
             <button
               onClick={async () => {
@@ -262,13 +264,14 @@ export function Notebook() {
         </label>
         <button type="submit">Search</button>
       </form>
+      {state.pending && data && !state.error && <LoadingIndicator label="Updating" />}
       {state.error ? (
         <div role="alert">
           {state.error}
           <button onClick={state.refresh}>Retry Notebook</button>
         </div>
       ) : !data ? (
-        <p role="status">Loading entries…</p>
+        <LoadingState variant="list" label="Loading entries…" />
       ) : (
         <>
           <p className="muted">

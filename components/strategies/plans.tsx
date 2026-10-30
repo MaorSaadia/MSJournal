@@ -1,4 +1,6 @@
 "use client";
+import { LoadingState } from "@/components/ui/loading";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePrivateRequest } from "@/components/calendar/cache-provider";
@@ -114,7 +116,7 @@ function PlanSnapshot({
           <SnapshotInstructions fields={data.fields} />
         </details>
       ) : (
-        <p>Loading saved instructions…</p>
+        <LoadingState variant="list" label="Loading saved instructions" />
       )}
     </article>
   );

@@ -1,4 +1,5 @@
 "use client";
+import { LoadingSpinner, LoadingState } from "@/components/ui/loading";
 import { useWorkspaceSearch } from "@/components/calendar/cache-provider";
 import { confirmAction } from "@/components/ui/confirm-action";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
@@ -257,6 +258,7 @@ export function DayWorkspace({
     <div className="daily-workspace">
       <MobileSaveBar
         status={savedStatus}
+        pending={state.state === "saving"}
         label="Save daily entry"
         disabled={
           !state.dirty || state.state === "saving" || state.state === "conflict"
@@ -272,7 +274,7 @@ export function DayWorkspace({
           </p>
         </div>
         <div className="daily-actions">
-          <span role="status">{savedStatus}</span>
+          <span role="status">{state.state === "saving" && <LoadingSpinner size={14} />} {savedStatus}</span>
           <button
             className="button-primary"
             onClick={() => void controller.save()}
@@ -772,7 +774,7 @@ export function DayWorkspace({
           {results.error ? (
             <p role="alert">{results.error}</p>
           ) : !data ? (
-            <p role="status">Loading daily results…</p>
+            <LoadingState variant="metrics" label="Loading daily results…" />
           ) : (
             <>
               <div className="daily-results-summary">

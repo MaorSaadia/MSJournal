@@ -1,4 +1,6 @@
 "use client";
+import { LoadingState } from "@/components/ui/loading";
+
 import { useState } from "react";
 import Link from "next/link";
 import { usePrivateRequest } from "@/components/calendar/cache-provider";
@@ -275,7 +277,7 @@ export function StrategyResults({ strategyId }: { strategyId: string }) {
           <button onClick={state.refresh}>Retry results</button>
         </p>
       ) : !summary ? (
-        <p role="status">Loading strategy results…</p>
+        <LoadingState variant="report" label="Loading strategy results…" />
       ) : (
         <>
           <div className="playbook-metrics">

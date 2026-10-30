@@ -1,4 +1,6 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -43,7 +45,7 @@ export function ProcessButton({
   }
   return (
     <div className="journal-action">
-      <Button onClick={run} disabled={busy}>
+      <Button onClick={run} disabled={busy} aria-busy={busy}>
         {busy ? "Processing…" : label}
       </Button>
       {message && (
@@ -121,11 +123,11 @@ export function ManualFeeForm({
         quantity and survives reprocessing.
       </p>
       <div className="journal-buttons">
-        <Button disabled={busy}>{busy ? "Saving…" : "Save manual fees"}</Button>
+        <Button disabled={busy} aria-busy={busy}>{busy ? <><LoadingSpinner />Saving</> : "Save manual fees"}</Button>
         <Button
           variant="outline"
           type="button"
-          disabled={busy}
+          disabled={busy} aria-busy={busy}
           onClick={() => void save(true)}
         >
           Clear manual override

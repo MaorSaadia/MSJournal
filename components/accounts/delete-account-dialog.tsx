@@ -1,4 +1,6 @@
 "use client";
+import { LoadingState } from "@/components/ui/loading";
+
 import { useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +37,7 @@ export function DeleteAccountDialog({ account, onClose, onDeleted }: {
           This cannot be undone. Imported trades, account reviews and screenshots, fee settings, balances, phases and payout history will be removed.
           Personal daily journal entries and shared strategies stay; links to deleted trades become unavailable. The broker identifier is released.
         </DialogDescription>
-        {loading && <p role="status">Loading deletion summary...</p>}
+        {loading && <LoadingState variant="list" label="Loading deletion summary..." />}
         {data && (
           <dl className="account-delete-summary">
             {[
@@ -68,7 +70,7 @@ export function DeleteAccountDialog({ account, onClose, onDeleted }: {
           <p className="small muted">Consider downloading your data backup first. If screenshot removal is interrupted, the account remains archived; refresh the summary and retry to finish.</p>
           {error && <p role="alert" className="form-error">{error}</p>}
           <div className="account-form-actions">
-            <Button type="button" variant="outline" disabled={busy} onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="outline" disabled={busy} aria-busy={busy} onClick={onClose}>Cancel</Button>
             {!loading && !data && <Button type="button" variant="outline" onClick={() => { setLoading(true); setError(""); setReload((value) => value + 1); }}>Refresh summary</Button>}
             <Button variant="destructive" disabled={busy || loading || !data || name !== data.accountName}>
               <Trash2 size={15} />{busy ? "Deleting..." : "Delete permanently"}

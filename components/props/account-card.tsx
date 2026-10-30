@@ -1,4 +1,6 @@
 "use client";
+import { LoadingState } from "@/components/ui/loading";
+
 import Link from "next/link";
 import { motion } from "motion/react";
 import { propPercent } from "@/lib/props/format";
@@ -39,6 +41,7 @@ export function PropAccountCard({
   onArchive,
   onDelete,
   busy,
+  loading = !item,
 }: {
   account: TradingAccount;
   item?: PropData["accounts"][number];
@@ -47,6 +50,7 @@ export function PropAccountCard({
   onArchive: () => void;
   onDelete: () => void;
   busy: boolean;
+  loading?: boolean;
 }) {
   const phase = item?.phases.at(-1),
     t = phase?.tracking,
@@ -61,7 +65,7 @@ export function PropAccountCard({
     phase.phase.kind === "Evaluation" && !phase.phase.previousId && !phase.phase.endAt &&
     item.activity.firstEntry && item.activity.firstEntry < phase.phase.startAt);
 
-  const diagnosis = !item ? "Loading account progress..."
+  const diagnosis = !item ? null
     : !phase ? "Choose your account plan. Existing imports are ready to reuse."
     : !configured || o?.missingRules ? "Set the starting balance and account rules."
     : item.needsProcessing ? "Process the remaining imported records."
@@ -110,10 +114,10 @@ export function PropAccountCard({
               <Link href={`/fees?accountId=${account.id}`}>
                 Fees & net P&L
               </Link>
-              <button disabled={busy} onClick={onArchive}>
+              <button disabled={busy} aria-busy={busy} onClick={onArchive}>
                 {account.archivedAt ? "Restore account" : "Archive account"}
               </button>
-              {account.archivedAt && <button disabled={busy} className="negative" onClick={onDelete}>Delete permanently</button>}
+              {account.archivedAt && <button disabled={busy} aria-busy={busy} className="negative" onClick={onDelete}>Delete permanently</button>}
             </div>
           </details>
         </div>
@@ -128,7 +132,7 @@ export function PropAccountCard({
           {r.preset?.customized ? " / Customized" : ""}
         </span>
       )}
-      <div className="prop-card-statistics">
+      {loading ? <LoadingState variant="metrics" label={`Loading progress for ${account.displayName}`} /> : !item ? <p className="prop-local-note">Progress could not load. Use Retry above.</p> : <div className="prop-card-statistics">
         {[
           [phase ? "Phase P&L" : "Imported P&L", phasePnl, profitBasis],
           ["Best session", summary?.best, basis],
@@ -143,7 +147,7 @@ export function PropAccountCard({
             </strong>
           </div>
         ))}
-      </div>
+      </div>}
       {diagnosis && (
         <div className="prop-card-setup-note">
           <p>{diagnosis}</p>
@@ -318,7 +322,7 @@ export function PropAccountCard({
       <footer>
         <Link href={`/prop-accounts/${account.id}`}>Open account →</Link>
         <span>
-          {phase?.portionCount ?? item?.activity.count ?? 0} source records /{" "}
+          {phase?.portionCount ?? item?.activity.count ?? "—"} source records /{" "}
           {t
             ? journalTimestamp(t.asOf, account.reportingTimezone)
             : (item?.activity.lastExit?.slice(0, 10) ?? "No activity yet")}

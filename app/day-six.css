@@ -296,3 +296,37 @@
     animation: none;
   }
 }
+
+/* Recorded partial exits: quantity and result stay together at every size. */
+.trade-exits-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+.trade-exits-header h2 { margin: 0 0 7px; }
+.trade-exits-count { border-radius: 7px; padding: 8px 11px; background: color-mix(in srgb, var(--primary) 9%, var(--card)); color: var(--primary); font-size: 12px; font-weight: 600; }
+.trade-exits-strip { display: flex; gap: 4px; margin: 21px 0 6px; height: 4px; border-radius: 4px; overflow: hidden; }
+.trade-exits-strip span { flex-basis: 0; background: var(--positive); opacity: .65; }
+.trade-exits-list { list-style: none; padding: 0; margin: 0 0 16px; }
+.trade-exits-list > li { display: grid; grid-template-columns: 30px minmax(145px, 1.3fr) repeat(3, minmax(110px, 1fr)) minmax(120px, 1fr); gap: 16px; align-items: center; padding: 23px 0; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.trade-exit-marker { align-self: start; margin-top: 3px; display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid color-mix(in srgb, var(--positive) 25%, var(--border)); border-radius: 50%; background: color-mix(in srgb, var(--positive) 8%, var(--card)); color: var(--positive); font-size: 11px; font-weight: 650; }
+.trade-exit-identity, .trade-exit-fact, .trade-exit-result { display: grid; gap: 7px; min-width: 0; }
+.trade-exits-list strong { font-size: 14px; font-weight: 600; }
+.trade-exits-list small, .trade-exit-identity time { color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
+.trade-exit-fact strong span { font-size: 11px; font-weight: 400; }
+.trade-exit-result { text-align: right; }
+.trade-exit-result strong { font-size: 20px; letter-spacing: -.4px; }
+.trade-exit-result a { font-size: 11px; color: var(--primary); }
+.trade-exit-sources > summary { font-size: 13px; font-weight: 600; cursor: pointer; }
+.trade-exit-sources[open] > summary { margin-bottom: 18px; }
+@media (max-width: 1150px) {
+  .trade-exits-list > li { grid-template-columns: 28px minmax(130px, 1fr) repeat(2, minmax(105px, 1fr)); gap: 16px; }
+  .trade-exit-identity { grid-column: span 2; }
+  .trade-exit-result { grid-column: 4; grid-row: auto; }
+  .trade-exit-fact { grid-row: auto; }
+}
+@media (max-width: 600px) {
+  .trade-exits-list > li { grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr); gap: 15px 12px; padding-block: 22px; }
+  .trade-exit-identity { grid-column: 2 / -1; }
+  .trade-exit-fact { grid-column: 2; }
+  .trade-exit-fact + .trade-exit-fact { grid-column: 3; }
+  .trade-exit-fact + .trade-exit-fact + .trade-exit-fact { grid-column: 2; }
+  .trade-exit-result { grid-column: 3; align-self: start; }
+  .trade-exit-result strong { font-size: 19px; }
+}

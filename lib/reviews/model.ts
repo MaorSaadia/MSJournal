@@ -32,10 +32,30 @@ export const noteFields = [
   ["lesson", "Lesson for next time", "A reminder for my next trade."],
 ] as const;
 const note = z.string().max(5000, "Keep each note within 5,000 characters.");
-const choices = z
-  .array(z.enum(emotions))
-  .max(10)
-  .transform((v) => [...new Set(v)]);
+export const emotionNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Enter an emotion name.")
+  .max(60, "Use 60 characters or fewer.")
+  .refine(
+    (value) => !/[\u0000-\u001f\u007f]/.test(value),
+    "Use a single-line emotion name.",
+  )
+  .transform(
+    (value) =>
+      emotions.find((known) => known.toLowerCase() === value.toLowerCase()) ??
+      value,
+  );
+export function emotionOptions(values: readonly string[]) {
+  const unique = new Map<string, string>();
+  for (const value of values) {
+    const parsed = emotionNameSchema.safeParse(value);
+    if (parsed.success && !unique.has(parsed.data.toLowerCase()))
+      unique.set(parsed.data.toLowerCase(), parsed.data);
+  }
+  return [...unique.values()];
+}
+const choices = z.array(emotionNameSchema).max(30).transform(emotionOptions);
 export const reviewFieldsSchema = z
   .object({
     entryRationale: note,
@@ -106,6 +126,7 @@ export type ReviewData = {
   status: "draft" | "reviewed";
   fields: ReviewFields;
   tags: ReviewTag[];
+  emotionChoices?: string[];
   images: Attachment[];
   storageEnabled: boolean;
   needsReassignment: boolean;

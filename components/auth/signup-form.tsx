@@ -1,10 +1,12 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { LoaderCircle, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { signupInput } from "@/lib/auth-validation";
 import { authError } from "@/lib/auth-messages";
@@ -63,7 +65,7 @@ export function SignupForm({
       description="A private space for your trading progress."
       configured={configured}
     >
-      <form onSubmit={handleSubmit(submit)} noValidate>
+      <form onSubmit={handleSubmit(submit)} noValidate aria-busy={isSubmitting}>
         <fieldset
           className="auth-fields"
           disabled={!configured || isSubmitting}
@@ -114,7 +116,7 @@ export function SignupForm({
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <LoaderCircle size={16} className="pending-spinner" />
+              <LoadingSpinner size={16} className="pending-spinner" />
             ) : (
               <ArrowRight size={16} />
             )}{" "}

@@ -1,4 +1,6 @@
 "use client";
+import { LoadingIndicator, LoadingState } from "@/components/ui/loading";
+
 import { confirmAction } from "@/components/ui/confirm-action";
 import { Plus, BookOpen, Sparkles } from "lucide-react";
 import { StrategyBuilder, type BuilderOptions } from "./builder";
@@ -163,7 +165,7 @@ export function StrategyIndex() {
               <button onClick={templates.refresh}>Retry templates</button>
             </p>
           ) : !templates.data ? (
-            <p role="status">Loading templates...</p>
+            <LoadingState variant="cards" label="Loading templates..." />
           ) : !templates.data.templates.length ? (
             <div className="playbook-card template-personal-empty">
               <BookOpen size={24} />
@@ -207,7 +209,7 @@ export function StrategyIndex() {
                       Edit template
                     </button>
                     <button
-                      disabled={busy}
+                      disabled={busy} aria-busy={busy}
                       onClick={() => void removeTemplate(t)}
                     >
                       Delete template
@@ -220,6 +222,7 @@ export function StrategyIndex() {
         </section>
       )}
       {error && <p role="alert">{error}</p>}
+      {view === "strategies" && state.pending && state.data && !state.error && <LoadingIndicator label="Updating strategies" />}
       {view === "strategies" &&
         (state.error ? (
           <p role="alert">
@@ -227,7 +230,7 @@ export function StrategyIndex() {
             <button onClick={state.refresh}>Retry</button>
           </p>
         ) : !state.data ? (
-          <p role="status">Loading strategies…</p>
+          <LoadingState variant="cards" label="Loading strategies…" />
         ) : !state.data.strategies.length ? (
           <section className="playbook-card">
             <h2>Your playbook starts with one setup</h2>

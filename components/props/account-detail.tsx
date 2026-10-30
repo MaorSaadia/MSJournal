@@ -1,4 +1,6 @@
 "use client";
+import { LoadingIndicator, LoadingState } from "@/components/ui/loading";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -129,6 +131,7 @@ function AccountDetailContent({
     <div
       className="prop-workspace prop-visual-detail prop-reference-detail"
       data-account-id={account.id}
+      aria-busy={state.pending && !state.error}
     >
       {deleting && <DeleteAccountDialog account={metadata} onClose={() => setDeleting(false)} onDeleted={() => router.replace("/prop-accounts?archived=1")} />}
       <header className="page-header prop-reference-header">
@@ -223,16 +226,15 @@ function AccountDetailContent({
           {feedback}
         </p>
       )}
+      {state.pending && data && !state.error && <LoadingIndicator label="Updating" />}
       {state.error && (
         <p role="alert" className="form-error">
           {state.error} <button onClick={state.refresh}>Retry</button>
         </p>
       )}
-      {!data || !item ? (
-        <p role="status" className="prop-setup">
-          Loading account progress…
-        </p>
-      ) : (
+      {(!data || !item) && !state.error ? (
+        <LoadingState variant="account" label="Loading account progress…" />
+      ) : data && item ? (
         <>
           <div className="prop-detail-toolbar">
             {item.phases.length > 1 ? (
@@ -575,7 +577,7 @@ function AccountDetailContent({
             </>
           )}
         </>
-      )}
+      ) : null}
       {setupOpen && (
         <AccountSetupDialog
           account={metadata}

@@ -1,4 +1,6 @@
 "use client";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { requestJson } from "@/lib/client-api";
@@ -103,8 +105,8 @@ export function TrackingSnapshotForm({
           Explicit correction / documented threshold transition (explain in
           note)
         </label>
-        <Button disabled={busy}>
-          {busy ? "Saving…" : "Save dashboard snapshot"}
+        <Button disabled={busy} aria-busy={busy}>
+          {busy ? <><LoadingSpinner />Saving</> : "Save dashboard snapshot"}
         </Button>
       </fieldset>
       {error && (
