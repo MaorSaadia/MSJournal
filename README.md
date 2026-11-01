@@ -552,3 +552,8 @@ Settings > Change password accepts the current password, a new 8-128 character p
 Only `/change-password` was added to the supported authentication route list, with a five-attempt/minute limit. Better Auth still requires an authoritative session, the correct current password and a trusted origin. The new form stays disabled until hydration; password-bearing forms use POST as their native fallback, so early submissions do not put credentials into URL queries. Passwords are never written to local/session storage or application logs. No schema migration or email provider change is required.
 
 Focused verification: auth input/error/route tests plus `browser-tests/change-password.spec.ts` with disposable credentials. The browser check covers mismatched confirmation, incorrect current password, anonymous rejection, pending-submit protection, no-JavaScript safeguards, old/new password sign-in, session rotation/revocation, and mobile/light/dark rendering. Password inputs are masked in screenshots. No existing user's password is changed during implementation.
+
+
+## Technical SEO and social sharing
+
+Signed-out `/` now serves a public futures trading journal landing page; signed-in users retain the Dashboard at the same URL. Canonicals, branded sharing images, structured data, sitemap/robots and private/preview noindex controls use a central production origin. Set optional server-only `SITE_URL` (defaults to `https://ms-journal.vercel.app`) and `GOOGLE_SITE_VERIFICATION` in Vercel Production, then redeploy when ready. No migration or analytics dependency. Google verification and sitemap submission are manual follow-up. See the [complete SEO setup, exact Search Console steps, route audit and future domain migration guide](docs/technical-seo.md).

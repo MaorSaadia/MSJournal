@@ -1,3 +1,4 @@
+import { absoluteUrl, noIndex } from "@/lib/seo";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { RecoveryForm } from "@/components/auth/recovery-form";
@@ -5,7 +6,7 @@ import { isConfigured, emailConfigured } from "@/lib/config";
 import { userSession } from "@/lib/session";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const metadata = { title: "Verify email", referrer: "no-referrer" };
+export const metadata = { title: "Verify email", description: "Confirm your email address to access your MSJournal workspace.", alternates: { canonical: absoluteUrl("/verify-email") }, robots: noIndex, referrer: "no-referrer" };
 export default async function VerifyEmail({
   searchParams,
 }: {

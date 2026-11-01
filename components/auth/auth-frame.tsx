@@ -2,6 +2,7 @@
 import { motion } from "motion/react";
 import { LockKeyhole } from "lucide-react";
 import { ThemeControl } from "@/components/shell";
+import Link from "next/link";
 export function AuthFrame({
   title,
   description,
@@ -16,9 +17,9 @@ export function AuthFrame({
   return (
     <div className="login-page">
       <header className="login-header">
-        <span className="brand-name">
+        <Link href="/" className="brand-name" aria-label="MSJournal home">
           MS<span>Journal</span>
-        </span>
+        </Link>
         <ThemeControl />
       </header>
       <motion.main

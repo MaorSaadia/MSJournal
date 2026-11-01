@@ -22,11 +22,19 @@ import "./fees.css";
 import "./loading.css";
 import "./page-headers.css";
 import "./trade-review.css";
+import "./marketing.css";
 import { Providers } from "@/components/providers";
+import { noIndex, siteDescription, siteTitle, siteUrl, shareImage } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: { default: "MSJournal", template: "%s · MSJournal" },
-  description: "Your private futures trading journal.",
+  metadataBase: new URL(siteUrl),
+  applicationName: "MSJournal",
+  title: { default: siteTitle, template: "%s | MSJournal" },
+  description: siteDescription,
+  robots: noIndex,
+  openGraph: { type: "website", siteName: "MSJournal", title: siteTitle, description: siteDescription, images: [shareImage] },
+  twitter: { card: "summary_large_image", title: siteTitle, description: siteDescription, images: [shareImage] },
+  verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

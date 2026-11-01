@@ -5,6 +5,7 @@
 /.npm-cache/
 /test-results/
 /playwright-report/
+/artifacts/seo/
 /.pnp
 .pnp.*
 .yarn/*
