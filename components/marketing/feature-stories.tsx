@@ -1,0 +1,10 @@
+import { CalendarDays, NotebookPen, WalletCards } from "lucide-react";
+import { FeaturePreview } from "./feature-preview";
+
+export function FeatureStories(){
+  return <div className="marketing-feature-stories">
+    <article className="marketing-feature-row" data-reveal><div className="marketing-feature-copy"><span className="marketing-feature-icon"><CalendarDays size={22} aria-hidden="true"/></span><p className="marketing-kicker">01 / UNDERSTAND</p><h3>Every trading day.<br/>A clearer perspective.</h3><p>See your month at a glance, then open a day to revisit the decisions behind its results.</p><ul><li>Winning and losing days</li><li>Weekly and monthly results</li><li>Daily notes and trade reviews</li></ul></div><FeaturePreview id="calendar" title="Trading calendar"/></article>
+    <article className="marketing-feature-row marketing-feature-row-reverse" data-reveal><div className="marketing-feature-copy"><span className="marketing-feature-icon violet"><NotebookPen size={22} aria-hidden="true"/></span><p className="marketing-kicker">02 / REFLECT</p><h3>Keep the lesson<br/>with the trade.</h3><p>The chart, your assessment and your notes—together, while the details are still clear.</p><ul><li>Private chart screenshots</li><li>Entry and management notes</li><li>Emotions and lessons to revisit</li></ul></div><FeaturePreview id="review" title="Trade review"/></article>
+    <article className="marketing-feature-row" data-reveal><div className="marketing-feature-copy"><span className="marketing-feature-icon"><WalletCards size={22} aria-hidden="true"/></span><p className="marketing-kicker">03 / FOLLOW THROUGH</p><h3>A clearer view<br/>of account progress.</h3><p>Keep your evaluation targets and supported loss-buffer estimates in view.</p><ul><li>Your saved account rules</li><li>Balance and loss-limit history</li><li>Payout records and requirements</li></ul><small>Based on your rules and available history. Firm confirmation remains separate.</small></div><FeaturePreview id="prop-accounts" title="Account progress"/></article>
+  </div>;
+}

@@ -7,6 +7,7 @@
 /playwright-report/
 /artifacts/seo/
 /artifacts/book/
+/artifacts/marketing/
 /.pnp
 .pnp.*
 .yarn/*

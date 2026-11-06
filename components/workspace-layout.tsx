@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Shell } from "@/components/shell";
 import { CalendarCacheProvider } from "@/components/calendar/cache-provider";
 import { getPreferences } from "@/lib/preferences";
+import { Landing } from "@/components/marketing/landing";
 export async function WorkspaceLayout({
   children,
 }: {
@@ -12,7 +13,9 @@ export async function WorkspaceLayout({
   const requestHeaders = await headers();
   const session = await userSession(requestHeaders);
   if (!session) {
-    if (requestHeaders.get("x-msjournal-pathname") === "/") return children;
+    // Render outside the private page's loading boundary. Otherwise browsers
+    // without JavaScript remain on its streamed Dashboard fallback.
+    if (requestHeaders.get("x-msjournal-pathname") === "/") return <Landing />;
     redirect("/login");
   }
   const owner = session.user;
