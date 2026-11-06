@@ -7,7 +7,7 @@ import { worksheetTemplates, worksheetEntries, worksheetRevisions, worksheetLink
 import { requireUser } from "@/lib/session";
 import { NotFoundError } from "@/lib/accounts/service";
 import { ReviewError } from "@/lib/reviews/model";
-import { templates, type Template } from "./templates";
+import { templates, legacyTemplates, type Template } from "./templates";
 import { createSchema, saveSchema, validateFields, type WorksheetData, type WorksheetFields } from "./model";
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 const scope = (ownerId: string, id: string) => and(eq(worksheetEntries.ownerId, ownerId), eq(worksheetEntries.id, id));
@@ -15,7 +15,7 @@ const safeFields = (t: Template, fields: WorksheetFields) => {
   try { return validateFields(t, fields); } catch (e) { throw new ReviewError(e instanceof Error ? e.message : "Check your answers.", 400); }
 };
 async function definition(tx: Tx, id: string) {
-  const current = templates.find((t) => t.id === id);
+  const current = [...templates, ...legacyTemplates].find((t) => t.id === id);
   if (current) {
     const hash = createHash("sha256").update(JSON.stringify(current)).digest("hex");
     await tx.insert(worksheetTemplates).values({ id, slug: current.slug, version: current.version, definition: current, hash }).onConflictDoNothing();

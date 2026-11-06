@@ -1,5 +1,5 @@
 import { describe,it,expect } from "vitest";
-import { templates } from "@/lib/book/templates";
+import { legacyTemplates as templates } from "@/lib/book/templates";
 import source from "@/lib/book/manuscript.json";
 import { emptyFields, validateFields, blankCell, type Cell } from "@/lib/book/model";
 import { adherence,cashLedger,linearSizing } from "@/lib/book/calculations";

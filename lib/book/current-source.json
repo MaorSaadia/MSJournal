@@ -1,0 +1,182 @@
+[
+  {
+    "sourceId": "1864",
+    "text": "Appendix A — My Personal Trading Operating Plan"
+  },
+  {
+    "sourceId": "1865",
+    "text": "Write this plan before your next session, while you have time to think."
+  },
+  {
+    "sourceId": "1866",
+    "text": "Account or practice environment: ____________________Date: ______________ Next review: ______________"
+  },
+  {
+    "sourceId": "1867",
+    "text": "1. The setup I trade"
+  },
+  {
+    "sourceId": "1868",
+    "text": "My setup, market, and trading hours: ______________________________I can enter when I see: __________________________________________I cancel an unfilled entry when: __________________________________A near miss looks like my setup, but it’s missing: ___________________"
+  },
+  {
+    "sourceId": "1869",
+    "text": "2. My risk limits"
+  },
+  {
+    "sourceId": "1870",
+    "text": "Maximum risk per trade: __________ Session loss limit: __________Maximum total risk across open positions: _________________________If the smallest position exceeds my remaining limit, I skip the trade."
+  },
+  {
+    "sourceId": "1871",
+    "text": "3. My response under pressure"
+  },
+  {
+    "sourceId": "1872",
+    "text": "My recurring trigger: ____________________________________________When I notice it, I will: _________________________________________"
+  },
+  {
+    "sourceId": "1873",
+    "text": "4. When I reduce risk, stop, or return"
+  },
+  {
+    "sourceId": "1874",
+    "text": "I measure drawdown from: _______________________________________At __________ drawdown, I reduce my position size to: ______________I stop taking new trades when: __________________________________When I stop, I handle unfilled entry orders by: ______________________For positions already open, I follow this rule: ______________________Before I resume trading, I need to verify: __________________________"
+  },
+  {
+    "sourceId": "1875",
+    "text": "A review date gives me time to reconsider. I can continue the pause, return to practice, or end the attempt."
+  },
+  {
+    "sourceId": "1878",
+    "text": "Appendix B — My Trading Session Sheet"
+  },
+  {
+    "sourceId": "1879",
+    "text": "Use one copy per session, including days when you take no trades."
+  },
+  {
+    "sourceId": "1880",
+    "text": "Date: __________ Market: __________ Account: __________"
+  },
+  {
+    "sourceId": "1881",
+    "text": "Before the session"
+  },
+  {
+    "sourceId": "1882",
+    "text": "The setup I’m waiting for: _______________________________________Risk per trade: __________ My loss limit today: __________I’ll stop taking new trades when: _________________________________☐ I’ve checked my account limits, open positions, working orders, and today’s restrictions.Given my time and attention, I’ll: ☐ Trade my plan ☐ Observe only ☐ Sit out"
+  },
+  {
+    "sourceId": "1883",
+    "text": "Before I click"
+  },
+  {
+    "sourceId": "1884",
+    "text": "☐ My setup is valid at this price.Risk I can still take after accounting for open positions and pending orders: __________Estimated loss at my stop, including costs and slippage:__________ per unit × __________ units = __________ total.☐ The size fits my remaining risk budget. If no size fits, I skip the trade.I’ll hold while ____________________. I’ll adjust or exit if ____________________."
+  },
+  {
+    "sourceId": "1885",
+    "text": "The actual loss can exceed my estimate. If I feel the urge to chase or win money back, I use the reset card in Appendix C."
+  },
+  {
+    "sourceId": "1886",
+    "text": "Before I step away"
+  },
+  {
+    "sourceId": "1887",
+    "text": "☐ I’ve checked which positions and orders are still open and what needs monitoring.One decision I made, including staying out: _________________________I chose it because: _____________________________________________Did I follow my plan? ☐ Yes ☐ No ☐ UnclearNext time, when ____________________, I will ____________________."
+  },
+  {
+    "sourceId": "1890",
+    "text": "Appendix C — After a Missed Trade or a Loss"
+  },
+  {
+    "sourceId": "1891",
+    "text": "The next trade owes me nothing."
+  },
+  {
+    "sourceId": "1892",
+    "text": "Fill this in before I need it"
+  },
+  {
+    "sourceId": "1893",
+    "text": "The first sign I’m starting to chase: _______________________________When I notice it, I’ll pause by: ___________________________________I’m done trading for the day when: _______________________________"
+  },
+  {
+    "sourceId": "1894",
+    "text": "When I feel the urge to get it back"
+  },
+  {
+    "sourceId": "1895",
+    "text": "1. Check what’s still open. I check my positions and working orders. If my entry has expired, I follow my cancellation rule and confirm the order is no longer working."
+  },
+  {
+    "sourceId": "1896",
+    "text": "2. Name what happened. Did I take a loss, or did I watch price reach my target without me? If my limit order missed by one tick, I can be disappointed. That missed trade didn’t take money out of my account."
+  },
+  {
+    "sourceId": "1897",
+    "text": "3. Follow my pause rule. If I’ve reached my stopping condition, my session is over. Switching accounts or markets doesn’t change that decision."
+  },
+  {
+    "sourceId": "1898",
+    "text": "4. Ask before another entry. Would I take this setup at this price if I had nothing to make back? I consider it only when my pause is complete, the setup qualifies on its own, and the size fits my remaining risk budget."
+  },
+  {
+    "sourceId": "1899",
+    "text": "Later, one line: I felt the urge to ____________________. What I actually did was ____________________."
+  },
+  {
+    "sourceId": "1900",
+    "text": "Wanting to chase and choosing to wait is a decision worth recording."
+  },
+  {
+    "sourceId": "1903",
+    "text": "Appendix D — Review One Pattern, Practice One Change"
+  },
+  {
+    "sourceId": "1904",
+    "text": "Use one sheet for one question across several sessions. If a problem makes it unsafe to continue, follow your pause plan now."
+  },
+  {
+    "sourceId": "1905",
+    "text": "1. What pattern do I see?"
+  },
+  {
+    "sourceId": "1906",
+    "text": "Review period: ____________________The situation I reviewed: ________________________________________I did ____________________ in _____ out of _____ relevant opportunities.One example that doesn’t fit my explanation: _______________________"
+  },
+  {
+    "sourceId": "1907",
+    "text": "2. What will I practice?"
+  },
+  {
+    "sourceId": "1908",
+    "text": "When ____________________ happens, I’ll practice ____________________.I’ll know I followed my rule if I can point to this action: _______________While I practice, I’ll keep this part of my plan unchanged: ______________I’ll review after _____ opportunities or on this date: __________________."
+  },
+  {
+    "sourceId": "1909",
+    "text": "3. How did I respond when the trigger appeared?"
+  },
+  {
+    "sourceId": "1910",
+    "text": "Times the trigger occurred: _____I followed my rule: _____ I broke my rule: _____ I’m unsure: _____One response worth repeating: __________________________________"
+  },
+  {
+    "sourceId": "1911",
+    "text": "If the trigger never appeared, write “no opportunity to practice.”"
+  },
+  {
+    "sourceId": "1912",
+    "text": "4. What will I do next?"
+  },
+  {
+    "sourceId": "1913",
+    "text": "☐ Keep my current plan ☐ Practice longer ☐ Revise one ruleMy reason: ___________________________________________________"
+  },
+  {
+    "sourceId": "1914",
+    "text": "If I revise a rule, I date the change and evaluate it on new opportunities. I judge earlier decisions by the rule I had at the time."
+  }
+]

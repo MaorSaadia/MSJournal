@@ -8,10 +8,10 @@ export const book = {
 };
 export const categories = ["Build your plan", "Prepare and record", "Manage difficult moments", "Review your progress", "Manage accounts and commitments"] as const;
 export type InputKind = "text" | "textarea" | "number" | "date" | "datetime-local" | "choice" | "multichoice";
-export type Input = { id: string; label: string; kind: InputKind; choices?: string[] };
+export type Input = { id: string; label: string; kind: InputKind; choices?: string[]; hint?: string; count?: boolean; readOnly?: boolean; group?: string };
 export type Table = { id: string; label: string; kind: "table"; columns: Input[]; rows?: { id: string; label: string; firstEditable: boolean }[]; blankRows: number };
 export type Block = { kind: "heading"; id: string; text: string } | { kind: "instruction"; id: string; text: string } | Input | Table;
-export type Template = { id: string; letter: string; slug: string; title: string; version: number; category: string; purpose: string; when: string; chapters: string; linkKind?: "strategy" | "session" | "trade" | "account" | "progress"; blocks: Block[] };
+export type Template = { id: string; letter: string; slug: string; title: string; version: number; category: string; purpose: string; when: string; chapters: string; linkKind?: "strategy" | "session" | "trade" | "account" | "progress"; blocks: Block[]; edition?: "simplified-2026"; shortTitle?: string };
 const slugs = ["personal-trading-operating-plan", "account-and-prop-firm-fact-sheet", "model-definition-card", "session-preparation-and-closure", "risk-budget-and-position-sizing-record", "trade-plan-and-decision-record", "missed-trade-and-revenge-trade-reset-card", "drawdown-pause-and-return-plan", "review-and-practice-worksheet", "challenge-progress-and-payout-review", "trading-project-cash-and-time-ledger", "behavioral-progress-record"];
 const grouping = [0,4,0,1,1,1,2,2,3,4,4,3];
 const links: Record<string, Template["linkKind"]> = { B: "account", C: "strategy", D: "session", F: "trade", J: "account", L: "progress" };
@@ -23,7 +23,7 @@ function input(id: string, label: string): Input {
 }
 // Source node IDs and field offsets are stable within this immutable edition.
 // Never regenerate this source from a different manuscript without a version review.
-export const templates: Template[] = source.directory.map(([letter, title, when, chapters], index) => {
+export const legacyTemplates: Template[] = source.directory.map(([letter, title, when, chapters], index) => {
   const start = source.blocks.findIndex((b) => "text" in b && b.text?.startsWith(`Appendix ${letter} —`));
   let end = source.blocks.findIndex((b, i) => i > start && "text" in b && b.text?.startsWith("Appendix "));
   if (end < 0) end = source.blocks.length;
@@ -61,5 +61,8 @@ export const templates: Template[] = source.directory.map(([letter, title, when,
   }
   return { id: `${letter}-1`, letter, slug: slugs[index], title, version: 1, category: categories[grouping[index]], when, chapters, purpose: "text" in originals[0] ? originals[0].text ?? when : when, linkKind: links[letter], blocks };
 });
-export function templateFor(slug: string) { return templates.find((t) => t.slug === slug); }
+export { currentTemplates as templates } from "./current";
+import { currentTemplates } from "./current";
+export function templateFor(slug: string) { return currentTemplates.find((t) => t.slug === slug); }
+export const isPreviousEdition = (template: Template) => template.edition !== "simplified-2026";
 export const isInput = (b: Block): b is Input => !["heading", "instruction", "table"].includes(b.kind);

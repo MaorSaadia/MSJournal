@@ -1,12 +1,14 @@
 import { PDFDocument, StandardFonts, rgb, type PDFPage } from "pdf-lib";
 import { book, type Template, type Table } from "./templates";
 import { absoluteUrl } from "@/lib/seo";
+import { currentBlankPdf } from "./current-pdf";
 
 // Blank public content only. Completed entries use authenticated HTML/browser print.
 // Standard PDF fonts support the English appendix text; mathematical arrows are
 // transliterated, never dropped. No user responses are accepted by this renderer.
 const printable = (s: string) => s.replace(/→/g," -> ").replace(/☐/g,"[ ]").replace(/−/g,"-").replace(/\u00a0/g," ");
 export async function blankPdf(templates: Template[], paper: "a4" | "letter" = "a4") {
+  if(templates.length && templates.every(t=>t.edition === "simplified-2026"))return currentBlankPdf(templates,paper);
   const pdf = await PDFDocument.create();
   const normal = await pdf.embedFont(StandardFonts.Helvetica), bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const [width,height] = paper === "letter" ? [612,792] : [595.28,841.89];
@@ -43,12 +45,18 @@ export async function blankPdf(templates: Template[], paper: "a4" | "letter" = "
   for (const t of templates) {
     current=t; newPage();
     text(`Appendix ${t.letter} - ${t.title}`,true,20);
-    text(`${book.subtitle}. By ${book.author}. Related chapters: ${t.chapters}.`);
-    text("Educational planning aid. Completion does not establish an edge, certify readiness, verify compliance or guarantee protection from losses. Keep original records and label later reconstructions.");
+    text(`By ${book.author}.${t.chapters ? ` Related chapters: ${t.chapters}.` : " Current companion edition."}`);
+    if(t.edition !== "simplified-2026")text("Educational planning aid. Completion does not establish an edge, certify readiness, verify compliance or guarantee protection from losses. Keep original records and label later reconstructions.");
     for (const [blockIndex,b] of t.blocks.entries()) {
+      if ("group" in b && b.group && (t.blocks[blockIndex-1] as {group?:string})?.group !== b.group) {
+        const group=[];for(let i=blockIndex;i<t.blocks.length;i++){const item=t.blocks[i];if(!("group" in item) || item.group!==b.group)break;group.push(item);}
+        need(group.reduce((total,item)=>total+textHeight(item.label,true)+(item.hint ? textHeight(item.hint):0)+(item.kind === "textarea" ? 42:26),0));
+      }
       if (b.kind === "heading" || b.kind === "instruction") {
         const next=t.blocks[blockIndex+1], after=t.blocks[blockIndex+2];
-        const keep=next?.kind === "table" ? tableStart(next) : b.kind === "heading" && next?.kind === "instruction" && after?.kind === "table" ? textHeight(next.text)+tableStart(after) : b.kind === "heading" ? 50:0;
+        let groupKeep=0;
+        if(next && "group" in next && next.group){for(let i=blockIndex+1;i<t.blocks.length;i++){const item=t.blocks[i];if(!("group" in item) || item.group!==next.group)break;groupKeep+=textHeight(item.label,true)+(item.hint ? textHeight(item.hint):0)+(item.kind === "textarea" ? 42:26);}}
+        const keep=next?.kind === "table" ? tableStart(next) : b.kind === "heading" && next?.kind === "instruction" && after?.kind === "table" ? textHeight(next.text)+tableStart(after) : b.kind === "heading" ? groupKeep || 50:0;
         text(b.text,b.kind === "heading",keep);continue;
       }
       if (b.kind === "table") {
@@ -60,11 +68,12 @@ export async function blankPdf(templates: Template[], paper: "a4" | "letter" = "
           b.columns.forEach((c,i)=>{if(i===0 && b.rows && !row.firstEditable)return;text(c.label);if(c.choices)text(c.choices.map(s=>`[ ] ${s}`).join("   "));space(1);});
         }
       } else {
+        if(b.kind === "multichoice" && b.choices?.length === 1 && b.choices[0] === b.label){text(`[ ] ${b.label}`);continue;}
         const choices=b.choices?.map(s=>`[ ] ${s}`).join("   ");
         const next=t.blocks[blockIndex+1];
         const qualification=blockIndex===t.blocks.length-2 && next?.kind === "instruction" ? textHeight(next.text):0;
-        need(textHeight(b.label,true)+(choices ? textHeight(choices):0)+(choices ? 0:b.kind === "textarea" ? 36:20)+qualification);
-        text(b.label,true); if(choices)text(choices);else space(b.kind === "textarea" ? 2 : 1);
+        need(textHeight(b.label,true)+(b.hint ? textHeight(b.hint):0)+(choices ? textHeight(choices):0)+(choices ? 0:b.kind === "textarea" ? 36:20)+qualification);
+        text(b.label,true); if(b.hint)text(b.hint); if(choices)text(choices);else space(b.kind === "textarea" ? 2 : 1);
       }
     }
   }

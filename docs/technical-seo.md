@@ -85,4 +85,6 @@ For a local **production-mode** authenticated browser check only, the temporary 
 
 ## Book companion extension
 
-The Book Companion milestone adds public `/book` and 12 permanent `/book/[slug]` HTML pages to the sitemap, with unique canonical/sharing metadata. The non-root noindex header explicitly exempts book HTML. `/book/downloads/**` remains noindex, and `/worksheets/**` plus worksheet APIs and completed prints remain authenticated/non-indexable/private. This supersedes the earlier homepage-only coverage above. See [the companion guide](book-companion.md). No Google account actions or deployment happened automatically.
+The Book Companion milestone adds public `/book` and four current `/book/[slug]` HTML pages to the sitemap, with unique canonical/sharing metadata. The non-root noindex header explicitly exempts book HTML. `/book/downloads/**` remains noindex, and `/worksheets/**` plus worksheet APIs and completed prints remain authenticated/non-indexable/private. This supersedes the earlier homepage-only coverage above. See [the companion guide](book-companion.md). No Google account actions or deployment happened automatically.
+
+The simplified edition publishes only its four descriptive worksheet slugs in the sitemap. Known prior-edition public slugs render noindex retirement pages, preserving meaningful navigation without redirecting unrelated worksheets. Saved entries and revision-print routes retain their existing privacy controls.

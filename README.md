@@ -561,6 +561,8 @@ Signed-out `/` now serves a public futures trading journal landing page; signed-
 
 ## Book Companion & Worksheets
 
-The free companion to **The Consistent Day Trader** by Maor Saadia is at `/book`, with all 12 manuscript appendices available online and as blank A4/US Letter PDFs and a complete workbook. Signed-in readers use **Worksheets** (`/worksheets`) to save, revise, duplicate and print their own records. Guest drafts survive same-tab sign-in and transfer only with confirmation. Saved versions, source links and private prints are owner-checked; completion is the reader's record, not trading permission.
+The free companion to **The Consistent Day Trader** by Maor Saadia is at `/book`, with four revised tools (My Plan, Session Sheet, Reset Card and Pattern Review) available online and as blank A4/US Letter PDFs and a complete workbook. Signed-in readers use **Worksheets** (`/worksheets`) to save, revise, duplicate and print their own records. Guest drafts survive same-tab sign-in and transfer only with confirmation. Saved versions, source links and private prints are owner-checked; completion is the reader's record, not trading permission.
 
 Review/apply additive migration `0014_book_companion.sql` using `npm.cmd run db:migrate -- --reviewed` in other environments; it is already applied to development. Data archives are now v6, including worksheet versions and history. No new environment variables or PDF service are required. See the [book companion guide, coverage, calculations, privacy and setup](docs/book-companion.md). No deployment or Whop work was performed.
+
+The simplified companion edition (6 November 2026) uses separate versioned IDs and preserves original A-L entries under Previous edition. Old public URLs explain retirement; saved questions, answers, history and print access remain intact. The redesign needs no additional migration.
