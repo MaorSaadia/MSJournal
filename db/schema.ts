@@ -1,4 +1,6 @@
 import type { PropRules } from "@/lib/props/validation";
+import type { Template } from "@/lib/book/templates";
+import type { WorksheetFields } from "@/lib/book/model";
 import type { SnapshotDetails, PayoutFields } from "@/lib/props/tracking-rules";
 import type { Playbook } from "@/lib/strategies/model";
 import type { DailyFields, ObservationMeta } from "@/lib/daily/model";
@@ -21,6 +23,27 @@ import {
   primaryKey,
   foreignKey,
 } from "drizzle-orm/pg-core";
+
+export const worksheetTemplates = pgTable("worksheet_templates", {
+  id: text("id").primaryKey(), slug: text("slug").notNull(), version: integer("version").notNull(),
+  definition: jsonb("definition").$type<Template>().notNull(), hash: text("hash").notNull(),
+}, (t) => [uniqueIndex("worksheet_templates_slug_version").on(t.slug, t.version), check("worksheet_templates_version", sql`${t.version} > 0`)]);
+export const worksheetEntries = pgTable("worksheet_entries", {
+  id: uuid("id").primaryKey().defaultRandom(), ownerId: text("owner_id").notNull().references(() => user.id, { onDelete: "restrict" }),
+  templateId: text("template_id").notNull().references(() => worksheetTemplates.id, { onDelete: "restrict" }),
+  clientId: uuid("client_id").notNull(), fields: jsonb("fields").$type<WorksheetFields>().notNull(),
+  status: text("status").$type<"draft" | "reviewed">().notNull().default("draft"), revision: integer("revision").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+}, (t) => [uniqueIndex("worksheet_entries_scope").on(t.id, t.ownerId), uniqueIndex("worksheet_entries_retry").on(t.ownerId, t.clientId), index("worksheet_entries_owner_updated").on(t.ownerId, t.updatedAt), check("worksheet_entries_revision", sql`${t.revision} > 0`), check("worksheet_entries_status", sql`${t.status} in ('draft','reviewed')`)]);
+export const worksheetRevisions = pgTable("worksheet_revisions", {
+  entryId: uuid("entry_id").notNull(), ownerId: text("owner_id").notNull(), revision: integer("revision").notNull(),
+  fields: jsonb("fields").$type<WorksheetFields>().notNull(), status: text("status").$type<"draft" | "reviewed">().notNull(),
+  recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(), completedAt: timestamp("completed_at", { withTimezone: true }),
+}, (t) => [primaryKey({ columns: [t.entryId, t.revision] }), foreignKey({ columns: [t.entryId, t.ownerId], foreignColumns: [worksheetEntries.id, worksheetEntries.ownerId] }).onDelete("cascade"), index("worksheet_revisions_owner").on(t.ownerId, t.entryId), check("worksheet_revisions_status", sql`${t.status} in ('draft','reviewed')`)]);
+export const worksheetLinks = pgTable("worksheet_links", {
+  entryId: uuid("entry_id").primaryKey(), ownerId: text("owner_id").notNull(), kind: text("kind").notNull(), targetId: uuid("target_id").notNull(),
+}, (t) => [foreignKey({ columns:[t.entryId,t.ownerId],foreignColumns:[worksheetEntries.id,worksheetEntries.ownerId] }).onDelete("cascade"),index("worksheet_links_owner_target").on(t.ownerId,t.kind,t.targetId),check("worksheet_links_kind",sql`${t.kind} in ('strategy','session','trade','account','progress')`)]);
 
 export const feeReconciliations = pgTable("fee_reconciliations", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -38,13 +38,17 @@ export const backupTables = [
   schema.goalCheckins,
   schema.feeReconciliations,
   schema.feeReconciliationSources,
+  schema.worksheetEntries,
+  schema.worksheetRevisions,
+  schema.worksheetLinks,
+  schema.worksheetTemplates,
 ];
 export const backupCatalog = backupTables.map((table) => {
   const config = getTableConfig(table);
   return {
     table,
     name: config.name,
-    ownerColumn: config.name === "user_preferences" ? "user_id" : "owner_id",
+    ownerColumn: config.name === "worksheet_templates" ? null : config.name === "user_preferences" ? "user_id" : "owner_id",
     columns: config.columns.map((c) => c.name),
     foreignKeys: config.foreignKeys.map((key) => {
       const ref = key.reference();
@@ -80,7 +84,7 @@ export function validateBackup(data: BackupData, ownerId: string) {
   };
   for (const category of backupCatalog) {
     for (const row of data[category.name] ?? []) {
-      if (row[category.ownerColumn] !== ownerId) fail();
+      if (category.ownerColumn && row[category.ownerColumn] !== ownerId) fail();
       for (const ref of category.foreignKeys) {
         const values = ref.columns.map((c) => row[c]);
         if (values.some((v) => v == null)) continue;

@@ -31,6 +31,9 @@ export async function cleanupUsers() {
       );
       for (const row of rows) {
         for (const table of [
+          "worksheet_links",
+          "worksheet_revisions",
+          "worksheet_entries",
           "fee_reconciliation_sources",
           "fee_reconciliations",
           "goal_checkins",

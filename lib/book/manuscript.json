@@ -1,0 +1,1610 @@
+{
+  "introduction": [
+    "These worksheets turn the book's exercises into records you can reuse. Begin with the pages that address your current work. A practice trader may need a model card and review sheet; a trader considering an evaluation also needs an account fact sheet and a spending plan.",
+    "You do not need to complete every page every day. Keep the standing documents current, use the session and trade records when relevant, and schedule the broader reviews.",
+    "Complete each blank with an observable instruction, an actual figure, or a reference to a dated procedure. Mark a field “not applicable” only when you know why it does not apply. Mark unresolved information “unknown” and identify what must be verified before the related action can proceed.",
+    "These are educational planning aids. Completing them does not establish an edge, certify readiness, or guarantee protection from losses. Use the exact rules and calculations applicable to your account. Do not copy a numerical example from the book as your personal risk limit.",
+    "Keep original entries. Date later corrections and distinguish information recorded at the time from explanations reconstructed afterward. Preserve separate records for simulated and live activity, while linking related decisions where useful."
+  ],
+  "directory": [
+    [
+      "A",
+      "Personal Trading Operating Plan",
+      "Establish or revise the overall routine",
+      "27"
+    ],
+    [
+      "B",
+      "Account and Prop-Firm Fact Sheet",
+      "Before purchase, activation, or a stage change",
+      "19–22"
+    ],
+    [
+      "C",
+      "Model Definition Card",
+      "Define or revise one model",
+      "23"
+    ],
+    [
+      "D",
+      "Session Preparation and Closure",
+      "Before and after a session",
+      "15, 18, 20"
+    ],
+    [
+      "E",
+      "Risk Budget and Position-Sizing Record",
+      "Before exposure and after material account changes",
+      "11–13, 21"
+    ],
+    [
+      "F",
+      "Trade Plan and Decision Record",
+      "Plan, manage, and reconcile a trade",
+      "15–18, 24"
+    ],
+    [
+      "G",
+      "Missed-Trade and Revenge-Trade Reset Card",
+      "Prepare a response; use when its cue appears",
+      "7–9, 24"
+    ],
+    [
+      "H",
+      "Drawdown, Pause, and Return Plan",
+      "Define boundaries before a difficult period",
+      "13, 26"
+    ],
+    [
+      "I",
+      "Review and Practice Worksheet",
+      "Investigate a documented problem",
+      "24–25"
+    ],
+    [
+      "J",
+      "Challenge Progress and Payout Review",
+      "Track qualification and assess withdrawals",
+      "20–22"
+    ],
+    [
+      "K",
+      "Trading Project Cash and Time Ledger",
+      "Review the full commitment",
+      "14, 22, 26"
+    ],
+    [
+      "L",
+      "Behavioral Progress Record",
+      "Track a specific response across relevant events",
+      "4, 24–25"
+    ]
+  ],
+  "blocks": [
+    {
+      "sourceId": "1857",
+      "text": "Appendix A — Personal Trading Operating Plan"
+    },
+    {
+      "sourceId": "1858",
+      "text": "Standing document. Review after a material change and at your scheduled review point."
+    },
+    {
+      "sourceId": "1859",
+      "text": "Plan version: __________ Effective date: __________ Next review: __________"
+    },
+    {
+      "sourceId": "1860",
+      "text": "Current stage: ☐ Observation ☐ Practice ☐ Personal-account trading ☐ Evaluation ☐ Post-evaluation"
+    },
+    {
+      "sourceId": "1861",
+      "text": "Current purpose and evidence being collected:"
+    },
+    {
+      "sourceId": "1863",
+      "text": "Conditions required before considering a different stage:"
+    },
+    {
+      "sourceId": "1865",
+      "rows": [
+        [
+          "Area",
+          "My instruction or exact procedure reference"
+        ],
+        [
+          "Account(s), platform, and execution environment",
+          "________________________________________"
+        ],
+        [
+          "Permitted instruments and model versions",
+          "________________________________________"
+        ],
+        [
+          "Session window, time zone, and closing requirements",
+          "________________________________________"
+        ],
+        [
+          "Current terms and authoritative account-state source",
+          "________________________________________"
+        ],
+        [
+          "Account, session, per-trade, and aggregate risk limits",
+          "________________________________________"
+        ],
+        [
+          "Calculation bases, reset times, and treatment of gains",
+          "________________________________________"
+        ],
+        [
+          "Sizing procedure and response when no quantity fits",
+          "________________________________________"
+        ],
+        [
+          "Entry, expiration, protection, and management procedures",
+          "________________________________________"
+        ],
+        [
+          "Personal trigger and required response",
+          "________________________________________"
+        ],
+        [
+          "Operational failure procedure and support route",
+          "________________________________________"
+        ],
+        [
+          "Journal, reconciliation, and review procedure",
+          "________________________________________"
+        ],
+        [
+          "Cash allocation, time allocation, and renewal review",
+          "________________________________________"
+        ]
+      ]
+    },
+    {
+      "sourceId": "1866",
+      "text": "Define stopping precisely."
+    },
+    {
+      "sourceId": "1867",
+      "text": "No new entries begins when: ________________________________________"
+    },
+    {
+      "sourceId": "1868",
+      "text": "Working entry orders are handled by: _______________________________"
+    },
+    {
+      "sourceId": "1869",
+      "text": "Existing positions are handled by: _________________________________"
+    },
+    {
+      "sourceId": "1870",
+      "text": "Trading remains suspended until: __________________________________"
+    },
+    {
+      "sourceId": "1871",
+      "text": "Conditions for ending the current attempt or project: _______________"
+    },
+    {
+      "sourceId": "1872",
+      "text": "Rehearsal: Record the governing instruction and next action for each case."
+    },
+    {
+      "sourceId": "1873",
+      "rows": [
+        [
+          "Case",
+          "Instruction and next permitted action"
+        ],
+        [
+          "No qualifying setup",
+          "________________________________________"
+        ],
+        [
+          "Entry missed by one tick",
+          "________________________________________"
+        ],
+        [
+          "Candidate exceeds remaining allowance",
+          "________________________________________"
+        ],
+        [
+          "Protective order rejected or status uncertain",
+          "________________________________________"
+        ],
+        [
+          "Winning streak creates an urge to increase size",
+          "________________________________________"
+        ]
+      ]
+    },
+    {
+      "sourceId": "1874",
+      "text": "Unresolved gap that blocks the related activity: ____________________"
+    },
+    {
+      "sourceId": "1875",
+      "text": "Correction and verification completed on: __________________________"
+    },
+    {
+      "sourceId": "1878",
+      "text": "Appendix B — Account and Prop-Firm Fact Sheet"
+    },
+    {
+      "sourceId": "1879",
+      "text": "Complete before committing money. Refresh for the exact product and stage."
+    },
+    {
+      "sourceId": "1880",
+      "text": "Provider/legal entity: __________ Product: __________ Stage: __________"
+    },
+    {
+      "sourceId": "1881",
+      "text": "Account identifier or private label: __________ Platform: __________"
+    },
+    {
+      "sourceId": "1882",
+      "text": "Environment: ☐ Simulated ☐ Live ☐ Unresolved"
+    },
+    {
+      "sourceId": "1883",
+      "text": "Terms checked on: __________ Agreement/document version: __________"
+    },
+    {
+      "sourceId": "1884",
+      "text": "Authoritative links or saved-document references: ___________________"
+    },
+    {
+      "sourceId": "1885",
+      "rows": [
+        [
+          "Item",
+          "Verified terms, calculation, and source"
+        ],
+        [
+          "Purchase, activation, recurring, reset, and data costs",
+          "________________________________________"
+        ],
+        [
+          "Cancellation, renewal, refund, and inactivity conditions",
+          "________________________________________"
+        ],
+        [
+          "Starting balance/equity and meaning of account label",
+          "________________________________________"
+        ],
+        [
+          "External loss floor and breach condition",
+          "________________________________________"
+        ],
+        [
+          "Fixed or moving floor; update timing and any cap",
+          "________________________________________"
+        ],
+        [
+          "Treatment of open P&L, costs, and intraday breaches",
+          "________________________________________"
+        ],
+        [
+          "Daily/session limit, reset time, and time zone",
+          "________________________________________"
+        ],
+        [
+          "Allowed instruments, quantity, and holding periods",
+          "________________________________________"
+        ],
+        [
+          "News, overnight, automation, and copying permissions",
+          "________________________________________"
+        ],
+        [
+          "Prohibited conduct and consequences",
+          "________________________________________"
+        ],
+        [
+          "Profit target and additional qualification conditions",
+          "________________________________________"
+        ],
+        [
+          "Consistency calculation, if any, including denominator",
+          "________________________________________"
+        ],
+        [
+          "Payout eligibility, split, caps, fees, and identity checks",
+          "________________________________________"
+        ],
+        [
+          "Effects of a payout on limits, counters, and size",
+          "________________________________________"
+        ],
+        [
+          "Trading permissions while a payout is processing",
+          "________________________________________"
+        ],
+        [
+          "Stage-transition requirements",
+          "________________________________________"
+        ],
+        [
+          "Support, complaints, and dispute procedure",
+          "________________________________________"
+        ]
+      ]
+    },
+    {
+      "sourceId": "1886",
+      "text": "Check the formula with a hypothetical path."
+    },
+    {
+      "sourceId": "1887",
+      "text": "Starting state: ______ Gain/open gain: ______ Reversal: ______"
+    },
+    {
+      "sourceId": "1888",
+      "text": "Resulting floor: ______ Current equity/balance measure: ______"
+    },
+    {
+      "sourceId": "1889",
+      "text": "Remaining room: ______ Would any earlier point breach the terms? ______"
+    },
+    {
+      "sourceId": "1890",
+      "text": "Contradictions or unresolved questions: _____________________________"
+    },
+    {
+      "sourceId": "1891",
+      "text": "Written clarification reference and date: __________________________"
+    },
+    {
+      "sourceId": "1892",
+      "text": "Decision: ☐ Fits current plan ☐ Needs clarification ☐ Does not fit"
+    },
+    {
+      "sourceId": "1893",
+      "text": "Reason and next action: ____________________________________________"
+    },
+    {
+      "sourceId": "1896",
+      "text": "Appendix C — Model Definition Card"
+    },
+    {
+      "sourceId": "1897",
+      "text": "One card per model version. A defined model is a candidate for evaluation, not proof of profitability."
+    },
+    {
+      "sourceId": "1898",
+      "text": "Model name: __________ Version: __________ Effective date: __________"
+    },
+    {
+      "sourceId": "1899",
+      "text": "Hypothesis being investigated: _____________________________________"
+    },
+    {
+      "sourceId": "1900",
+      "rows": [
+        [
+          "Component",
+          "Exact definition"
+        ],
+        [
+          "Instruments, direction, session, and time zone",
+          "________________________________________"
+        ],
+        [
+          "Data source, chart settings, and relevant contract",
+          "________________________________________"
+        ],
+        [
+          "Required context",
+          "________________________________________"
+        ],
+        [
+          "Setup sequence",
+          "________________________________________"
+        ],
+        [
+          "Trigger, including any completed-bar requirement",
+          "________________________________________"
+        ],
+        [
+          "Order type, price rule, validity period, and cancellation",
+          "________________________________________"
+        ],
+        [
+          "Initial invalidation and protective order procedure",
+          "________________________________________"
+        ],
+        [
+          "Profit, time, and condition-based exit rules",
+          "________________________________________"
+        ],
+        [
+          "Permitted reductions, adjustments, and additions",
+          "________________________________________"
+        ],
+        [
+          "Exclusions, overlapping signals, and re-entry rules",
+          "________________________________________"
+        ],
+        [
+          "Account-fit and sizing procedure reference",
+          "________________________________________"
+        ]
+      ]
+    },
+    {
+      "sourceId": "1901",
+      "text": "Terms still requiring interpretation: ______________________________"
+    },
+    {
+      "sourceId": "1902",
+      "text": "Valid example reference: ______ Near-miss example: ______"
+    },
+    {
+      "sourceId": "1904",
+      "text": "Evaluation specification"
+    },
+    {
+      "sourceId": "1905",
+      "text": "Coverage/period: __________ Eligible-opportunity definition: __________"
+    },
+    {
+      "sourceId": "1906",
+      "text": "Costs and fill assumptions: ________________________________________"
+    },
+    {
+      "sourceId": "1907",
+      "text": "Ambiguous-event and missing-data treatment: _________________________"
+    },
+    {
+      "sourceId": "1908",
+      "text": "Initial R definition, if used: _____________________________________"
+    },
+    {
+      "sourceId": "1909",
+      "text": "Main measures and review point: ____________________________________"
+    },
+    {
+      "sourceId": "1910",
+      "text": "Development data: __________ Reserved/future evaluation: __________"
+    },
+    {
+      "sourceId": "1911",
+      "text": "Pause conditions: _________________________________________________"
+    },
+    {
+      "sourceId": "1912",
+      "text": "Revision from prior version and reason: ____________________________"
+    },
+    {
+      "sourceId": "1915",
+      "text": "Appendix D — Session Preparation and Closure"
+    },
+    {
+      "sourceId": "1916",
+      "text": "Use one copy per session, including sessions with no trades."
+    },
+    {
+      "sourceId": "1917",
+      "text": "Date: __________ Time zone: __________ Account(s): __________"
+    },
+    {
+      "sourceId": "1918",
+      "text": "Model/plan versions: __________ Environment: __________"
+    },
+    {
+      "sourceId": "1919",
+      "text": "Before the session"
+    },
+    {
+      "sourceId": "1920",
+      "text": "Mark each item verified, unresolved, or not applicable, with a reason where needed."
+    },
+    {
+      "sourceId": "1921",
+      "rows": [
+        [
+          "Preparation check",
+          "Status and detail"
+        ],
+        [
+          "Account figures and applicable rules are current",
+          "________________________________________"
+        ],
+        [
+          "Positions and working orders are reconciled",
+          "________________________________________"
+        ],
+        [
+          "Risk worksheet is current",
+          "________________________________________"
+        ],
+        [
+          "Relevant events and trading restrictions are checked",
+          "________________________________________"
+        ],
+        [
+          "Platform and supported emergency route are usable",
+          "________________________________________"
+        ],
+        [
+          "I can provide the attention the method requires",
+          "________________________________________"
+        ]
+      ]
+    },
+    {
+      "sourceId": "1922",
+      "text": "Preparation begins: ______ New-entry window: ______ Closing time/procedure: ______"
+    },
+    {
+      "sourceId": "1923",
+      "text": "Relevant model conditions today: ___________________________________"
+    },
+    {
+      "sourceId": "1924",
+      "text": "Known constraint on time or attention: ______________________________"
+    },
+    {
+      "sourceId": "1925",
+      "text": "Behavior to practice and cue to watch: ______________________________"
+    },
+    {
+      "sourceId": "1926",
+      "text": "Today's stopping conditions and existing-position response: _________"
+    },
+    {
+      "sourceId": "1927",
+      "text": "Preparation decision: ☐ Proceed within plan ☐ Observe/practice only ☐ Resolve issue ☐ No session"
+    },
+    {
+      "sourceId": "1929",
+      "text": "After the session"
+    },
+    {
+      "sourceId": "1930",
+      "text": "Final position state verified: ______ Working orders verified: ______"
+    },
+    {
+      "sourceId": "1931",
+      "text": "Gross realized P&L: ______ Costs: ______ Net realized P&L: ______"
+    },
+    {
+      "sourceId": "1932",
+      "text": "Any remaining exposure and required monitoring: ____________________"
+    },
+    {
+      "sourceId": "1933",
+      "text": "Reconciled account state and source: _______________________________"
+    },
+    {
+      "sourceId": "1934",
+      "text": "What I executed as intended: _______________________________________"
+    },
+    {
+      "sourceId": "1935",
+      "text": "Where actions differed from instructions: __________________________"
+    },
+    {
+      "sourceId": "1936",
+      "text": "No-trade reason, if applicable: ____________________________________"
+    },
+    {
+      "sourceId": "1937",
+      "text": "Issue that blocks another session: _________________________________"
+    },
+    {
+      "sourceId": "1938",
+      "text": "Next review task and scheduled time: _______________________________"
+    },
+    {
+      "sourceId": "1939",
+      "text": "Session closure completed at: _____________________________________"
+    },
+    {
+      "sourceId": "1942",
+      "text": "Appendix E — Risk Budget and Position-Sizing Record"
+    },
+    {
+      "sourceId": "1943",
+      "text": "Complete before an entry and update after a material change. All figures must use a consistent currency and calculation basis."
+    },
+    {
+      "sourceId": "1944",
+      "text": "Timestamp: __________ Account: __________ Currency: __________"
+    },
+    {
+      "sourceId": "1945",
+      "text": "State: ☐ Flat ☐ Existing exposure — additional exposure calculation attached"
+    },
+    {
+      "sourceId": "1946",
+      "text": "Current constraints"
+    },
+    {
+      "sourceId": "1947",
+      "rows": [
+        [
+          "Measure",
+          "Value and calculation basis"
+        ],
+        [
+          "Current balance/equity measure required by the rules",
+          "________________________________________"
+        ],
+        [
+          "External threshold(s), breach condition, and update timing",
+          "________________________________________"
+        ],
+        [
+          "Personal account stopping boundary",
+          "________________________________________"
+        ],
+        [
+          "Remaining internal account allowance",
+          "________________________________________"
+        ],
+        [
+          "Session reference, current session result, and remaining allowance",
+          "________________________________________"
+        ],
+        [
+          "Per-trade planning ceiling",
+          "________________________________________"
+        ],
+        [
+          "Aggregate limit and remaining capacity",
+          "________________________________________"
+        ],
+        [
+          "Other applicable restrictions",
+          "________________________________________"
+        ]
+      ]
+    },
+    {
+      "sourceId": "1948",
+      "text": "For a simple fixed floor measured against current equity: external room = current equity − floor. Use the actual formula for moving or differently measured limits. External room is not automatically your trading budget."
+    },
+    {
+      "sourceId": "1949",
+      "text": "If equity already includes open P&L, do not subtract the same loss again. Document additional adverse exposure from the current state, including pending entries and linked positions. If you cannot reconcile that exposure, resolve it before adding more."
+    },
+    {
+      "sourceId": "1951",
+      "text": "Candidate sizing"
+    },
+    {
+      "sourceId": "1952",
+      "text": "Model/version: __________ Instrument and contract: __________"
+    },
+    {
+      "sourceId": "1953",
+      "text": "Entry rule/price: ______ Valid protective-exit rule/price: ______"
+    },
+    {
+      "sourceId": "1954",
+      "text": "Tick size: ______ Value per tick per unit: ______ Verified source: ______"
+    },
+    {
+      "sourceId": "1955",
+      "text": "For a linear tick-valued instrument, planned price-distance risk per unit:"
+    },
+    {
+      "sourceId": "1956",
+      "text": "Stop distance in ticks × tick value = __________"
+    },
+    {
+      "sourceId": "1957",
+      "text": "Expected total transaction costs per unit: __________"
+    },
+    {
+      "sourceId": "1958",
+      "text": "Additional execution allowance per unit: __________"
+    },
+    {
+      "sourceId": "1959",
+      "text": "Total planning amount per unit: __________"
+    },
+    {
+      "sourceId": "1960",
+      "text": "Check that costs or spread effects have not been counted twice. Use a suitable product-specific calculation where this linear formula does not apply."
+    },
+    {
+      "sourceId": "1961",
+      "text": "Amount available for this candidate under all constraints: __________"
+    },
+    {
+      "sourceId": "1962",
+      "text": "Quantity after rounding down to a permitted increment: __________"
+    },
+    {
+      "sourceId": "1963",
+      "text": "Total candidate planning amount: __________"
+    },
+    {
+      "sourceId": "1964",
+      "text": "☐ Quantity fits every relevant constraint."
+    },
+    {
+      "sourceId": "1965",
+      "text": "☐ Exposure can be managed under the applicable plan."
+    },
+    {
+      "sourceId": "1966",
+      "text": "☐ The model qualifies independently of the amount I want to earn."
+    },
+    {
+      "sourceId": "1967",
+      "text": "Decision: ☐ Permitted candidate ☐ No quantity fits ☐ Other restriction ☐ Unresolved"
+    },
+    {
+      "sourceId": "1968",
+      "text": "Reason/next action: ________________________________________________"
+    },
+    {
+      "sourceId": "1969",
+      "text": "The planning amount is an estimate, not a guaranteed maximum loss. A fitting quantity does not require an entry."
+    },
+    {
+      "sourceId": "1972",
+      "text": "Appendix F — Trade Plan and Decision Record"
+    },
+    {
+      "sourceId": "1973",
+      "text": "Keep the planned decision and actual execution distinguishable."
+    },
+    {
+      "sourceId": "1974",
+      "text": "Trade/decision ID: __________ Date/time zone: __________"
+    },
+    {
+      "sourceId": "1975",
+      "text": "Account/environment: __________ Model/version: __________"
+    },
+    {
+      "sourceId": "1976",
+      "text": "Related opportunity or copied-decision ID, if applicable: __________"
+    },
+    {
+      "sourceId": "1977",
+      "text": "Before entry"
+    },
+    {
+      "sourceId": "1978",
+      "text": "Context and qualifying evidence: ___________________________________"
+    },
+    {
+      "sourceId": "1979",
+      "text": "Trigger: ______ Order procedure and expiry: ______"
+    },
+    {
+      "sourceId": "1980",
+      "text": "Initial protection: ______ Quantity: ______ Risk worksheet reference: ______"
+    },
+    {
+      "sourceId": "1981",
+      "text": "Management policy/version: _________________________________________"
+    },
+    {
+      "sourceId": "1982",
+      "text": "Permitted adjustment conditions: ___________________________________"
+    },
+    {
+      "sourceId": "1983",
+      "text": "Condition/time requiring exit: _____________________________________"
+    },
+    {
+      "sourceId": "1984",
+      "text": "Relevant thought or urge, if present: _______________________________"
+    },
+    {
+      "sourceId": "1985",
+      "text": "Record made at: ______ Screenshot/reference: ______"
+    },
+    {
+      "sourceId": "1986",
+      "text": "During the trade"
+    },
+    {
+      "sourceId": "1987",
+      "text": "Record only what is feasible without interfering with management. Add retrospective notes later and label them."
+    },
+    {
+      "sourceId": "1988",
+      "rows": [
+        [
+          "Time",
+          "New fact or condition",
+          "Action taken",
+          "Applicable rule",
+          "Recorded then or later?"
+        ],
+        [
+          "______",
+          "______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "______",
+          "______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "______",
+          "______",
+          "______",
+          "______",
+          "______"
+        ]
+      ]
+    },
+    {
+      "sourceId": "1991",
+      "text": "After exit"
+    },
+    {
+      "sourceId": "1992",
+      "text": "Actual fills/quantity changes/reference: ____________________________"
+    },
+    {
+      "sourceId": "1993",
+      "text": "Exit reason and verification of position/order state: _______________"
+    },
+    {
+      "sourceId": "1994",
+      "text": "Gross result: ______ Total costs: ______ Net result: ______"
+    },
+    {
+      "sourceId": "1995",
+      "text": "Initial fixed R reference, if used: ______ Net outcome in R: ______"
+    },
+    {
+      "sourceId": "1996",
+      "text": "Adherence: ☐ Followed ☐ Breached ☐ Unclear — specify rule: __________"
+    },
+    {
+      "sourceId": "1997",
+      "text": "Trigger → thought/urge → action: ___________________________________"
+    },
+    {
+      "sourceId": "1998",
+      "text": "Interpretation and uncertainty: ____________________________________"
+    },
+    {
+      "sourceId": "1999",
+      "text": "One response or question for review: _______________________________"
+    },
+    {
+      "sourceId": "2000",
+      "text": "Review date: ______ Relevant attachment: ______"
+    },
+    {
+      "sourceId": "2003",
+      "text": "Appendix G — Missed-Trade and Revenge-Trade Reset Card"
+    },
+    {
+      "sourceId": "2004",
+      "text": "Complete the personal fields before the trigger occurs. Keep this card easy to find."
+    },
+    {
+      "sourceId": "2005",
+      "text": "The next trade owes me nothing."
+    },
+    {
+      "sourceId": "2006",
+      "text": "My recurring cue: _________________________________________________"
+    },
+    {
+      "sourceId": "2007",
+      "text": "The thought that often follows: ____________________________________"
+    },
+    {
+      "sourceId": "2008",
+      "text": "At the cue"
+    },
+    {
+      "sourceId": "2009",
+      "text": "Protect and verify. Address any existing exposure first. Confirm positions and working orders using the established procedure."
+    },
+    {
+      "sourceId": "2010",
+      "text": "Separate the amounts. Record the actual account change. Keep imagined profit from an unfilled or untaken trade separate."
+    },
+    {
+      "sourceId": "2011",
+      "text": "Close the old opportunity. Apply its expiry/cancellation rule. Confirm the resulting order state."
+    },
+    {
+      "sourceId": "2012",
+      "text": "Check permission. Another entry requires a fresh qualifying setup, remaining risk capacity, and compliance with the pause policy."
+    },
+    {
+      "sourceId": "2013",
+      "text": "Use the pause when required. Follow the specific instruction below. Do not bypass it through another account or instrument."
+    },
+    {
+      "sourceId": "2014",
+      "text": "Actual realized account change: __________"
+    },
+    {
+      "sourceId": "2015",
+      "text": "Relevant open exposure/account state: __________"
+    },
+    {
+      "sourceId": "2016",
+      "text": "Hypothetical outcome I am treating as owed: __________"
+    },
+    {
+      "sourceId": "2017",
+      "text": "My pause trigger and action: _______________________________________"
+    },
+    {
+      "sourceId": "2018",
+      "text": "Handling of existing positions and working entries: _________________"
+    },
+    {
+      "sourceId": "2019",
+      "text": "Conditions required before considering another entry: _______________"
+    },
+    {
+      "sourceId": "2020",
+      "text": "Condition that ends this session: __________________________________"
+    },
+    {
+      "sourceId": "2021",
+      "text": "If I cannot follow this boundary, my next protective/support step is:"
+    },
+    {
+      "sourceId": "2023",
+      "text": "Later review: What was the earliest observable cue? _________________"
+    },
+    {
+      "sourceId": "2024",
+      "text": "Did I use the prepared response? ______ What needs practice? ______"
+    },
+    {
+      "sourceId": "2025",
+      "text": "An urge is not itself a rule breach. Record restraint as accurately as you record a mistake."
+    },
+    {
+      "sourceId": "2026",
+      "text": "Appendix H — Drawdown, Pause, and Return Plan"
+    },
+    {
+      "sourceId": "2027",
+      "text": "Define thresholds and responses before they are needed. A pause can be triggered by finances, behavior, operations, or capacity."
+    },
+    {
+      "sourceId": "2028",
+      "text": "Version/date: __________ Account/project scope: __________"
+    },
+    {
+      "sourceId": "2029",
+      "text": "Drawdown reference and calculation, including cash-flow treatment:"
+    },
+    {
+      "sourceId": "2031",
+      "rows": [
+        [
+          "Trigger",
+          "Required action",
+          "Existing positions/orders",
+          "Conditions for review or return"
+        ],
+        [
+          "Financial review threshold: ______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Exposure reduction threshold: ______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Trading stop threshold: ______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Behavioral breach: ______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Operational fault: ______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Capacity/workload concern: ______",
+          "______",
+          "______",
+          "______"
+        ]
+      ]
+    },
+    {
+      "sourceId": "2032",
+      "text": "The trigger applies to: ☐ One account ☐ All accounts ☐ Wider project"
+    },
+    {
+      "sourceId": "2033",
+      "text": "If activated"
+    },
+    {
+      "sourceId": "2034",
+      "text": "Date/time and actual event: ________________________________________"
+    },
+    {
+      "sourceId": "2035",
+      "text": "Account and order state confirmed through: _________________________"
+    },
+    {
+      "sourceId": "2036",
+      "text": "Activity suspended: ______ Administration still required: ______"
+    },
+    {
+      "sourceId": "2037",
+      "text": "Renewal/inactivity implications checked: ____________________________"
+    },
+    {
+      "sourceId": "2038",
+      "text": "Issue to resolve: ______ Evidence of resolution required: ______"
+    },
+    {
+      "sourceId": "2039",
+      "text": "Return decision: ☐ Continue pause ☐ Observe ☐ Practice ☐ Resume within revised plan ☐ End attempt"
+    },
+    {
+      "sourceId": "2040",
+      "text": "A review date does not require a return. Feeling eager to recover does not demonstrate that the original problem has been resolved."
+    },
+    {
+      "sourceId": "2041",
+      "text": "Appendix I — Review and Practice Worksheet"
+    },
+    {
+      "sourceId": "2042",
+      "text": "Use one sheet for one main question. Urgent operating problems require action before the scheduled review."
+    },
+    {
+      "sourceId": "2043",
+      "text": "Review period: __________ Account/model versions: __________"
+    },
+    {
+      "sourceId": "2044",
+      "text": "Records reconciled and coverage limitations: ________________________"
+    },
+    {
+      "sourceId": "2045",
+      "text": "Observation, including number of relevant events: ___________________"
+    },
+    {
+      "sourceId": "2046",
+      "text": "Proposed explanation: ______ What remains uncertain: ______"
+    },
+    {
+      "sourceId": "2047",
+      "text": "Problem type: ☐ Rule clarity ☐ Behavior ☐ Operations ☐ Capacity ☐ Model evidence ☐ Unresolved"
+    },
+    {
+      "sourceId": "2048",
+      "text": "The proposed work"
+    },
+    {
+      "sourceId": "2049",
+      "text": "Question to answer: ________________________________________________"
+    },
+    {
+      "sourceId": "2050",
+      "text": "Current instruction: ______________________________________________"
+    },
+    {
+      "sourceId": "2051",
+      "text": "Proposed instruction or practice task: _____________________________"
+    },
+    {
+      "sourceId": "2052",
+      "text": "Reason and potential drawbacks: ____________________________________"
+    },
+    {
+      "sourceId": "2053",
+      "text": "Evidence that would count against my preferred explanation: _________"
+    },
+    {
+      "sourceId": "2054",
+      "text": "Environment: ☐ Historical development ☐ Fresh evaluation ☐ Simulation ☐ Actual execution record"
+    },
+    {
+      "sourceId": "2055",
+      "text": "Coverage, costs, fill assumptions, and missing-data treatment:"
+    },
+    {
+      "sourceId": "2057",
+      "text": "What remains constant: ______ What changes: ______"
+    },
+    {
+      "sourceId": "2058",
+      "text": "Behavioral measure and event count: ________________________________"
+    },
+    {
+      "sourceId": "2059",
+      "text": "Financial measure, if relevant: ____________________________________"
+    },
+    {
+      "sourceId": "2060",
+      "text": "Review point and early-stop conditions: ____________________________"
+    },
+    {
+      "sourceId": "2062",
+      "text": "Decision"
+    },
+    {
+      "sourceId": "2063",
+      "text": "Findings and limitations: __________________________________________"
+    },
+    {
+      "sourceId": "2064",
+      "text": "☐ Retain current plan ☐ Collect specified evidence ☐ Refine proposal"
+    },
+    {
+      "sourceId": "2065",
+      "text": "☐ Adopt revision ☐ Reject proposal ☐ Pause approach"
+    },
+    {
+      "sourceId": "2066",
+      "text": "Reason: ___________________________________________________________"
+    },
+    {
+      "sourceId": "2067",
+      "text": "If adopted — version/effective date: ______ Procedures/settings to update: ______"
+    },
+    {
+      "sourceId": "2068",
+      "text": "Next review and reversal/pause conditions: __________________________"
+    },
+    {
+      "sourceId": "2069",
+      "text": "Do not rewrite earlier results using a rule developed after seeing them. Preserve development and evaluation labels."
+    },
+    {
+      "sourceId": "2072",
+      "text": "Appendix J — Challenge Progress and Payout Review"
+    },
+    {
+      "sourceId": "2073",
+      "text": "Account status and personal cash are separate records. Use verified terms from Appendix B."
+    },
+    {
+      "sourceId": "2074",
+      "text": "Account/product/stage: __________ As-of timestamp: __________"
+    },
+    {
+      "sourceId": "2075",
+      "text": "Qualification status"
+    },
+    {
+      "sourceId": "2076",
+      "rows": [
+        [
+          "Requirement",
+          "Exact measurement rule",
+          "Current verified value",
+          "Remaining condition"
+        ],
+        [
+          "Profit requirement",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Trading/qualifying days",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Consistency or distribution condition",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Other requirement",
+          "______",
+          "______",
+          "______"
+        ]
+      ]
+    },
+    {
+      "sourceId": "2077",
+      "text": "Current loss boundaries and internal allowance: _____________________"
+    },
+    {
+      "sourceId": "2078",
+      "text": "Operating-plan reference: __________"
+    },
+    {
+      "sourceId": "2079",
+      "text": "The remaining target is not a compulsory daily profit amount. Do not manufacture a trade to complete a day count."
+    },
+    {
+      "sourceId": "2080",
+      "text": "Before requesting a payout"
+    },
+    {
+      "sourceId": "2081",
+      "text": "Eligibility verified through/on: ___________________________________"
+    },
+    {
+      "sourceId": "2082",
+      "text": "Proposed gross request: ______ Expected account debit: ______"
+    },
+    {
+      "sourceId": "2083",
+      "text": "Trader share calculation: ______ Fees/deductions: ______"
+    },
+    {
+      "sourceId": "2084",
+      "text": "Expected personal receipt and currency: ____________________________"
+    },
+    {
+      "sourceId": "2085",
+      "text": "Any uncertain conversion, tax, or banking treatment: ________________"
+    },
+    {
+      "sourceId": "2087",
+      "rows": [
+        [
+          "Account measure",
+          "Before request",
+          "Expected after deduction",
+          "Verified after deduction"
+        ],
+        [
+          "Applicable balance/equity",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "External floor",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Personal stopping point",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Remaining internal allowance",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Permitted size/other changed limit",
+          "______",
+          "______",
+          "______"
+        ]
+      ]
+    },
+    {
+      "sourceId": "2088",
+      "text": "Qualification counters that reset: _________________________________"
+    },
+    {
+      "sourceId": "2089",
+      "text": "Trading permissions while processing: ______________________________"
+    },
+    {
+      "sourceId": "2090",
+      "text": "Does the remaining capacity fit my method? ______ Revised plan: ______"
+    },
+    {
+      "sourceId": "2091",
+      "text": "Decision and reason: _______________________________________________"
+    },
+    {
+      "sourceId": "2092",
+      "text": "Request and receipt record"
+    },
+    {
+      "sourceId": "2093",
+      "text": "Submitted: ______ Reference: ______ Approved/status: ______"
+    },
+    {
+      "sourceId": "2094",
+      "text": "Deduction effective: ______ Payment received: ______"
+    },
+    {
+      "sourceId": "2095",
+      "text": "Actual receipt/currency: ______ Difference from estimate/reason: ______"
+    },
+    {
+      "sourceId": "2096",
+      "text": "Account reconciled before further exposure: ________________________"
+    },
+    {
+      "sourceId": "2097",
+      "text": "Statement/correspondence reference: ________________________________"
+    },
+    {
+      "sourceId": "2100",
+      "text": "Appendix K — Trading Project Cash and Time Ledger"
+    },
+    {
+      "sourceId": "2101",
+      "text": "Track the full project, including attempts that did not produce a payout."
+    },
+    {
+      "sourceId": "2102",
+      "text": "Period: __________ Reporting currency: __________"
+    },
+    {
+      "sourceId": "2103",
+      "text": "External project cash"
+    },
+    {
+      "sourceId": "2104",
+      "text": "Use this section for actual receipts from providers and actual operating expenses. Label currency conversions consistently. Personal brokerage deposits and withdrawals belong in the separate transfer record below."
+    },
+    {
+      "sourceId": "2105",
+      "rows": [
+        [
+          "Date",
+          "Description/account",
+          "Cash received",
+          "Expense paid",
+          "Currency/conversion basis",
+          "Receipt/reference"
+        ],
+        [
+          "______",
+          "______",
+          "______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "______",
+          "______",
+          "______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "______",
+          "______",
+          "______",
+          "______",
+          "______",
+          "______"
+        ]
+      ]
+    },
+    {
+      "sourceId": "2106",
+      "text": "Total received: ______ Total expenses: ______ Difference: ______"
+    },
+    {
+      "sourceId": "2107",
+      "text": "Costs already netted from receipts and not subtracted again: _________"
+    },
+    {
+      "sourceId": "2108",
+      "text": "Taxes or other unrecorded obligations to assess separately: __________"
+    },
+    {
+      "sourceId": "2109",
+      "text": "Unreceived requests tracked separately: _____________________________"
+    },
+    {
+      "sourceId": "2110",
+      "text": "Personal brokerage account reconciliation, if applicable"
+    },
+    {
+      "sourceId": "2111",
+      "text": "Account and period: __________"
+    },
+    {
+      "sourceId": "2112",
+      "text": "Beginning equity: ______ External deposits: ______ External withdrawals: ______"
+    },
+    {
+      "sourceId": "2113",
+      "text": "Ending equity: ______ Other non-trading credits/debits: ______"
+    },
+    {
+      "sourceId": "2114",
+      "text": "Account change excluding transfers = ending equity − beginning equity − deposits + withdrawals, then adjust for identified non-trading credits/debits."
+    },
+    {
+      "sourceId": "2115",
+      "text": "Reconciled trading/valuation result and included costs: ______________"
+    },
+    {
+      "sourceId": "2116",
+      "text": "This result may include unrealized changes and is not necessarily realized trading profit or taxable income. Reconcile it to the statement. Do not treat personal deposits as expenses or personal withdrawals as new trading profits. Simulated losses are not cash expenses."
+    },
+    {
+      "sourceId": "2117",
+      "text": "Time and sustainability"
+    },
+    {
+      "sourceId": "2118",
+      "rows": [
+        [
+          "Activity",
+          "Planned hours",
+          "Actual/estimated hours",
+          "Purpose/output"
+        ],
+        [
+          "Preparation and execution",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Records and administration",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Defined practice/review",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "Unplanned checking/content",
+          "______",
+          "______",
+          "______"
+        ]
+      ]
+    },
+    {
+      "sourceId": "2119",
+      "text": "Time allocation versus actual: _____________________________________"
+    },
+    {
+      "sourceId": "2120",
+      "text": "Remaining cash commitment: ______ Next renewal decision: ______"
+    },
+    {
+      "sourceId": "2121",
+      "text": "Effects on essential obligations: __________________________________"
+    },
+    {
+      "sourceId": "2122",
+      "text": "Decision: ☐ Continue ☐ Reduce scope ☐ Pause spending/activity ☐ End project"
+    },
+    {
+      "sourceId": "2123",
+      "text": "Reason and next review: ____________________________________________"
+    },
+    {
+      "sourceId": "2126",
+      "text": "Appendix L — Behavioral Progress Record"
+    },
+    {
+      "sourceId": "2127",
+      "text": "Track one observable response. Keep behavior and financial outcomes separate."
+    },
+    {
+      "sourceId": "2128",
+      "text": "Behavior being practiced: _________________________________________"
+    },
+    {
+      "sourceId": "2129",
+      "text": "Trigger definition: ________________________________________________"
+    },
+    {
+      "sourceId": "2130",
+      "text": "Required response and applicable plan version: ______________________"
+    },
+    {
+      "sourceId": "2131",
+      "text": "What counts as followed, breached, unclear, or not applicable:"
+    },
+    {
+      "sourceId": "2133",
+      "rows": [
+        [
+          "Date/event",
+          "Trigger occurred?",
+          "Response classification",
+          "Evidence/brief note",
+          "Actual financial outcome, if relevant"
+        ],
+        [
+          "______",
+          "______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "______",
+          "______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "______",
+          "______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "______",
+          "______",
+          "______",
+          "______",
+          "______"
+        ],
+        [
+          "______",
+          "______",
+          "______",
+          "______",
+          "______"
+        ]
+      ]
+    },
+    {
+      "sourceId": "2134",
+      "text": "Relevant events: ______ Followed: ______ Breached: ______ Unclear: ______"
+    },
+    {
+      "sourceId": "2135",
+      "text": "For classified relevant events, adherence = followed ÷ (followed + breached). Report the counts and unclear events alongside any percentage. If no classified relevant events occurred, report “not available,” not 100%."
+    },
+    {
+      "sourceId": "2136",
+      "text": "Differences in conditions or completeness compared with the prior period:"
+    },
+    {
+      "sourceId": "2138",
+      "text": "One successful response worth retaining: ___________________________"
+    },
+    {
+      "sourceId": "2139",
+      "text": "One unresolved pattern and next practice task: ______________________"
+    },
+    {
+      "sourceId": "2140",
+      "text": "Review date: __________"
+    },
+    {
+      "sourceId": "2141",
+      "text": "Fewer breaches can reflect fewer triggers or missing records. A higher percentage does not establish profitability or prove that an intervention caused improvement."
+    }
+  ]
+}

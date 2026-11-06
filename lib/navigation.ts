@@ -64,6 +64,7 @@ export const navigation = [
     icon: WalletCards,
     description: "Manage evaluation, funded, and personal trading accounts.",
   },
+  { title: "Worksheets", href: "/worksheets", icon: BookOpen, description: "Your book companion plans, session records and worksheets." },
   {
     title: "Settings",
     href: "/settings",

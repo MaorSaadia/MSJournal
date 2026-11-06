@@ -8,8 +8,9 @@ const nextConfig: NextConfig = {
     return [
       ...(!indexableDeployment ? [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] }] : []),
       { source: "/api/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
-      // Every document except the public homepage is intentionally non-indexable.
-      { source: "/:path((?!_next|icon|apple-icon|opengraph-image|robots\\.txt|sitemap\\.xml).+)", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      // Public book HTML pages opt into indexing through their own metadata.
+      { source: "/:path((?!book(?:/|$)|_next|icon|apple-icon|opengraph-image|robots\\.txt|sitemap\\.xml).+)", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      { source: "/book/downloads/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       {
         source: "/:path*",
         headers: [{ key: "Referrer-Policy", value: "no-referrer" }],

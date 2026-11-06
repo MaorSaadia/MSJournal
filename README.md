@@ -557,3 +557,10 @@ Focused verification: auth input/error/route tests plus `browser-tests/change-pa
 ## Technical SEO and social sharing
 
 Signed-out `/` now serves a public futures trading journal landing page; signed-in users retain the Dashboard at the same URL. Canonicals, branded sharing images, structured data, sitemap/robots and private/preview noindex controls use a central production origin. Set optional server-only `SITE_URL` (defaults to `https://ms-journal.vercel.app`) and `GOOGLE_SITE_VERIFICATION` in Vercel Production, then redeploy when ready. No migration or analytics dependency. Google verification and sitemap submission are manual follow-up. See the [complete SEO setup, exact Search Console steps, route audit and future domain migration guide](docs/technical-seo.md).
+
+
+## Book Companion & Worksheets
+
+The free companion to **The Consistent Day Trader** by Maor Saadia is at `/book`, with all 12 manuscript appendices available online and as blank A4/US Letter PDFs and a complete workbook. Signed-in readers use **Worksheets** (`/worksheets`) to save, revise, duplicate and print their own records. Guest drafts survive same-tab sign-in and transfer only with confirmation. Saved versions, source links and private prints are owner-checked; completion is the reader's record, not trading permission.
+
+Review/apply additive migration `0014_book_companion.sql` using `npm.cmd run db:migrate -- --reviewed` in other environments; it is already applied to development. Data archives are now v6, including worksheet versions and history. No new environment variables or PDF service are required. See the [book companion guide, coverage, calculations, privacy and setup](docs/book-companion.md). No deployment or Whop work was performed.

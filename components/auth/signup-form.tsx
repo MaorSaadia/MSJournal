@@ -16,9 +16,11 @@ import { Button } from "@/components/ui/button";
 export function SignupForm({
   configured,
   verificationRequired,
+  destination = "/welcome",
 }: {
   configured: boolean;
   verificationRequired: boolean;
+  destination?: string;
 }) {
   const [error, setError] = useState("");
   const {
@@ -41,8 +43,8 @@ export function SignupForm({
         email,
         password,
         callbackURL: verificationRequired
-          ? "/verify-email?complete=true"
-          : "/welcome",
+          ? `/verify-email?complete=true&next=${encodeURIComponent(destination)}`
+          : destination,
       });
       if (result.error) {
         setError(authError(result.error, "signup"));
@@ -50,8 +52,8 @@ export function SignupForm({
       }
       window.location.replace(
         verificationRequired
-          ? `/verify-email?email=${encodeURIComponent(email)}`
-          : "/welcome",
+          ? `/verify-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(destination)}`
+          : destination,
       );
     } catch {
       setError(
@@ -125,7 +127,7 @@ export function SignupForm({
         </fieldset>
       </form>
       <p className="login-privacy">
-        Already have an account? <Link href="/login">Sign in</Link>
+        Already have an account? <Link href={`/login?next=${encodeURIComponent(destination)}`}>Sign in</Link>
       </p>
     </AuthFrame>
   );

@@ -19,12 +19,14 @@ export function RecoveryForm({
   verify = false,
   initialEmail = "",
   invalid = false,
+  destination = "/welcome",
 }: {
   configured: boolean;
   emailReady: boolean;
   verify?: boolean;
   initialEmail?: string;
   invalid?: boolean;
+  destination?: string;
 }) {
   const [error, setError] = useState(""),
     [sent, setSent] = useState(false);
@@ -42,7 +44,7 @@ export function RecoveryForm({
       const result = verify
         ? await authClient.sendVerificationEmail({
             email,
-            callbackURL: "/verify-email?complete=true",
+            callbackURL: `/verify-email?complete=true&next=${encodeURIComponent(destination)}`,
           })
         : await authClient.requestPasswordReset({
             email,

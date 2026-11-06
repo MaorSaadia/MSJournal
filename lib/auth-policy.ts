@@ -10,6 +10,8 @@ const destinations = new Set([
   "/strategies",
   "/progress-tracker",
   "/fees",
+  "/worksheets",
+  "/book",
 ]);
 export function safeRedirect(value: unknown) {
   if (
@@ -22,7 +24,7 @@ export function safeRedirect(value: unknown) {
   try {
     const url = new URL(value, "https://msjournal.invalid");
     return url.origin === "https://msjournal.invalid" &&
-      destinations.has(url.pathname)
+      (destinations.has(url.pathname) || /^\/book\/[a-z0-9-]+$/.test(url.pathname) || /^\/worksheets\/[0-9a-f-]{36}$/.test(url.pathname))
       ? `${url.pathname}${url.search}`
       : "/";
   } catch {

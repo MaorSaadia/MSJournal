@@ -6,6 +6,7 @@
 /test-results/
 /playwright-report/
 /artifacts/seo/
+/artifacts/book/
 /.pnp
 .pnp.*
 .yarn/*

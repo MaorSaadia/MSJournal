@@ -81,3 +81,8 @@ The final production build and TypeScript check passed, along with scoped lint a
 Local development had stale generated route/cache artifacts and slow filesystem writes. Its generated Turbopack cache was preserved under `.next/dev/cache/turbopack-seo-prior-*` and refreshed; the Calendar route responded normally afterward. No source data was removed. Public visual artifacts are under ignored `artifacts/seo/`. Temporary production verification servers were stopped; regular development remains on port 3000.
 
 For a local **production-mode** authenticated browser check only, the temporary server must have a valid non-localhost `BETTER_AUTH_URL` (the app intentionally rejects localhost in production). `MSJOURNAL_TEST_AUTH_ORIGIN` lets the fixture send that configured Origin to the local test endpoint. This is not a deployment setting, does not bypass origin validation, and is unnecessary for normal development-mode tests. Use disposable accounts and the development database only.
+
+
+## Book companion extension
+
+The Book Companion milestone adds public `/book` and 12 permanent `/book/[slug]` HTML pages to the sitemap, with unique canonical/sharing metadata. The non-root noindex header explicitly exempts book HTML. `/book/downloads/**` remains noindex, and `/worksheets/**` plus worksheet APIs and completed prints remain authenticated/non-indexable/private. This supersedes the earlier homepage-only coverage above. See [the companion guide](book-companion.md). No Google account actions or deployment happened automatically.

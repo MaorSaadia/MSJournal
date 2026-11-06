@@ -63,7 +63,9 @@ export async function backupSnapshot(ownerId: string, signal?: AbortSignal) {
         [ownerId],
       )
     ).rows;
+    data.worksheet_templates = (await connection.query("select distinct t.id, t.slug, t.version, t.definition, t.hash from worksheet_templates t join worksheet_entries e on e.template_id=t.id where e.owner_id=$1",[ownerId])).rows;
     for (const category of backupCatalog) {
+      if (!category.ownerColumn) continue; // Public definitions are scoped through this owner's entries above.
       if (
         category.columns.some((name) =>
           /password|token|secret|access_key/i.test(name),
@@ -264,7 +266,7 @@ export async function createBackup(
     );
   const manifest = {
     format: "msjournal-portable-archive",
-    version: 5,
+    version: 6,
     createdAt: createdAt.toISOString(),
     databaseSnapshot:
       "repeatable read; metadata from one read-only transaction",
@@ -320,13 +322,13 @@ export async function createBackup(
   entries.push(...images.entries, jsonEntry("manifest.json", manifest), {
     path: "MANIFEST.txt",
     bytes: Buffer.from(
-      `MSJournal portable archive v5\nCreated: ${manifest.createdAt}\n\n${manifest.categories.map((c) => `${c.path}: ${c.count} records`).join("\n")}\n\nImages requested: ${includeImages}; included object files: ${images.entries.length}; missing: ${images.missing.length}.\nSee manifest.json for file paths, hashes and missing-image reasons.\n\n${manifest.limitations.join("\n")}\n`,
+      `MSJournal portable archive v6\nCreated: ${manifest.createdAt}\n\n${manifest.categories.map((c) => `${c.path}: ${c.count} records`).join("\n")}\n\nImages requested: ${includeImages}; included object files: ${images.entries.length}; missing: ${images.missing.length}.\nSee manifest.json for file paths, hashes and missing-image reasons.\n\n${manifest.limitations.join("\n")}\n`,
     ),
   });
   try {
     return {
       bytes: zipArchive(entries, createdAt),
-      filename: `msjournal-data-v5-${createdAt.toISOString().replaceAll(":", "-")}${images.missing.length ? "-partial" : ""}.zip`,
+      filename: `msjournal-data-v6-${createdAt.toISOString().replaceAll(":", "-")}${images.missing.length ? "-partial" : ""}.zip`,
     };
   } catch {
     throw new ReviewError(

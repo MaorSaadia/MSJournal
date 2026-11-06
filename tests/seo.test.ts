@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { productionUrl, serializeJsonLd } from "@/lib/seo";
+import { templates } from "@/lib/book/templates";
 
 describe("SEO configuration boundaries", () => {
   it("uses a stable HTTPS origin and rejects ambiguous site URLs", () => {
@@ -17,7 +18,7 @@ describe("SEO configuration boundaries", () => {
     vi.stubEnv("VERCEL_ENV", "production");
     vi.resetModules();
     const production = await import("../app/sitemap");
-    expect(production.default().map((entry) => entry.url)).toEqual(["https://ms-journal.vercel.app/"]);
+    expect(production.default().map((entry) => entry.url)).toEqual(["https://ms-journal.vercel.app/","https://ms-journal.vercel.app/book",...templates.map(t=>`https://ms-journal.vercel.app/book/${t.slug}`)]);
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.resetModules();
     const preview = await import("../app/sitemap");
