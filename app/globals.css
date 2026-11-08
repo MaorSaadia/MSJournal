@@ -1914,3 +1914,16 @@ h1 {
   font-size: 12px;
   min-height: 40px;
 }
+
+.discovery-filters { display: grid; gap: 12px; min-width: 0; }
+.discovery-filters .field-label { display: grid; gap: 7px; margin: 0; }
+.discovery-filters select { width: 100%; min-width: 0; }
+.filters-popover:has(.discovery-filters) { max-height: min(78dvh, 740px); overflow-y: auto; overscroll-behavior: contain; }
+.tv-menu .discovery-filters { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.discovery-filters > p { grid-column: 1 / -1; }
+.trade-confirmations { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 18px; }
+.trade-confirmations .field-label { margin-top: 14px; }
+.trade-confirmations > button { margin-top: 8px; }
+.dashboard-analysis-scope { padding: 10px 18px; margin: 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.dashboard-analysis-scope button { color: var(--primary); margin-left: 8px; }
+@media(max-width: 640px) { .tv-menu .discovery-filters { grid-template-columns: 1fr; } }

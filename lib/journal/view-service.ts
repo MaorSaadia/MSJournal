@@ -233,6 +233,7 @@ export async function tradeView(
         and (${q.dateBasis}='activity' or ${q.weekday ?? null}::int is null or extract(dow from exit at time zone ${timezone})=${q.weekday ?? null}::int)
         and (${q.hour ?? null}::int is null or extract(hour from entry at time zone ${timezone})=${q.hour ?? null}::int)
         and (${q.holding ?? null}::text is null or (duration::numeric >= ${holding?.[0] ?? null}::numeric and (${holding?.[1] ?? null}::numeric is null or duration::numeric < ${holding?.[1] ?? null}::numeric)))
+        and (${q.confirmation ?? null}::text is null or ("reviewFields"->'confirmations') ? ${q.confirmation ?? null})
         and (${q.emotion ?? null}::text is null or ("reviewFields"->'emotions'->${q.emotionStage}) ? ${q.emotion ?? null})
         and (${q.adherence ?? null}::text is null or "reviewFields"->>'adherence'=${q.adherence ?? null})
         and (${q.symbol ?? null}::text is null or symbol=${q.symbol ?? null})

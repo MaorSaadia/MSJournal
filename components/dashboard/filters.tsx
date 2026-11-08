@@ -25,6 +25,9 @@ export function DashboardFilters({
   demo = true,
   symbols = ["ES", "NQ", "MES", "MNQ"],
   timezone = "Asia/Jerusalem",
+  analysisFilters,
+  analysisCount = 0,
+  resetAnalysis,
 }: {
   filters: Filters;
   onChange: (f: Filters) => void;
@@ -34,12 +37,15 @@ export function DashboardFilters({
   demo?: boolean;
   symbols?: string[];
   timezone?: string;
+  analysisFilters?: React.ReactNode;
+  analysisCount?: number;
+  resetAnalysis?: () => void;
 }) {
   const [dateOpen, setDateOpen] = useState(false);
   const [start, setStart] = useState(filters.start),
     [end, setEnd] = useState(filters.end);
   const extraCount =
-    Number(filters.symbol !== "all") + Number(filters.direction !== "all");
+    analysisCount + Number(filters.symbol !== "all") + Number(filters.direction !== "all");
   const accountLabel =
     accounts.length === 0
       ? "No accounts"
@@ -95,10 +101,11 @@ export function DashboardFilters({
               <option value="short">Short</option>
             </select>
           </label>
+          {analysisFilters}
           <Button
             variant="ghost"
             onClick={() =>
-              onChange({ ...filters, symbol: "all", direction: "all" })
+              { onChange({ ...filters, symbol: "all", direction: "all" }); resetAnalysis?.(); }
             }
           >
             <RotateCcw size={13} />

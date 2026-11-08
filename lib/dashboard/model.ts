@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { discoveryShape } from "@/lib/journal/discovery";
 import { reportSchema } from "@/lib/reports/model";
 export const dashboardSchema = z
   .object({
+    ...discoveryShape,
     start: z.string(),
     end: z.string(),
     accounts: z.string().max(8000).optional(),

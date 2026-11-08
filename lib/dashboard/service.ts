@@ -1,4 +1,6 @@
 import "server-only";
+import { discoveryKeys, matchesDiscovery } from "@/lib/journal/discovery";
+import { localWeekday } from "@/lib/journal/analysis-filters";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { dashboardSchema } from "./model";
 import { getPreferences } from "@/lib/preferences";
@@ -8,6 +10,8 @@ import {
   propPhases,
   propRuleVersions,
   journalReviews,
+  strategyAssignments,
+  strategies,
   reviewAttachments,
 } from "@/db/schema";
 import { requireUser } from "@/lib/session";
@@ -50,8 +54,34 @@ export async function dashboardData(input: unknown, headers?: Headers) {
     };
     // Reports is the daily realized service. Statistics use the same decimal helper.
     const timezone = preferences.displayTimezone;
+    // Filter published parents by their saved assessments, then use each source
+    // contribution once. The full journal remains the account-balance ledger.
+    let performancePortions = journal.portions;
+    let allowedParents: Set<string> | null = null;
+    if (discoveryKeys.some((key) => key !== "emotionStage" && q[key] !== undefined)) {
+      if (q.strategy && q.strategy !== "unassigned") {
+        const [owned] = await getDb().select({ id: strategies.id }).from(strategies)
+          .where(and(eq(strategies.ownerId, user.id), eq(strategies.id, q.strategy)));
+        if (!owned) throw new NotFoundError();
+      }
+      const [reviews, assignments] = ids.length ? await Promise.all([
+        getDb().select({ recordId: journalReviews.recordId, fields: journalReviews.fields }).from(journalReviews)
+          .where(and(eq(journalReviews.ownerId, user.id), inArray(journalReviews.tradingAccountId, ids), eq(journalReviews.needsReassignment, false))),
+        getDb().select({ recordId: strategyAssignments.recordId, strategyId: strategyAssignments.strategyId }).from(strategyAssignments)
+          .where(and(eq(strategyAssignments.ownerId, user.id), inArray(strategyAssignments.tradingAccountId, ids), eq(strategyAssignments.needsReassignment, false))),
+      ]) : [[], []];
+      const reviewMap = new Map(reviews.map((r) => [r.recordId, r.fields]));
+      const assignmentMap = new Map(assignments.map((r) => [r.recordId, r.strategyId]));
+      const matching = journal.records.filter((r) => ids.includes(r.tradingAccountId) && matchesDiscovery({ ...q, weekday: undefined }, {
+        entry: r.direction === "unknown" ? null : r.entryAt,
+        exit: r.exitAt, fields: reviewMap.get(r.id), strategyId: assignmentMap.get(r.id),
+      }, timezone));
+      allowedParents = new Set(matching.map((r) => r.id));
+      const sourceIds = new Set(matching.flatMap((r) => r.sourceIds));
+      performancePortions = journal.portions.filter((p) => sourceIds.has(p.id) && (q.weekday === undefined || localWeekday(portionExit(p), timezone) === q.weekday));
+    }
     const realized = realizedPerformance(
-      journal.portions,
+      performancePortions,
       journal.fees,
       scope,
       timezone,
@@ -73,7 +103,7 @@ export async function dashboardData(input: unknown, headers?: Headers) {
       }),
       ids,
       timezone,
-      portions: journal.portions,
+      portions: performancePortions,
       fees: journal.fees,
       records: [],
       tags: [],
@@ -90,6 +120,8 @@ export async function dashboardData(input: unknown, headers?: Headers) {
     ];
     const complete = journal.records.filter(
       (r) =>
+        (!allowedParents || allowedParents.has(r.id)) &&
+        (q.weekday === undefined || localWeekday(r.exitAt, timezone) === q.weekday) &&
         isCompleteTrade(r) &&
         ids.includes(r.tradingAccountId) &&
         localDay(r.exitAt, timezone) >= q.start &&

@@ -6,6 +6,7 @@ import {
 } from "@/lib/reviews/model";
 import { summary, isCompleteTrade, type Summary } from "./statistics";
 import { z } from "zod";
+import { confirmationName } from "@/lib/reviews/confirmations";
 import { daySchema, dayBounds } from "@/lib/calendar/model";
 import { D, sum } from "./processing";
 import {
@@ -18,6 +19,7 @@ import {
 const amount = z.string().regex(/^-?\d{1,20}(?:\.\d{1,8})?$/);
 export const viewSchema = z
   .object({
+    confirmation: confirmationName.optional(),
     strategy: z.union([z.uuid(), z.literal("unassigned")]).optional(),
     mode: z.enum(["real", "demo"]).default("real"),
     accounts: z.string().max(8000).optional(),
@@ -240,6 +242,7 @@ export function filterDemo(rows: ViewRecord[], q: ViewQuery, timezone: string) {
           : q.reviewMissing === "emotion"
             ? !r.reviewFields?.emotions[q.emotionStage].length
             : !r.reviewFields?.adherence)) &&
+      (!q.confirmation || r.reviewFields?.confirmations?.includes(q.confirmation)) &&
       (!q.emotion ||
         r.reviewFields?.emotions[q.emotionStage].includes(q.emotion)) &&
       (!q.adherence || r.reviewFields?.adherence === q.adherence) &&

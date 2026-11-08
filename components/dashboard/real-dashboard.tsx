@@ -1,4 +1,6 @@
 "use client";
+import { DiscoveryFilters } from "@/components/journal/discovery-filters";
+import { discoveryKeys } from "@/lib/journal/discovery";
 import { tradeText } from "@/lib/journal/labels";
 import { LoadingIndicator, LoadingState } from "@/components/ui/loading";
 
@@ -57,6 +59,7 @@ export function RealDashboard({
     search.get("archived") === "1",
   );
   const parsed = dashboardSchema.safeParse({
+    ...Object.fromEntries(discoveryKeys.filter((k) => search.has(k)).map((k) => [k, search.get(k)])),
     start: search.get("start") ?? initialRange.start,
     end: search.get("end") ?? initialRange.end,
     accounts: ids.sort().join(","),
@@ -131,9 +134,9 @@ export function RealDashboard({
     "Closed trades count recorded exits, including breakevens. Several exits may belong to one position. Complete trades require verified flat-to-flat coverage. Daily realized P&L always follows local exit dates.";
 
   const dayHref = (date: string) =>
-    `/trade-view?${new URLSearchParams({ accounts: ids.join(","), archived: q.archived, start: date, end: date, dateBasis: "activity", basis: q.basis, outcomeBasis: "portions", dashboardFrom: href, ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`;
+    `/trade-view?${new URLSearchParams({ ...Object.fromEntries(discoveryKeys.filter((k) => q[k] !== undefined).map((k) => [k, String(q[k])])), accounts: ids.join(","), archived: q.archived, start: date, end: date, dateBasis: "activity", basis: q.basis, outcomeBasis: "portions", dashboardFrom: href, ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`;
   const detailHref = (id: string) =>
-    `/trade-view/${id}?${new URLSearchParams({ from: href, accounts: ids.join(","), archived: q.archived, start: q.start, end: q.end, dateBasis: "activity", basis: q.basis, outcomeBasis: q.outcomeBasis, ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`;
+    `/trade-view/${id}?${new URLSearchParams({ from: href, ...Object.fromEntries(discoveryKeys.filter((k) => q[k] !== undefined).map((k) => [k, String(q[k])])), accounts: ids.join(","), archived: q.archived, start: q.start, end: q.end, dateBasis: "activity", basis: q.basis, outcomeBasis: q.outcomeBasis, ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`;
   const inspect = (target: string) => {
     save();
     router.push(target);
@@ -172,9 +175,13 @@ export function RealDashboard({
             }))}
           demo={false}
           symbols={initialSymbols}
+          analysisFilters={<DiscoveryFilters values={search} change={(key, value) => update({ [key]: value || undefined })} />}
+          analysisCount={discoveryKeys.filter((k) => k !== "emotionStage" && search.has(k)).length}
+          resetAnalysis={() => { const next = new URLSearchParams(window.location.search); for (const k of [...discoveryKeys, "symbol", "direction"]) next.delete(k); window.history.pushState(null, "", `/?${next}`); }}
           timezone={displayTimezone}
         />
       </header>
+      {discoveryKeys.some((k) => k !== "emotionStage" && search.has(k)) && <p className="small muted dashboard-analysis-scope">Filtered performance · {discoveryKeys.filter((k) => k !== "emotionStage" && search.has(k)).map((k) => `${k}: ${k === "strategy" ? "selected strategy" : search.get(k)}`).join(" · ")} <button onClick={() => update(Object.fromEntries(discoveryKeys.map((k) => [k, undefined])))}>Clear analysis filters</button></p>}
       <div className="dashboard-intro">
         <label className="dashboard-basis-label">
           Statistics
@@ -248,10 +255,10 @@ export function RealDashboard({
         <>
           <div className="dashboard-scope-note">
             <Link
-              href={`/reports?${new URLSearchParams({ start: q.start, end: q.end, accounts: ids.join(","), archived: q.archived, basis: q.basis, analysis: complete ? "complete" : "portions", ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`}
+              href={discoveryKeys.some((k) => k !== "emotionStage" && search.has(k)) ? dayHref(q.start).replace(`end=${q.start}`, `end=${q.end}`) : `/reports?${new URLSearchParams({ start: q.start, end: q.end, accounts: ids.join(","), archived: q.archived, basis: q.basis, analysis: complete ? "complete" : "portions", ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`}
               onClick={save}
             >
-              Inspect in Reports →
+              {discoveryKeys.some((k) => k !== "emotionStage" && search.has(k)) ? "Inspect filtered trades" : "Inspect in Reports"} →
             </Link>
           </div>
           {data.pending && (

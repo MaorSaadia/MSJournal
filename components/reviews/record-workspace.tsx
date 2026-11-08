@@ -19,6 +19,7 @@ import {
   type ReviewFields,
   type ReviewTag,
 } from "@/lib/reviews/model";
+import { TradeConfirmations } from "./confirmations";
 import { RecordStrategy } from "@/components/strategies/assignment";
 import { useWritingGuard } from "@/components/daily/writing-guard";
 import { MobileSaveBar } from "@/components/ui/mobile-save-bar";
@@ -342,6 +343,7 @@ export function RecordWorkspace({
         {comparison && (
           <div className="review-conflict">
             <h3>Latest saved review</h3>
+            <p>Confirmations: {comparison.fields.confirmations?.join(", ") || "Not recorded"}</p>
             {noteFields.map(([key, label]) => (
               <div key={key}>
                 <strong>{label}</strong>
@@ -402,6 +404,7 @@ export function RecordWorkspace({
           <aside className="review-assessment" aria-label="Trade assessment">
             {!demo && <RecordStrategy recordId={recordId} />}
             <div className="review-structured">
+              <TradeConfirmations selected={state.draft.fields.confirmations ?? []} disabled={demo || state.state === "conflict"} change={(confirmations) => edit({ ...state.draft.fields, confirmations })} />
               <section>
                 <h3>Emotions</h3>
                 {stages.map((stage) => (

@@ -100,6 +100,8 @@ export function CalendarCacheProvider({
           : strategiesOnly
             ? (key) =>
                 key.includes("|/api/strategies") ||
+                key.includes("|/api/dashboard|") ||
+                key.includes("|/api/reviews/filter-options|") ||
                 key.includes("|/api/journal|") ||
                 key.includes("|/api/reports|")
             : dailyOnly
@@ -280,6 +282,8 @@ export function usePrivateRequest<
       strategiesEndpoint
         ? (key) =>
             key.includes("|/api/strategies") ||
+            key.includes("|/api/dashboard|") ||
+            key.includes("|/api/reviews/filter-options|") ||
             key.includes("|/api/journal|") ||
             key.includes("|/api/reports|")
         : dailyEndpoint
@@ -312,6 +316,8 @@ export function usePrivateRequest<
         (event as CustomEvent<{ strategiesOnly?: boolean }>).detail
           ?.strategiesOnly &&
         !endpoint.startsWith("/api/strategies") &&
+        endpoint !== "/api/dashboard" &&
+        endpoint !== "/api/reviews/filter-options" &&
         endpoint !== "/api/journal" &&
         endpoint !== "/api/reports"
       )

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { confirmationName } from "./confirmations";
 export const emotions = [
   "Calm",
   "Focused",
@@ -58,6 +59,7 @@ export function emotionOptions(values: readonly string[]) {
 const choices = z.array(emotionNameSchema).max(30).transform(emotionOptions);
 export const reviewFieldsSchema = z
   .object({
+    confirmations: z.array(confirmationName).max(30).transform((v) => [...new Map(v.map((s) => [s.toLowerCase(), s])).values()]).optional(),
     entryRationale: note,
     management: note,
     wentWell: note,
@@ -75,6 +77,7 @@ export const reviewFieldsSchema = z
   .strict();
 export type ReviewFields = z.infer<typeof reviewFieldsSchema>;
 export const emptyFields = (): ReviewFields => ({
+  confirmations: [],
   entryRationale: "",
   management: "",
   wentWell: "",
@@ -90,6 +93,7 @@ export function hasNotes(fields: ReviewFields) {
 export function meaningful(fields: ReviewFields) {
   return (
     hasNotes(fields) ||
+    !!fields.confirmations?.length ||
     stages.some((s) => fields.emotions[s].length > 0) ||
     fields.mistakes.length > 0 ||
     fields.adherence !== null
