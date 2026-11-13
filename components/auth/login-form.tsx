@@ -107,11 +107,8 @@ export function LoginForm({
           </Button>
         </fieldset>
       </form>
-      <p className="login-privacy">
+      <p className="login-privacy login-signup-prompt">
         Don’t have an account? <Link href={`/signup?next=${encodeURIComponent(destination)}`}>Sign up</Link>
-      </p>
-      <p className="small muted">
-        <Link href="/verify-email">Request an email verification link</Link>
       </p>
     </AuthFrame>
   );

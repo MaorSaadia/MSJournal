@@ -1,4 +1,5 @@
 import "server-only";
+import { assertAccountActivity } from "@/lib/billing/entitlements";
 import { alignImportedPhaseStart } from "@/lib/props/import-start-service";
 import { REAL_RECORD_KIND } from "./statistics";
 import { randomUUID } from "node:crypto";
@@ -498,6 +499,7 @@ export async function saveFeeSettings(input: unknown, headers?: Headers) {
     values = feeSettingsSchema.parse(input);
   return safeDatabase(() =>
     getDb().transaction(async (tx) => {
+      await assertAccountActivity(tx,user.id,values.accountId);
       await lockAccount(tx, user.id, values.accountId);
       const settings = {
         perSide: values.perSide,
@@ -534,6 +536,7 @@ export async function setManualFees(input: unknown, headers?: Headers) {
           ),
         );
       if (!lookup) throw new NotFoundError();
+      await assertAccountActivity(tx,user.id,lookup.tradingAccountId);
       await lockAccount(tx, user.id, lookup.tradingAccountId);
       // Revalidate after the account lock in case an overlapping import regrouped this record.
       const [record] = await tx

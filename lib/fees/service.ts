@@ -1,4 +1,5 @@
 import "server-only";
+import { assertAccountActivity } from "@/lib/billing/entitlements";
 import { createHash } from "node:crypto";
 import { and, eq, inArray, sql, desc } from "drizzle-orm";
 import { getDb } from "@/db/client";
@@ -418,6 +419,7 @@ export async function saveFees(input: unknown, headers: Headers) {
   const user = await requireUser(headers),
     body = saveFeeTotalSchema.parse(input);
   return getDb().transaction(async (tx) => {
+    await assertAccountActivity(tx,user.id,body.scope.accountId);
     await lockAccount(tx, user.id, body.scope.accountId);
     const [pref] = await tx
       .select()

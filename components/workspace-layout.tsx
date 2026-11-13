@@ -1,3 +1,5 @@
+import { BillingAccess } from "@/components/billing/access";
+import { getEntitlement } from "@/lib/billing/entitlements";
 import { userSession } from "@/lib/session";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -27,7 +29,7 @@ export async function WorkspaceLayout({
       timezone={preferences.displayTimezone}
       weekStartsOn={preferences.weekStartsOn}
     >
-      <Shell displayName={owner.name}>{children}</Shell>
+      <Shell displayName={owner.name}><BillingAccess initial={await getEntitlement(owner.id)} userId={owner.id}>{children}</BillingAccess></Shell>
     </CalendarCacheProvider>
   );
 }

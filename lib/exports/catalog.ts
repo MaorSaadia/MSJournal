@@ -5,6 +5,9 @@ import { mistakes } from "@/lib/reviews/model";
 // Explicit allowlist; auth credential/session/token/rate-limit tables never enter it.
 export const backupTables = [
   schema.userPreferences,
+  schema.billingProfiles,
+  schema.billingIdentities,
+  schema.billingMemberships,
   schema.tradingAccounts,
   schema.importBatches,
   schema.importFiles,

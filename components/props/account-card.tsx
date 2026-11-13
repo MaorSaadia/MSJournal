@@ -1,4 +1,5 @@
 "use client";
+import { AccountAccessLabel } from "@/components/billing/access";
 import { LoadingState } from "@/components/ui/loading";
 
 import Link from "next/link";
@@ -97,6 +98,7 @@ export function PropAccountCard({
           </p>
         </div>
         <div className="prop-card-tools">
+          <AccountAccessLabel accountId={account.id}/>
           <span className={`prop-status ${account.archivedAt ? "archived" : account.status.toLowerCase()}`}>
             {account.archivedAt ? "Archived" : account.status}
           </span>

@@ -71,6 +71,17 @@
   color: var(--muted-foreground);
   margin-bottom: 9px;
 }
+.login-card .login-signup-prompt {
+  margin: 22px 0 0;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.login-signup-prompt a {
+  display: inline-block;
+  margin-left: 4px;
+  font-weight: 600;
+}
 .login-card > .small {
   line-height: 1.6;
   font-size: 10px;

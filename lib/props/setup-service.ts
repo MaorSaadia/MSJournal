@@ -1,4 +1,5 @@
 import "server-only";
+import { billingLock } from "@/lib/billing/entitlements";
 import { createHash } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -106,6 +107,7 @@ export async function saveGuidedSetup(input: unknown, headers: Headers) {
     );
   try {
     const result = await getDb().transaction(async (tx) => {
+      await billingLock(tx,user.id);
       const target = q.accountId ?? q.requestId;
       const [existing] = await tx
         .select()

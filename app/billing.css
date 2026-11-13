@@ -1,0 +1,323 @@
+.billing-page {
+  max-width: 1150px;
+  margin: auto;
+  padding: 0 22px 40px;
+}
+.billing-page > .page-header {
+  padding-block: 24px 20px;
+  margin: 0;
+}
+.billing-current,
+.billing-selection {
+  padding: 26px;
+  margin-bottom: 22px;
+}
+.billing-plan-heading {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.billing-plan-heading h2 {
+  font-size: 27px;
+  letter-spacing: -0.8px;
+  margin: 5px 0 8px;
+}
+.billing-plan-heading .eyebrow {
+  margin: 0;
+}
+.billing-plan-heading p {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.billing-upgrade-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 13px;
+  background: var(--accent);
+  color: var(--primary);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.billing-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  border-block: 1px solid var(--border);
+  padding-block: 24px;
+  margin-block: 24px;
+}
+.billing-details dt {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-bottom: 7px;
+}
+.billing-details dd {
+  font-size: 14px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.billing-details small {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  margin-left: 6px;
+}
+.billing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+.billing-actions button,
+.billing-actions a {
+  font-size: 12px;
+}
+.billing-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+.billing-comparison > section {
+  padding: 28px;
+}
+.billing-comparison h2 {
+  font-size: 23px;
+  margin: 10px 0 14px;
+}
+.billing-comparison p:not(.eyebrow) {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--muted-foreground);
+}
+.billing-comparison ul {
+  padding: 0;
+  list-style: none;
+  margin: 24px 0;
+}
+.billing-comparison li {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  font-size: 12px;
+  margin-block: 16px;
+  line-height: 1.7;
+}
+.billing-comparison li svg {
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.billing-pro {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  background: linear-gradient(
+    145deg,
+    var(--card),
+    color-mix(in srgb, var(--primary) 4%, var(--card))
+  );
+}
+.billing-pro button {
+  width: 100%;
+  white-space: normal;
+  height: auto;
+  margin-top: 10px;
+  min-height: 42px;
+}
+.billing-unavailable {
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--muted);
+}
+.billing-pro .billing-price-detail {
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 7px 0;
+}
+.billing-pro .billing-confirmed-price {
+  font-size: 22px;
+  color: var(--foreground);
+  font-weight: 600;
+}
+.billing-confirmed-price small {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  font-weight: 400;
+  display: block;
+}
+.billing-price-option + .billing-price-option {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.billing-selection > p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--muted-foreground);
+  max-width: 78ch;
+}
+.billing-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid var(--border);
+  padding: 17px 0;
+}
+.billing-account strong {
+  font-size: 13px;
+  display: block;
+}
+.billing-account small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-top: 7px;
+}
+.billing-account > svg {
+  color: var(--primary);
+}
+.billing-footer-note {
+  line-height: 1.9;
+  margin-top: 22px;
+}
+.billing-footer-note a,
+.billing-selection > a {
+  color: var(--primary);
+}
+.billing-message {
+  padding: 17px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  background: var(--card);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.billing-message p {
+  color: var(--muted-foreground);
+  margin-top: 6px;
+}
+.billing-access-note {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--accent);
+  color: var(--foreground);
+}
+.billing-access-note > svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.billing-access-note strong {
+  font-size: 12px;
+}
+.billing-access-note p {
+  font-size: 11px;
+  line-height: 1.7;
+  margin: 5px 0 0;
+  color: var(--muted-foreground);
+}
+.billing-access-note > a {
+  white-space: nowrap;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--primary);
+}
+.billing-usage {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--primary);
+  padding: 9px 12px;
+  margin: 0 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.billing-readonly {
+  font-size: 9px;
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+  padding: 4px 7px;
+  border-radius: 20px;
+}
+.billing-upgrade-dialog {
+  max-width: 440px;
+  padding: 28px;
+}
+.billing-upgrade-dialog .eyebrow {
+  margin-top: 20px;
+}
+.billing-upgrade-dialog > .small {
+  line-height: 1.85;
+}
+.billing-upgrade-actions {
+  display: flex;
+  justify-content: end;
+  gap: 10px;
+  margin-top: 12px;
+}
+.settings-billing-link {
+  padding: 22px;
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+.settings-billing-link h2 {
+  font-size: 17px;
+  margin: 0 0 9px;
+}
+.settings-billing-link p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted-foreground);
+}
+@media (max-width: 650px) {
+  .billing-page {
+    padding-inline: 14px;
+  }
+  .billing-comparison,
+  .billing-details {
+    grid-template-columns: 1fr;
+  }
+  .billing-current,
+  .billing-selection,
+  .billing-comparison > section {
+    padding: 22px;
+  }
+  .billing-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .billing-access-note {
+    flex-wrap: wrap;
+    padding: 14px;
+  }
+  .billing-access-note > div {
+    flex: 1;
+    min-width: 200px;
+  }
+  .billing-access-note > a {
+    margin-left: 34px;
+  }
+  .billing-account {
+    align-items: start;
+  }
+  .billing-account button {
+    font-size: 11px;
+  }
+  .settings-billing-link {
+    flex-direction: column;
+    align-items: start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .billing-page *,
+  .billing-upgrade-dialog * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

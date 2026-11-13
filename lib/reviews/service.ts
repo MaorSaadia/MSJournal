@@ -1,4 +1,5 @@
 import "server-only";
+import { assertAccountActivity, billingLock } from "@/lib/billing/entitlements";
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, sql, lt, or, count } from "drizzle-orm";
 import { z } from "zod";
@@ -47,7 +48,10 @@ export async function lockReviewAccount(
   tx: Tx,
   userId: string,
   accountId: string,
+  activity = true,
 ) {
+  if(activity) await assertAccountActivity(tx,userId,accountId);
+  else await billingLock(tx,userId);
   await tx.execute(
     sql`select pg_advisory_xact_lock(hashtextextended(${userId + ":" + accountId},0))`,
   );
@@ -778,7 +782,7 @@ export async function removeScreenshot(id: string, headers?: Headers) {
           ),
         );
       if (!image) throw new NotFoundError();
-      await lockReviewAccount(tx, owner.id, image.tradingAccountId);
+      await lockReviewAccount(tx, owner.id, image.tradingAccountId, false);
       const review = await ownedReview(tx, owner.id, image.reviewId);
       await tx
         .update(reviewAttachments)
@@ -817,7 +821,7 @@ export async function cleanupScreenshots(ownerId: string, accountId?: string) {
     .limit(50);
   for (const image of rows) {
     await getDb().transaction(async (tx) => {
-      await lockReviewAccount(tx, ownerId, image.tradingAccountId);
+      await lockReviewAccount(tx, ownerId, image.tradingAccountId, false);
       const [current] = await tx
         .select()
         .from(reviewAttachments)

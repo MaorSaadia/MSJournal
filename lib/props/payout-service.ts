@@ -1,4 +1,5 @@
 import "server-only";
+import { assertAccountActivity } from "@/lib/billing/entitlements";
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -33,6 +34,7 @@ export async function savePayout(input: unknown, headers?: Headers) {
     q = mutation.parse(input);
   try {
     return await getDb().transaction(async (tx) => {
+      await assertAccountActivity(tx,owner.id,q.accountId);
       const [account] = await tx
         .select()
         .from(tradingAccounts)

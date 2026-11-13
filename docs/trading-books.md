@@ -15,7 +15,7 @@ Public editorial catalog for Maor Saadia's books. This is separate from `/book`;
 - `/books/the-institutional-operator-book-2`
 - `/books/the-consistent-day-trader`
 
-The first eight entries use the supplied descriptions and artwork. The ninth connects the existing Consistent Day Trader companion. Its introduction uses existing companion facts; no manuscript was copied into public assets. The 3-in-1 Masterclass explicitly identifies its three constituent books. No overlap between other titles is inferred.
+All nine entries use the supplied descriptions and front-cover artwork. The Consistent Day Trader also connects to the existing companion and its four free worksheets; no manuscript was copied into public assets. The 3-in-1 Masterclass explicitly identifies its three constituent books. No overlap between other titles is inferred.
 
 ## Add Amazon links
 
@@ -47,11 +47,11 @@ The same typed catalog owns descriptions, audience, highlights, category, order,
 
 ## Covers
 
-Eight optimized front-cover WebPs are in `public/books/` (about 39–128 KB each). They preserve the supplied art, aspect ratios and complete front covers. No manuscripts, full print wraps or back covers are published. Dimensions are stored in each catalog entry and Next Image supplies responsive sizes. The cover-to-title contact sheet is a private local artifact at `artifacts/books/cover-contact-sheet.png`.
+Nine optimized front-cover WebPs are in `public/books/` (about 39–162 KB each). They preserve the supplied art, aspect ratios and complete front covers. No manuscripts, full print wraps or back covers are published. Dimensions are stored in each catalog entry and Next Image supplies responsive sizes. The original eight-cover contact sheet is a private local artifact at `artifacts/books/cover-contact-sheet.png`.
 
-**Missing supplied asset:** The Consistent Day Trader front cover. Its entry intentionally has `cover: null` and uses a restrained title treatment. To add an approved front cover later, optimize it under `public/books/` and set that entry's `cover` to `{path, alt, width, height}`. Do not substitute an old edition or generate replacement cover text.
+The Consistent Day Trader uses the supplied white-and-blue front cover at `public/books/the-consistent-day-trader.webp` (900 × 1343). Its description, intended audience and six learning highlights were updated from the supplied book description. Its Amazon link remains unset; free worksheet links are preserved.
 
-Local reproduction tool (reads only specific selected front-cover images):
+Local reproduction tool for the original eight covers (reads only specific selected front-cover images; leaves the ninth asset untouched):
 
 ```powershell
 node node_modules/tsx/dist/cli.mjs scripts/prepare-trading-book-covers.ts 'PATH_TO_LOCAL_BOOK_ASSET_DIRECTORIES'

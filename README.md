@@ -438,7 +438,7 @@ Reviewed additive migrations `drizzle/0008_overconfident_wild_pack.sql` (strateg
 
 Use **Trade View → Export CSV** to download every record matching the current filters, up to 20,000 records; pagination does not restrict the export. The file preserves decimal financial values and unknown amounts, safely escapes spreadsheet text, and labels selected-filter amounts separately from full-record totals. It retains account/date/strategy/review/outcome/type and gross/net selections and includes UTC/local timestamps.
 
-Use **Settings → Data & backups → Download my data** for a version 5 ZIP containing structured JSON and readable/structured manifests. It includes owned journal preferences/accounts/imports/sources/fees/balances/prop progress/reviews/daily entries/strategies/private templates/revisions/assignments and attachment metadata. Authentication credentials, sessions/tokens, environment secrets and other users' records are excluded. Structured records use one consistent read-only snapshot and are checked for ownership and relationship completeness.
+Use **Settings → Data & backups → Download my data** for a version 7 ZIP containing structured JSON and readable/structured manifests. It includes owned journal preferences/accounts/imports/sources/fees/balances/prop progress/reviews/daily entries/strategies/private templates/revisions/assignments, worksheets, billing selection/provider state and attachment metadata. Authentication credentials, sessions/tokens, environment secrets, transient billing proofs/verifiers/webhook inboxes and other users' records are excluded. Structured records use one consistent read-only snapshot and are checked for ownership and relationship completeness.
 
 **Include screenshots and playbook images** adds private originals and thumbnails as actual ZIP files. If retrieval fails, retry or explicitly confirm **Download partial archive**; missing files are recorded in the manifest. Structured export works without configured storage. Limits are 100,000 records, 16 MiB structured JSON, 200 image object files and 64 MiB per ZIP. No private archive is hosted at a public URL or persisted on local disk.
 
@@ -566,3 +566,11 @@ The free companion to **The Consistent Day Trader** by Maor Saadia is at `/book`
 Review/apply additive migration `0014_book_companion.sql` using `npm.cmd run db:migrate -- --reviewed` in other environments; it is already applied to development. Data archives are now v6, including worksheet versions and history. No new environment variables or PDF service are required. See the [book companion guide, coverage, calculations, privacy and setup](docs/book-companion.md). No deployment or Whop work was performed.
 
 The simplified companion edition (6 November 2026) uses separate versioned IDs and preserves original A-L entries under Previous edition. Old public URLs explain retirement; saved questions, answers, history and print access remain intact. The redesign needs no additional migration.
+
+## Whop billing and account allowances
+
+Free includes one real trading account total from one firm, including archived accounts. Pro supports multiple accounts across firms. Existing excess accounts remain readable/exportable; select one persistent Free account in Settings > Billing or upgrade to resume activity across all accounts. Books and all four worksheets remain free.
+
+Review and apply migration 0015 before running the new private workspace. Checkout remains disabled without verified Whop configuration. See [billing setup, secure linking, sandbox tests and release gates](docs/whop-billing.md). No live payments or seller tax declarations were submitted.
+
+Confirmed Pro pricing is $9.99 USD monthly, launching with Monthly only. Optional Yearly is $89.99 USD annually with the same Pro access; its purchase option remains hidden until its Whop ID, USD amount and annual interval are verified. Use `WHOP_PRO_MONTHLY_PLAN_ID` now and leave `WHOP_PRO_ANNUAL_PLAN_ID` blank until ready. Pricing changes need no additional database migration.

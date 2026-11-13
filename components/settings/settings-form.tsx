@@ -71,6 +71,7 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
           </p>
         </div>
       </header>
+      <section className="panel settings-billing-link"><div><h2>Plan & billing</h2><p>Free: one trading account from one prop firm. Pro: multiple accounts across prop firms.</p></div><Button asChild variant="outline"><Link href="/settings/billing">Manage plan</Link></Button></section>
       <section className="panel settings-card">
         <header className="panel-header">
           <h2>Profile & display</h2>

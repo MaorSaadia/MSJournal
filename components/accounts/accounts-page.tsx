@@ -1,4 +1,5 @@
 "use client";
+import { AccountUsage } from "@/components/billing/access";
 import { LoadingIndicator, LoadingSpinner } from "@/components/ui/loading";
 
 import { useState } from "react";
@@ -184,6 +185,7 @@ export function AccountsPage({
           Add Firm
         </Button>
       </header>
+      <AccountUsage />
       <div className="prop-account-totals" aria-label="Account summary">
         {[
           [totalFirms, totalFirms === 1 ? "Firm" : "Firms", ""],

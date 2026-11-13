@@ -1,4 +1,5 @@
 import "server-only";
+import { PlanLimitError } from "@/lib/billing/entitlements";
 import { ZodError } from "zod";
 import { readConfig } from "./config";
 import { UnauthorizedError } from "./session";
@@ -20,6 +21,7 @@ export function privateJson(value: unknown, status = 200) {
   });
 }
 export function privateError(error: unknown) {
+  if(error instanceof PlanLimitError)return privateJson({message:error.message,code:error.code},error.status);
   if(error instanceof ReviewError)return privateJson({message:error.message},error.status);
   if (error instanceof ImportError)
     return privateJson({ message: error.message }, error.status);

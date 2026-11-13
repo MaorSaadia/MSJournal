@@ -1,4 +1,5 @@
 import "server-only";
+import { assertAccountActivity } from "@/lib/billing/entitlements";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -46,6 +47,7 @@ export async function saveBalance(input: unknown, headers?: Headers) {
     q = mutation.parse(input);
   try {
     return await getDb().transaction(async (tx) => {
+      await assertAccountActivity(tx,user.id,q.accountId);
       const [account] = await tx
         .select()
         .from(tradingAccounts)

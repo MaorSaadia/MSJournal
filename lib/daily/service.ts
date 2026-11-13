@@ -1,4 +1,5 @@
 import "server-only";
+import { assertAccountActivity } from "@/lib/billing/entitlements";
 import { validatePlans } from "@/lib/strategies/service";
 import { and, eq, sql, gte, lte, count, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -186,6 +187,11 @@ export async function saveDaily(input: unknown, headers?: Headers) {
         value.fields.plannedStrategies,
         previous?.fields.plannedStrategies ?? [],
       );
+      const linkedChanges=value.fields.observations.filter(o=>o.recordId && JSON.stringify(o)!==JSON.stringify(previous?.fields.observations.find(old=>old.id===o.id)));
+      for(const observation of linkedChanges) {
+        const [record]=await tx.select({accountId:journalRecords.tradingAccountId}).from(journalRecords).where(and(eq(journalRecords.id,observation.recordId!),eq(journalRecords.ownerId,owner.id)));
+        if(record) await assertAccountActivity(tx,owner.id,record.accountId);
+      }
       const now = new Date();
       const meta: Record<string, ObservationMeta> = {};
       for (const observation of value.fields.observations) {

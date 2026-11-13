@@ -25,6 +25,7 @@ import "./trade-review.css";
 import "./marketing.css";
 import "./book.css";
 import "./books.css";
+import "./billing.css";
 import { Providers } from "@/components/providers";
 import { noIndex, siteDescription, siteTitle, siteUrl, shareImage } from "@/lib/seo";
 

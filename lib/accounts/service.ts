@@ -1,4 +1,5 @@
 import "server-only";
+import { assertNewAccount, assertAccountActivity, billingDatabaseError, billingLock } from "@/lib/billing/entitlements";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -36,6 +37,7 @@ function serialize(row: typeof tradingAccounts.$inferSelect): TradingAccount {
   };
 }
 function databaseError(error: unknown): never {
+  billingDatabaseError(error);
   const e = error as { code?: string; cause?: { code?: string } };
   if (e.code === "23505" || e.cause?.code === "23505")
     throw new DuplicateAccountError();
@@ -97,6 +99,8 @@ export async function saveTradingAccount(
   try {
     const db = getDb();
     const work = async (tx: AccountTx) => {
+      if (id) await assertAccountActivity(tx,owner.id,accountId.parse(id));
+      else await assertNewAccount(tx,owner.id);
       if (id) {
         const [existing] = await tx
           .select()
@@ -166,7 +170,10 @@ export async function archiveTradingAccount(
 ) {
   const owner = await requireUser(headers);
   try {
-    const [row] = await getDb()
+    const [row] = await getDb().transaction(async tx=>{
+      await billingLock(tx,owner.id);
+      if(!archive) await assertAccountActivity(tx,owner.id,accountId.parse(id));
+      return tx
       .update(tradingAccounts)
       .set({ archivedAt: archive ? new Date() : null, updatedAt: new Date() })
       .where(
@@ -176,6 +183,7 @@ export async function archiveTradingAccount(
         ),
       )
       .returning();
+    });
     if (!row) throw new NotFoundError();
     return serialize(row);
   } catch (error) {

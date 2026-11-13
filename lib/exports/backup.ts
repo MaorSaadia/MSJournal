@@ -266,7 +266,7 @@ export async function createBackup(
     );
   const manifest = {
     format: "msjournal-portable-archive",
-    version: 6,
+    version: 7,
     createdAt: createdAt.toISOString(),
     databaseSnapshot:
       "repeatable read; metadata from one read-only transaction",

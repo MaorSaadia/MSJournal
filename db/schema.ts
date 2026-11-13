@@ -24,6 +24,48 @@ import {
   foreignKey,
 } from "drizzle-orm/pg-core";
 
+export const billingProfiles = pgTable("billing_profiles", {
+  ownerId:text("owner_id").primaryKey().references(()=>user.id,{onDelete:"cascade"}),
+  freeAccountId:uuid("free_account_id").references(()=>tradingAccounts.id,{onDelete:"set null"}),
+  selectedAt:timestamp("selected_at",{withTimezone:true}),
+  refreshedAt:timestamp("refreshed_at",{withTimezone:true}),
+  updatedAt:timestamp("updated_at",{withTimezone:true}).notNull().defaultNow(),
+});
+export const billingIdentities = pgTable("billing_identities", {
+  ownerId:text("owner_id").notNull().references(()=>user.id,{onDelete:"cascade"}),
+  environment:text("environment").$type<"sandbox"|"live">().notNull(),
+  whopUserId:text("whop_user_id").notNull(),
+  linkedAt:timestamp("linked_at",{withTimezone:true}).notNull().defaultNow(),
+},t=>[primaryKey({columns:[t.ownerId,t.environment]}),uniqueIndex("billing_identity_unique").on(t.environment,t.whopUserId),check("billing_identity_environment",sql`${t.environment} in ('sandbox','live')`)]);
+export const billingMemberships = pgTable("billing_memberships", {
+  environment:text("environment").$type<"sandbox"|"live">().notNull(), membershipId:text("membership_id").notNull(),
+  ownerId:text("owner_id").notNull().references(()=>user.id,{onDelete:"cascade"}),
+  whopUserId:text("whop_user_id").notNull(),businessId:text("business_id").notNull(),productId:text("product_id").notNull(),planId:text("plan_id").notNull(),
+  status:text("status").notNull(),hasAccess:boolean("has_access").notNull(),cancelAtPeriodEnd:boolean("cancel_at_period_end").notNull(),
+  periodEnd:timestamp("period_end",{withTimezone:true}),expiresAt:timestamp("expires_at",{withTimezone:true}),
+  providerUpdatedAt:timestamp("provider_updated_at",{withTimezone:true}).notNull(),verifiedAt:timestamp("verified_at",{withTimezone:true}).notNull(),
+  eligibleUntil:timestamp("eligible_until",{withTimezone:true}).notNull(),manageUrl:text("manage_url"),
+  checkedAt:timestamp("checked_at",{withTimezone:true}).notNull().defaultNow(),refreshFailed:boolean("refresh_failed").notNull().default(false),
+},t=>[primaryKey({columns:[t.environment,t.membershipId]}),index("billing_membership_owner").on(t.ownerId,t.environment),index("billing_membership_refresh").on(t.environment,t.checkedAt),check("billing_membership_environment",sql`${t.environment} in ('sandbox','live')`)]);
+export const billingCheckouts = pgTable("billing_checkouts", {
+  id:uuid("id").primaryKey().defaultRandom(),ownerId:text("owner_id").notNull().references(()=>user.id,{onDelete:"cascade"}),
+  environment:text("environment").$type<"sandbox"|"live">().notNull(),planId:text("plan_id").notNull(),
+  nonceHash:text("nonce_hash").notNull(),configurationId:text("configuration_id"),
+  createdAt:timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+},t=>[uniqueIndex("billing_checkout_nonce").on(t.nonceHash),index("billing_checkout_owner").on(t.ownerId,t.createdAt),uniqueIndex("billing_checkout_configuration").on(t.environment,t.configurationId)]);
+export const billingOAuthStates = pgTable("billing_oauth_states", {
+  stateHash:text("state_hash").primaryKey(),ownerId:text("owner_id").notNull().references(()=>user.id,{onDelete:"cascade"}),
+  environment:text("environment").$type<"sandbox"|"live">().notNull(),verifier:text("verifier").notNull(),
+  expiresAt:timestamp("expires_at",{withTimezone:true}).notNull(),
+});
+export const billingWebhookEvents = pgTable("billing_webhook_events", {
+  environment:text("environment").$type<"sandbox"|"live">().notNull(),eventId:text("event_id").notNull(),
+  type:text("type").notNull(),membershipId:text("membership_id"),paymentId:text("payment_id"),
+  state:text("state").$type<"pending"|"processed"|"ignored"|"failed">().notNull().default("pending"),
+  attempts:integer("attempts").notNull().default(0),receivedAt:timestamp("received_at",{withTimezone:true}).notNull().defaultNow(),
+  processedAt:timestamp("processed_at",{withTimezone:true}),lastError:text("last_error"),
+},t=>[primaryKey({columns:[t.environment,t.eventId]}),index("billing_webhook_pending").on(t.environment,t.state,t.receivedAt)]);
+
 export const worksheetTemplates = pgTable("worksheet_templates", {
   id: text("id").primaryKey(), slug: text("slug").notNull(), version: integer("version").notNull(),
   definition: jsonb("definition").$type<Template>().notNull(), hash: text("hash").notNull(),

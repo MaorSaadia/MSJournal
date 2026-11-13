@@ -20,6 +20,7 @@ export async function requestJson<T>(
   });
   const data = await response.json();
   if (!response.ok) {
+    if(data.code === "PLAN_LIMIT") window.dispatchEvent(new Event("msjournal:upgrade-needed"));
     if (response.status === 401) {
       window.dispatchEvent(new Event("msjournal:clear-private-cache"));
       window.location.replace("/login");

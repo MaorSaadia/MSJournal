@@ -2,6 +2,8 @@
 
 This milestone does not deploy anything. Prop firm expenses, reset costs and payout tracking are intentionally skipped.
 
+Current billing extension: archive format **7** also includes owner-scoped billing profiles, provider identities and verified membership state. It excludes checkout proofs, OAuth states/verifiers and webhook inboxes. Imported archive data cannot confer paid access. See [Whop billing](whop-billing.md) for the current policy and required migration.
+
 ## Export filtered trading history
 
 Open **Trade View → Export CSV**. The export uses the current account/archive scope, date range/basis, strategy/review/emotion/mistake/product/direction/outcome filters, P&L basis, record type, statistics basis and ordering. Pagination and visible-column preferences do not limit it. Demo exports are explicitly named `demo` and contain the existing fictional data; they never enter a real archive.

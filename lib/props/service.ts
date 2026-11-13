@@ -1,4 +1,5 @@
 import "server-only";
+import { assertAccountActivity } from "@/lib/billing/entitlements";
 import { and, asc, eq, inArray, desc } from "drizzle-orm";
 import { z, ZodError } from "zod";
 import { getDb } from "@/db/client";
@@ -260,6 +261,7 @@ export async function saveProp(
     bad("Opening daily dates must be unique.");
   try {
     const work = async (tx: import("@/lib/accounts/service").AccountTx) => {
+      await assertAccountActivity(tx,user.id,q.accountId);
       let previous: typeof propPhases.$inferSelect | undefined;
       if (q.action === "phase" && q.previousId) {
         [previous] = await tx
@@ -280,6 +282,7 @@ export async function saveProp(
           ...(previous ? [previous.tradingAccountId] : []),
         ]),
       ].sort();
+      for(const id of ids) await assertAccountActivity(tx,user.id,id);
       const locked = await tx
         .select()
         .from(tradingAccounts)

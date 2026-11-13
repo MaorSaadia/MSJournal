@@ -1,4 +1,5 @@
 import "server-only";
+import { assertAccountActivity } from "@/lib/billing/entitlements";
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -276,6 +277,7 @@ export async function previewImport(
   headers?: Headers,
 ): Promise<Preview> {
   const user = await requireUser(headers);
+  await getDb().transaction(tx=>assertAccountActivity(tx,user.id,options.accountId));
   const stored = await evaluate(getDb(), user.id, options, files);
   const canConfirm = files.every((f) => !f.errors.length);
   let feeReview;
@@ -309,6 +311,7 @@ export async function confirmImport(
     payload = payloadHash(options, files),
     confirmationId = verifyToken(token, user.id, payload);
   return getDb().transaction(async (tx) => {
+    await assertAccountActivity(tx,user.id,options.accountId);
     // Transaction-scoped locks work with Neon's pooled PostgreSQL connection.
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtextextended(${user.id + ":" + confirmationId},0))`,

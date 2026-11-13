@@ -1,4 +1,5 @@
 import "server-only";
+import { billingLock } from "@/lib/billing/entitlements";
 import { createHash } from "node:crypto";
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -15,6 +16,7 @@ type Summary = {
   version: string; filesVersion: string;
 };
 async function lockArchived(tx: AccountTx, ownerId: string, id: string) {
+  await billingLock(tx,ownerId);
   await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${ownerId + ":" + id},0))`);
   const [account] = await tx.select().from(tables.tradingAccounts).where(and(
     eq(tables.tradingAccounts.ownerId, ownerId), eq(tables.tradingAccounts.id, id),
