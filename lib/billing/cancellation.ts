@@ -5,7 +5,7 @@ import { billingMemberships } from "@/db/schema";
 import { ReviewError } from "@/lib/reviews/model";
 import { whopConfig } from "./config";
 import { whopMembershipSchema } from "./policy";
-import { digest, reconcileMembership, whopRequest } from "./provider";
+import { digest, ProviderUnavailable, reconcileMembership, whopRequest } from "./provider";
 
 // The browser supplies neither a membership ID nor the cancellation timing.
 export async function cancelRenewal(ownerId: string, membershipId?: string) {
@@ -38,7 +38,9 @@ export async function cancelRenewal(ownerId: string, membershipId?: string) {
         // Omitting this field or sending false would revoke access immediately.
         body: JSON.stringify({ cancel_at_period_end: true }),
       }, config);
-    } catch {
+    } catch (error) {
+      if (error instanceof ProviderUnavailable && error.providerStatus === 403)
+        throw new ReviewError("Whop denied this cancellation request. MSJournal's Whop API key needs the membership:cancel permission. Contact support or manage your subscription through Whop. Cancellation has not been confirmed.", 503);
       throw new ReviewError("Cancellation could not be confirmed. Refresh your subscription status before trying again, or manage it through Whop.", 503);
     }
   }

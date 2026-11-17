@@ -12,6 +12,9 @@ vi.mock("@/lib/billing/config", () => ({ whopConfig: () => mocks.configured ? {
   environment: "sandbox", businessId: "biz_fixture", productId: "prod_fixture", planIds: ["plan_fixture"],
 } : null }));
 vi.mock("@/lib/billing/provider", () => ({
+  ProviderUnavailable: class extends Error {
+    constructor(readonly providerStatus?: number) { super("Provider unavailable"); }
+  },
   whopRequest: mocks.request,
   reconcileMembership: mocks.reconcile,
   digest: (s: string) => s,
@@ -24,6 +27,7 @@ vi.mock("@/db/client", () => ({ getDb: () => ({
   } }) }),
 }) }));
 import { cancelRenewal } from "@/lib/billing/cancellation";
+import { ProviderUnavailable } from "@/lib/billing/provider";
 const remote = () => ({
   id: "mem_fixture", account: { id: "biz_fixture" }, product_id: "prod_fixture", variant_id: "plan_fixture",
   user_id: "user_fixture", status: "active", updated_at: new Date().toISOString(),
@@ -37,6 +41,15 @@ beforeEach(() => {
   mocks.reconcile.mockImplementation(async () => { mocks.rows[0].cancelAtPeriodEnd = true; });
 });
 describe("owner-scoped period-end cancellation", () => {
+  it("explains missing provider cancellation permission without changing access", async () => {
+    mocks.request.mockImplementation(async (_path, options) => {
+      if (options?.method === "POST") throw new ProviderUnavailable(403);
+      return remote();
+    });
+    await expect(cancelRenewal("owner")).rejects.toThrow("membership:cancel");
+    expect(mocks.reconcile).not.toHaveBeenCalled();
+    expect(mocks.rows[0].cancelAtPeriodEnd).toBe(false);
+  });
   it("always requests period-end cancellation, then verifies access using the existing reconciler", async () => {
     await cancelRenewal("owner");
     const post = mocks.request.mock.calls.find(([, options]) => options?.method === "POST")!;

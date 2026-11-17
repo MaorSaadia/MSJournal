@@ -93,7 +93,7 @@ export async function entitlementInTransaction(tx: BillingTx, ownerId: string) {
       .where(eq(billingProfiles.ownerId, ownerId))
       .returning();
   }
-  return deriveEntitlement(
+  const entitlement: ReturnType<typeof deriveEntitlement> & { complimentaryProUntil?: string | null } = { ...deriveEntitlement(
     accounts.map((a) => ({
       id: a.id,
       name: a.displayName,
@@ -101,7 +101,9 @@ export async function entitlementInTransaction(tx: BillingTx, ownerId: string) {
     })),
     profile.freeAccountId,
     pro,
-  );
+  ), complimentaryProUntil: profile.complimentaryProUntil && profile.complimentaryProUntil > new Date()
+    ? profile.complimentaryProUntil.toISOString() : null };
+  return entitlement;
 }
 export async function getEntitlement(ownerId: string) {
   try {

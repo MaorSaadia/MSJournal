@@ -29,6 +29,9 @@ export const billingProfiles = pgTable("billing_profiles", {
   freeAccountId:uuid("free_account_id").references(()=>tradingAccounts.id,{onDelete:"set null"}),
   selectedAt:timestamp("selected_at",{withTimezone:true}),
   refreshedAt:timestamp("refreshed_at",{withTimezone:true}),
+  complimentaryProUntil:timestamp("complimentary_pro_until",{withTimezone:true}),
+  complimentaryGrantedAt:timestamp("complimentary_granted_at",{withTimezone:true}),
+  complimentaryReason:text("complimentary_reason"),
   updatedAt:timestamp("updated_at",{withTimezone:true}).notNull().defaultNow(),
 });
 export const billingIdentities = pgTable("billing_identities", {

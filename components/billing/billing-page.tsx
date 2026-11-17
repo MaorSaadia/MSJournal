@@ -75,9 +75,7 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
       }
       accept(result);
       setMessage(
-        body.action === "cancel"
-          ? "Future renewal is canceled. Your confirmed access continues until the access-end date. Your trading data stays saved."
-          : body.action === "select"
+        body.action === "select"
           ? "Your Free account is selected. Other accounts and history are kept."
           : "Subscription status refreshed.",
       );
@@ -203,7 +201,7 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
                 ? "Access needs confirmation"
                 : subscription
                   ? (statusLabels[subscription.status] ?? "Needs verification")
-                  : "Free"}
+                  : data.complimentaryProUntil ? "Complimentary Pro" : "Free"}
             </dd>
           </div>
           {data.currentInterval && <div><dt>Billing period</dt><dd>{data.currentInterval === "annual" ? "Yearly" : "Monthly"}</dd></div>}
@@ -226,6 +224,9 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
             </div>
           )}
         </dl>
+        {data.complimentaryProUntil && (
+          <p className="small muted">Complimentary Pro access until {journalTimestamp(data.complimentaryProUntil, data.timezone)}. No payment or automatic renewal is associated with this grant.</p>
+        )}
         {subscription?.cancelAtPeriodEnd && data.plan === "Pro" && (
           <p className="small muted">
             Future renewal is canceled. Confirmed access continues until the
@@ -246,7 +247,7 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Manage subscription <ExternalLink size={14} />
+                Manage or cancel on Whop <ExternalLink size={14} />
                 <span className="sr-only"> (opens in a new tab)</span>
               </a>
             </Button>
@@ -269,24 +270,12 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
               existing subscription
             </Button>
           )}
-          {subscription && !subscription.cancelAtPeriodEnd &&
-            ["active", "trialing", "past_due"].includes(subscription.status) && (
-            <Button
-              variant="ghost"
-              className="billing-cancel-renewal"
-              disabled={!!busy}
-              onClick={async () => {
-                if (await confirmAction(
-                  `Stop future renewals? Your Pro access continues ${end ? `until ${journalTimestamp(end, data.timezone)}` : "until the current paid period ends"}. Afterward, Free allows one trading account. Your other accounts and trading history stay saved.`,
-                  { title: "Cancel your Pro renewal?", confirmLabel: "Cancel renewal", cancelLabel: "Keep my subscription", destructive: true },
-                )) void action({ action: "cancel" }, "cancel");
-              }}
-            >
-              {busy === "cancel" && <LoadingSpinner size={14} />}
-              {busy === "cancel" ? "Canceling renewal" : "Cancel renewal"}
-            </Button>
-          )}
         </div>
+        {subscription?.manageUrl && (
+          <p className="small muted">
+            To cancel, sign in to Whop with the account used at checkout, select your MSJournal subscription and choose Cancel membership. Return here and refresh subscription status afterward. Opening Whop does not cancel your plan.
+          </p>
+        )}
       </section>
       {data.plan === "Free" && data.usage > 1 && (
         <section className="panel billing-selection">

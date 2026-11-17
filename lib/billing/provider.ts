@@ -28,7 +28,7 @@ export const digest = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 type Config = NonNullable<ReturnType<typeof whopConfig>>;
 export class ProviderUnavailable extends ReviewError {
-  constructor() {
+  constructor(readonly providerStatus?: number) {
     super(
       "Subscription status could not refresh. Your last confirmed access is kept within its verified period. Please try again shortly.",
       503,
@@ -58,7 +58,9 @@ export async function whopRequest(
   } catch {
     throw new ProviderUnavailable();
   }
-  if (!response.ok) throw new ProviderUnavailable();
+  // Keep only the HTTP status for actionable handling. Never expose provider
+  // bodies, request headers or credentials through application errors.
+  if (!response.ok) throw new ProviderUnavailable(response.status);
   try {
     return await response.json();
   } catch {

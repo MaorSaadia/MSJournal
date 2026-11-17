@@ -186,6 +186,7 @@ describe.skipIf(!enabled)(
       ).replaceAll('"public".', `"${namespace}".`);
       await pool.query(migration);
       await pool.query((await readFile("drizzle/0016_billing_plan_changes.sql", "utf8")).replaceAll('"public".', `"${namespace}".`));
+      await pool.query(await readFile("drizzle/0017_complimentary_pro.sql", "utf8"));
       await pool.query(
         (await readFile("drizzle/0014_book_companion.sql", "utf8")).replaceAll(
           '"public".',
@@ -256,6 +257,19 @@ describe.skipIf(!enabled)(
     afterEach(() => {
       fixture.owner = "new";
     });
+    it("grants Pro only to the complimentary owner, expires automatically and preserves accounts", async () => {
+      await pool.query("insert into auth_users(id) values('complimentary')");
+      await pool.query("insert into billing_profiles(owner_id,complimentary_pro_until,complimentary_granted_at,complimentary_reason) values('complimentary',now()+interval '1 year',now(),'Fixture grant')");
+      expect((await getEntitlement("complimentary")).plan).toBe("Pro");
+      expect((await getEntitlement("foreign")).plan).toBe("Free");
+      fixture.owner = "complimentary";
+      await saveTradingAccount(input("Complimentary one"));
+      await saveTradingAccount({ ...input("Complimentary two"), firmChoice: "Lucid Trading" });
+      expect((await getEntitlement("complimentary")).usage).toBe(2);
+      await pool.query("update billing_profiles set complimentary_pro_until=now()-interval '1 second' where owner_id='complimentary'");
+      expect(await getEntitlement("complimentary")).toMatchObject({ plan: "Free", usage: 2, complimentaryProUntil: null });
+      await expect(saveTradingAccount(input("Expired grant"))).rejects.toMatchObject({ code: "PLAN_LIMIT" });
+    }, 30000);
     it("allows a first account, blocks a second across firms, counts archives and gates restoration", async () => {
       const first = await saveTradingAccount(input("First"));
       expect((await getEntitlement("new")).freeAccountId).toBe(first.id);

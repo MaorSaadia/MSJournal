@@ -313,31 +313,16 @@ export default function Page(){
   await page.setViewportSize({ width: 1440, height: 1100 });
   await page.reload({ waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "MSJournal Pro" }).first().waitFor();
-  await page.getByRole("button", { name: "Cancel renewal", exact: true }).click();
-  await page.getByRole("dialog", { name: "Cancel your Pro renewal?" }).waitFor();
-  await page.screenshot({ path: resolve(output, "billing-cancel-confirmation.png") });
-  await page.getByRole("button", { name: "Keep my subscription" }).click();
+  const management = page.getByRole("link", { name: "Manage or cancel on Whop" });
+  assert.equal(await management.getAttribute("href"), "https://sandbox.whop.com/billing/manage/mber_fixture");
+  assert.equal(await management.getAttribute("target"), "_blank");
+  assert.equal(await page.getByRole("button", { name: "Cancel renewal", exact: true }).count(), 0);
+  await page.getByText("Opening Whop does not cancel your plan.", { exact: false }).waitFor();
   assert.equal(cancellations, 0);
-  await page.getByRole("button", { name: "Cancel renewal", exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Cancel renewal", exact: true }).click();
-  await page.getByRole("button", { name: "Cancel renewal", exact: true }).waitFor({ state: "hidden" });
-  assert.equal(cancellations, 1);
-  assert.equal(await page.getByRole("heading", { name: "MSJournal Pro" }).count(), 2);
-  await page
-    .getByText("Future renewal is canceled.", { exact: false })
-    .first()
-    .waitFor();
-  assert.match(
-    await page
-      .getByRole("link", { name: "Manage subscription" })
-      .first()
-      .getAttribute("href"),
-    /^https:\/\/sandbox\.whop\.com\/billing\//,
-  );
-  await page.screenshot({
-    path: resolve(output, "billing-pro-cancellation.png"),
-    fullPage: true,
-  });
+  status = { ...status, subscription: { ...status.subscription, manageUrl: "https://sandbox.whop.com/@me/settings/orders/" } };
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await management.getAttribute("href"), "https://sandbox.whop.com/@me/settings/orders/");
+  await page.screenshot({ path: resolve(output, "billing-whop-management.png"), fullPage: true });
   await page.getByRole("group", { name: "Pro billing period" }).getByRole("button", { name: /Yearly/ }).click();
   await page.getByRole("button", { name: "Change to yearly", exact: true }).click();
   await page.getByRole("dialog", { name: "Change from Monthly to Yearly?" }).waitFor();
@@ -349,7 +334,7 @@ export default function Page(){
   await page.getByRole("button", { name: "Continue to yearly checkout", exact: true }).click();
   await page.getByRole("alert").filter({ hasText: "Fixture yearly checkout withheld" }).waitFor();
   assert.equal(annualChanges, 1);
-  assert.equal(cancellations, 1); // Starting a switch cannot cancel monthly before payment.
+  assert.equal(cancellations, 0); // Opening management or starting a switch cannot cancel monthly.
   status = { ...status, currentInterval: "annual", billingChange: { state: "cancel_pending", updatedAt: new Date().toISOString() },
     subscription: { ...status.subscription, cancelAtPeriodEnd: false } };
   await page.reload({ waitUntil: "networkidle" });
@@ -360,7 +345,7 @@ export default function Page(){
   assert.equal((await page.request.get(`${origin}/book`)).status(), 200);
   assert.equal((await page.request.get(`${origin}/books`)).status(), 200);
   console.log(
-    "Passed: Free selection, pending/error behavior, upgrade focus/Escape, preserved form input, both themes/mobile, paid cancellation, private API denial and free public resources.",
+    "Passed: Free selection, pending/error behavior, upgrade focus/Escape, preserved form input, both themes/mobile, external Whop management, private API denial and free public resources.",
   );
 } catch (error) {
   if (page) {

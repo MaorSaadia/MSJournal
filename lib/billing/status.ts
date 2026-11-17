@@ -9,6 +9,7 @@ import { billingEnvironment, whopConfig } from "./config";
 import { getEntitlement } from "./entitlements";
 import { configuredPlans, refreshOwner } from "./provider";
 import type { VerifiedPlanOption } from "./pricing";
+import { whopManagementUrl } from "./policy";
 export async function billingStatus(headers?: Headers, refresh = true) {
   const user = await requireUser(headers);
   if (refresh) await refreshOwner(user.id).catch(() => {});
@@ -66,7 +67,7 @@ export async function billingStatus(headers?: Headers, refresh = true) {
           expiresAt: m.expiresAt?.toISOString() ?? null,
           verifiedAt: m.verifiedAt.toISOString(),
           refreshFailed: m.refreshFailed,
-          manageUrl: m.manageUrl,
+          manageUrl: whopManagementUrl(change?.state === "cancel_pending" ? null : m.manageUrl, m.environment),
         }
       : null,
     checkoutAvailable: !!config?.checkoutEnabled && plans.length > 0,

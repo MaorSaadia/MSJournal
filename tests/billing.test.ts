@@ -5,6 +5,7 @@ import {
   deriveEntitlement,
   verifiedLease,
   safeWhopUrl,
+  whopManagementUrl,
   WHOP_API_VERSION,
   whopMembershipSchema,
 } from "@/lib/billing/policy";
@@ -28,6 +29,13 @@ const membership = () =>
   });
 afterEach(() => vi.unstubAllEnvs());
 describe("billing access policy", () => {
+  it("always provides an environment-safe management link when Whop omits its URL", () => {
+    expect(whopManagementUrl(null, "live")).toBe("https://whop.com/@me/settings/orders/");
+    expect(whopManagementUrl(null, "sandbox")).toBe("https://sandbox.whop.com/@me/settings/orders/");
+    expect(whopManagementUrl("https://whop.com.evil.test/billing/manage/foo", "live")).toBe("https://whop.com/@me/settings/orders/");
+    expect(whopManagementUrl("https://sandbox.whop.com/billing/manage/mber_fixture", "live")).toBe("https://whop.com/@me/settings/orders/");
+    expect(whopManagementUrl("https://whop.com/billing/manage/mber_fixture", "live")).toBe("https://whop.com/billing/manage/mber_fixture");
+  });
   it("keeps archived accounts in usage and excess accounts readable", () => {
     const accounts = [
       { id: "one", name: "One", archived: true },

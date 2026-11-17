@@ -105,3 +105,14 @@ export function safeWhopUrl(
     throw new Error("Invalid billing destination");
   return url.toString();
 }
+
+// Prefer the verified membership destination; Whop can omit manage_url for
+// business API credentials. Its Orders page still lets the buyer manage access.
+export function whopManagementUrl(value: unknown, environment: WhopEnvironment) {
+  try {
+    return safeWhopUrl(value, environment, "manage");
+  } catch {
+    const host = environment === "sandbox" ? "sandbox.whop.com" : "whop.com";
+    return `https://${host}/@me/settings/orders/`;
+  }
+}
