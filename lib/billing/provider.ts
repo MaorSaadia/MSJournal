@@ -9,6 +9,7 @@ import {
   billingMemberships,
   billingOAuthStates,
   billingProfiles,
+  billingPlanChanges,
 } from "@/db/schema";
 import { ReviewError } from "@/lib/reviews/model";
 import { billingLock } from "./entitlements";
@@ -225,6 +226,18 @@ export async function reconcileMembership(
       checkout.metadata?.msjournal_checkout !== attempt.id
     )
       return { linked: false };
+    const [change] = await getDb().select().from(billingPlanChanges).where(and(
+      eq(billingPlanChanges.checkoutId, attempt.id), eq(billingPlanChanges.ownerId, attempt.ownerId),
+      eq(billingPlanChanges.environment, config.environment),
+    ));
+    if (change) {
+      const [source] = await getDb().select().from(billingMemberships).where(and(
+        eq(billingMemberships.ownerId, attempt.ownerId), eq(billingMemberships.environment, config.environment),
+        eq(billingMemberships.membershipId, change.fromMembershipId),
+      ));
+      if (!source || source.whopUserId !== initial.user_id || change.toPlanId !== initial.variant_id)
+        return { linked: false };
+    }
     ownerId = attempt.ownerId;
     checkoutProof = { binding: proof, attempt: attempt.id };
   }
@@ -409,7 +422,7 @@ export async function refreshOwner(ownerId: string, manual = false) {
   if (failed && manual)
     throw new ReviewError(new ProviderUnavailable().message, 503);
 }
-export async function startCheckout(ownerId: string, planChoice: number) {
+export async function startCheckout(ownerId: string, planChoice: number, change?: { fromMembershipId: string }) {
   const config = whopConfig();
   if (!config?.checkoutEnabled)
     throw new ReviewError(
@@ -419,6 +432,7 @@ export async function startCheckout(ownerId: string, planChoice: number) {
   const plans = await configuredPlans(config),
     plan = plans.find((p) => p.option === planChoice);
   if (!plan) throw new ReviewError("Choose an available Pro option.", 400);
+  if (change && plan.interval !== "annual") throw new ReviewError("Choose verified Yearly pricing.", 400);
   const requestId = randomUUID(),
     binding = randomBytes(32).toString("hex");
   await getDb().transaction(async (tx) => {
@@ -432,11 +446,30 @@ export async function startCheckout(ownerId: string, planChoice: number) {
         429,
       );
     const entitlement = await getEntitlementOutsideLock(tx, ownerId);
-    if (entitlement)
+    if (entitlement && !change)
       throw new ReviewError(
         "You already have Pro. Use Manage subscription to change your billing.",
         409,
       );
+    if (change) {
+      const [annual] = await tx.select().from(billingMemberships).where(and(
+        eq(billingMemberships.ownerId, ownerId), eq(billingMemberships.environment, config.environment),
+        eq(billingMemberships.planId, plan.id), sql`${billingMemberships.status} in ('active','trialing','past_due','canceling')`,
+      ));
+      if (annual) throw new ReviewError("You already have verified Yearly access. Do not pay again.", 409);
+      const [source] = await tx.select().from(billingMemberships).where(and(
+        eq(billingMemberships.ownerId, ownerId), eq(billingMemberships.environment, config.environment),
+        eq(billingMemberships.membershipId, change.fromMembershipId),
+      ));
+      const monthly = config.purchasePlans.find(p => p.interval === "monthly");
+      if (!source || !entitlement || !monthly || source.planId !== monthly.id || source.status !== "active")
+        throw new ReviewError("Refresh your subscription before changing billing.", 409);
+      const [pending] = await tx.select().from(billingPlanChanges).where(and(
+        eq(billingPlanChanges.environment, config.environment), eq(billingPlanChanges.fromMembershipId, source.membershipId),
+        sql`${billingPlanChanges.state} not in ('complete','failed')`,
+      ));
+      if (pending) throw new ReviewError("Yearly checkout is already being prepared. Try again shortly to reopen it.", 409);
+    }
     await tx.insert(billingCheckouts).values({
       id: requestId,
       ownerId,
@@ -444,7 +477,12 @@ export async function startCheckout(ownerId: string, planChoice: number) {
       planId: plan.id,
       nonceHash: digest(binding),
     });
+    if (change) await tx.insert(billingPlanChanges).values({
+      checkoutId: requestId, ownerId, environment: config.environment,
+      fromMembershipId: change.fromMembershipId, toPlanId: plan.id,
+    });
   });
+  try {
   const checkout = await whopRequest(
     "/checkout_configurations",
     {
@@ -481,7 +519,14 @@ export async function startCheckout(ownerId: string, planChoice: number) {
         eq(billingCheckouts.ownerId, ownerId),
       ),
     );
+  if (change) await getDb().update(billingPlanChanges).set({ state: "awaiting_payment", updatedAt: new Date() })
+    .where(and(eq(billingPlanChanges.checkoutId, requestId), eq(billingPlanChanges.ownerId, ownerId)));
   return { url };
+  } catch (e) {
+    if (change) await getDb().update(billingPlanChanges).set({ state: "failed", lastError: "checkout_not_opened", updatedAt: new Date() })
+      .where(and(eq(billingPlanChanges.checkoutId, requestId), eq(billingPlanChanges.ownerId, ownerId)));
+    throw e;
+  }
 }
 async function getEntitlementOutsideLock(
   tx: Parameters<typeof billingLock>[0],

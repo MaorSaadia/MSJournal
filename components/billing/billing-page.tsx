@@ -9,11 +9,8 @@ import { confirmAction } from "@/components/ui/confirm-action";
 import { requestJson } from "@/lib/client-api";
 import { journalTimestamp } from "@/lib/timezones";
 import type { BillingStatus } from "@/lib/billing/status";
-import {
-  annualSaving,
-  annualEquivalent,
-  proPricing,
-} from "@/lib/billing/pricing";
+import PricingSection from "@/components/ui/pricing-section";
+import { SettingsNavigation } from "@/components/settings/settings-navigation";
 const statusLabels: Record<string, string> = {
   active: "Active",
   trialing: "Access confirmed by Whop",
@@ -78,7 +75,9 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
       }
       accept(result);
       setMessage(
-        body.action === "select"
+        body.action === "cancel"
+          ? "Future renewal is canceled. Your confirmed access continues until the access-end date. Your trading data stays saved."
+          : body.action === "select"
           ? "Your Free account is selected. Other accounts and history are kept."
           : "Subscription status refreshed.",
       );
@@ -108,13 +107,14 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
             <Link href="/settings">Settings</Link> / Billing
           </div>
           <h1>
-            Your plan<span className="title-dot">.</span>
+            Plan &amp; billing<span className="title-dot">.</span>
           </h1>
           <p className="page-description">
-            A clear place for your account allowance and subscription.
+            Your subscription, renewal and trading account allowance.
           </p>
         </div>
       </header>
+      <SettingsNavigation active="billing" />
       {pending && data.plan !== "Pro" && (
         <div className="billing-message" role="status">
           <strong>Waiting for subscription confirmation</strong>
@@ -164,6 +164,14 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
           {message}
         </p>
       )}
+      {data.billingChange && ["awaiting_payment", "cancel_pending"].includes(data.billingChange.state) && (
+        <div className="billing-message" role="status">
+          <strong>{data.billingChange.state === "cancel_pending" ? "Yearly is confirmed; monthly cancellation needs confirmation" : "Waiting for verified yearly payment"}</strong>
+          <p>{data.billingChange.state === "cancel_pending"
+            ? "Do not pay again. Your yearly access is confirmed, but the previous monthly renewal has not yet been confirmed stopped. Use Refresh subscription status to retry; you can also manage the monthly subscription through Whop."
+            : "Your monthly renewal is unchanged until Whop confirms the yearly payment and access. A canceled or failed checkout does not change your monthly plan."}</p>
+        </div>
+      )}
       <section className="panel billing-current">
         <div className="billing-plan-heading">
           <span className="billing-upgrade-icon">
@@ -198,6 +206,7 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
                   : "Free"}
             </dd>
           </div>
+          {data.currentInterval && <div><dt>Billing period</dt><dd>{data.currentInterval === "annual" ? "Yearly" : "Monthly"}</dd></div>}
           {end && (
             <div>
               <dt>
@@ -260,6 +269,23 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
               existing subscription
             </Button>
           )}
+          {subscription && !subscription.cancelAtPeriodEnd &&
+            ["active", "trialing", "past_due"].includes(subscription.status) && (
+            <Button
+              variant="ghost"
+              className="billing-cancel-renewal"
+              disabled={!!busy}
+              onClick={async () => {
+                if (await confirmAction(
+                  `Stop future renewals? Your Pro access continues ${end ? `until ${journalTimestamp(end, data.timezone)}` : "until the current paid period ends"}. Afterward, Free allows one trading account. Your other accounts and trading history stay saved.`,
+                  { title: "Cancel your Pro renewal?", confirmLabel: "Cancel renewal", cancelLabel: "Keep my subscription", destructive: true },
+                )) void action({ action: "cancel" }, "cancel");
+              }}
+            >
+              {busy === "cancel" && <LoadingSpinner size={14} />}
+              {busy === "cancel" ? "Canceling renewal" : "Cancel renewal"}
+            </Button>
+          )}
         </div>
       </section>
       {data.plan === "Free" && data.usage > 1 && (
@@ -315,82 +341,22 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
           </Link>
         </section>
       )}
-      <div className="billing-comparison">
-        <section className="panel">
-          <p className="eyebrow">A FOCUSED START</p>
-          <h2>MSJournal Free</h2>
-          <p>One trading account from one prop firm.</p>
-          <ul>
-            <li>
-              <Check size={15} /> CSV imports and trade reviews
-            </li>
-            <li>
-              <Check size={15} /> Analytics for your permitted account
-            </li>
-            <li>
-              <Check size={15} /> Four free Book Companion worksheets
-            </li>
-          </ul>
-        </section>
-        <section className="panel billing-pro">
-          <p className="eyebrow">ROOM FOR YOUR WHOLE PRACTICE</p>
-          <h2>MSJournal Pro</h2>
-          <p>Multiple accounts across prop firms.</p>
-          <ul>
-            <li>
-              <Check size={15} /> Existing features across your accounts
-            </li>
-            <li>
-              <Check size={15} /> Keep each account and its history together
-            </li>
-            <li>
-              <Check size={15} /> Resume retained accounts without reimporting
-            </li>
-          </ul>
-          {data.plan === "Pro" ? (
-            <p className="positive small">
-              Your plan includes multiple accounts.
-            </p>
-          ) : data.checkoutAvailable ? (
-            data.plans.map((plan) => (
-              <div className="billing-price-option" key={plan.interval}>
-                <Button
-                  disabled={!!busy}
-                  onClick={() =>
-                    void action(
-                      { action: "checkout", option: plan.option },
-                      `checkout-${plan.option}`,
-                    )
-                  }
-                >
-                  {busy === `checkout-${plan.option}` && (
-                    <LoadingSpinner size={14} />
-                  )}
-                  Upgrade · {plan.title} · {plan.price}
-                </Button>
-                <p className="billing-price-detail">
-                  {plan.interval === "annual"
-                    ? annualSaving
-                    : "Billed monthly in USD."}
-                </p>
-                {plan.interval === "annual" && (
-                  <p className="billing-price-detail">{annualEquivalent}</p>
-                )}
-              </div>
-            ))
-          ) : (
-            <div>
-              <p className="billing-confirmed-price">
-                {proPricing.monthly.price} <small>USD · billed monthly</small>
-              </p>
-              <p className="billing-unavailable">
-                Pro checkout isn’t available yet. Your Free account and free
-                worksheets remain available.
-              </p>
-            </div>
-          )}
-        </section>
-      </div>
+      <PricingSection
+        currentPlan={data.plan}
+        plans={data.plans}
+        checkoutAvailable={data.checkoutAvailable}
+        busy={busy}
+        manageUrl={subscription?.manageUrl}
+        onCheckout={(option) => void action({ action: "checkout", option }, `checkout-${option}`)}
+        currentInterval={data.currentInterval}
+        changeState={data.billingChange?.state}
+        onChangeAnnual={async () => {
+          if (await confirmAction(
+            "You will pay $89.99 USD plus applicable tax at Whop checkout. Yearly starts when payment and access are verified. We then stop your monthly renewal. Unused monthly time is not credited or refunded, so the paid periods may overlap. If checkout is canceled or fails, your monthly renewal stays unchanged. You must use the same Whop account as your monthly subscription. Both billing periods include the same Pro features.",
+            { title: "Change from Monthly to Yearly?", confirmLabel: "Continue to yearly checkout", cancelLabel: "Keep Monthly" },
+          )) void action({ action: "switch_annual" }, "switch_annual");
+        }}
+      />
       <p className="small muted billing-footer-note">
         Payments and subscription changes are handled on Whop. MSJournal imports
         trades by CSV; it doesn’t automatically sync with a broker.{" "}

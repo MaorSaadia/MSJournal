@@ -39,6 +39,7 @@ const initial = {
 };
 let server,
   browser,
+  page,
   created = false,
   logs = "";
 try {
@@ -60,15 +61,8 @@ export default function Page(){
  return <main className="main-region" style={{paddingTop:24}}><BillingAccess initial={data} userId={data.userId}><BillingPage initial={data}/><div style={{padding:24}}><label>Account label<input aria-label="Account label" defaultValue="My next account"/></label><Button onClick={()=>window.dispatchEvent(new Event("msjournal:upgrade-needed"))}>Attempt another account</Button></div></BillingAccess></main>;
 }`,
   );
-  let reuse = false;
-  try {
-    await fetch("http://localhost:3000/icon.svg", {
-      signal: AbortSignal.timeout(3000),
-    });
-    reuse = true;
-    origin = "http://localhost:3000";
-  } catch {}
-  if (!reuse) {
+  // Isolate generated routes/cache from the user's normal and sandbox servers.
+  {
     server = spawn(
       process.execPath,
       [
@@ -87,6 +81,8 @@ export default function Page(){
           ...process.env,
           NODE_ENV: "development",
           NODE_DISABLE_COMPILE_CACHE: "1",
+          MSJOURNAL_BILLING_UI_CHECK: "true",
+          MSJOURNAL_WHOP_SANDBOX: "false",
           WHOP_CHECKOUT_ENABLED: "false",
           WHOP_LIVE_VERIFIED: "false",
         },
@@ -112,16 +108,29 @@ export default function Page(){
     "Local billing fixture ready; checking themes, mobile and keyboard interaction.",
   );
   browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({
+  page = await browser.newPage({
     viewport: { width: 1440, height: 1100 },
     reducedMotion: "reduce",
   });
   let status = structuredClone(initial),
     refreshes = 0,
+    cancellations = 0,
+    annualChanges = 0,
     checkoutOption = null;
   await page.route("**/api/billing", async (route) => {
     if (route.request().method() === "POST") {
       const action = route.request().postDataJSON();
+      if (action.action === "switch_annual") {
+        annualChanges++;
+        assert.deepEqual(action, { action: "switch_annual" });
+        return route.fulfill({ status: 400, json: { message: "Fixture yearly checkout withheld; no payment was made." } });
+      }
+      if (action.action === "cancel") {
+        cancellations++;
+        assert.deepEqual(action, { action: "cancel" });
+        status.subscription.cancelAtPeriodEnd = true;
+        return route.fulfill({ json: status });
+      }
       if (action.action === "checkout") {
         checkoutOption = action.option;
         return route.fulfill({
@@ -243,7 +252,7 @@ export default function Page(){
   };
   await page.reload({ waitUntil: "networkidle" });
   await page
-    .getByRole("button", { name: "Upgrade · Pro Monthly · $9.99/month" })
+    .getByRole("button", { name: "Get Pro Monthly" })
     .waitFor();
   assert.equal(
     await page.getByText("$89.99/year", { exact: false }).count(),
@@ -255,7 +264,10 @@ export default function Page(){
     title: "Pro Yearly",
     price: "$89.99/year",
   });
+  await page.setViewportSize({ width: 1440, height: 1100 });
   await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("group", {name: "Pro billing period"}).getByRole("button", {name: /Yearly/}).click();
+
   await page
     .getByText("Save 25% compared with monthly billing.", { exact: true })
     .waitFor();
@@ -267,7 +279,7 @@ export default function Page(){
     fullPage: true,
   });
   await page
-    .getByRole("button", { name: "Upgrade · Pro Yearly · $89.99/year" })
+    .getByRole("button", { name: "Get Pro Yearly" })
     .click();
   await page
     .getByRole("alert")
@@ -286,9 +298,10 @@ export default function Page(){
   status = {
     ...status,
     plan: "Pro",
+    currentInterval: "monthly",
     subscription: {
       status: "active",
-      cancelAtPeriodEnd: true,
+      cancelAtPeriodEnd: false,
       periodEnd: "2026-12-01T12:00:00Z",
       expiresAt: null,
       verifiedAt: "2026-11-13T10:00:00Z",
@@ -300,12 +313,24 @@ export default function Page(){
   await page.setViewportSize({ width: 1440, height: 1100 });
   await page.reload({ waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "MSJournal Pro" }).first().waitFor();
+  await page.getByRole("button", { name: "Cancel renewal", exact: true }).click();
+  await page.getByRole("dialog", { name: "Cancel your Pro renewal?" }).waitFor();
+  await page.screenshot({ path: resolve(output, "billing-cancel-confirmation.png") });
+  await page.getByRole("button", { name: "Keep my subscription" }).click();
+  assert.equal(cancellations, 0);
+  await page.getByRole("button", { name: "Cancel renewal", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel renewal", exact: true }).click();
+  await page.getByRole("button", { name: "Cancel renewal", exact: true }).waitFor({ state: "hidden" });
+  assert.equal(cancellations, 1);
+  assert.equal(await page.getByRole("heading", { name: "MSJournal Pro" }).count(), 2);
   await page
     .getByText("Future renewal is canceled.", { exact: false })
+    .first()
     .waitFor();
   assert.match(
     await page
       .getByRole("link", { name: "Manage subscription" })
+      .first()
       .getAttribute("href"),
     /^https:\/\/sandbox\.whop\.com\/billing\//,
   );
@@ -313,12 +338,36 @@ export default function Page(){
     path: resolve(output, "billing-pro-cancellation.png"),
     fullPage: true,
   });
+  await page.getByRole("group", { name: "Pro billing period" }).getByRole("button", { name: /Yearly/ }).click();
+  await page.getByRole("button", { name: "Change to yearly", exact: true }).click();
+  await page.getByRole("dialog", { name: "Change from Monthly to Yearly?" }).waitFor();
+  await page.getByText("Unused monthly time is not credited or refunded", { exact: false }).waitFor();
+  await page.screenshot({ path: resolve(output, "billing-change-to-yearly-review.png") });
+  await page.getByRole("button", { name: "Keep Monthly", exact: true }).click();
+  assert.equal(annualChanges, 0);
+  await page.getByRole("button", { name: "Change to yearly", exact: true }).click();
+  await page.getByRole("button", { name: "Continue to yearly checkout", exact: true }).click();
+  await page.getByRole("alert").filter({ hasText: "Fixture yearly checkout withheld" }).waitFor();
+  assert.equal(annualChanges, 1);
+  assert.equal(cancellations, 1); // Starting a switch cannot cancel monthly before payment.
+  status = { ...status, currentInterval: "annual", billingChange: { state: "cancel_pending", updatedAt: new Date().toISOString() },
+    subscription: { ...status.subscription, cancelAtPeriodEnd: false } };
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByText("Yearly is confirmed; monthly cancellation needs confirmation", { exact: true }).waitFor();
+  await page.getByText("Your current billing period: Yearly.", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Change to yearly", exact: true }).count(), 0);
   assert.equal((await page.request.get(`${origin}/api/billing`)).status(), 401);
   assert.equal((await page.request.get(`${origin}/book`)).status(), 200);
   assert.equal((await page.request.get(`${origin}/books`)).status(), 200);
   console.log(
     "Passed: Free selection, pending/error behavior, upgrade focus/Escape, preserved form input, both themes/mobile, paid cancellation, private API denial and free public resources.",
   );
+} catch (error) {
+  if (page) {
+    await page.screenshot({ path: resolve(output, "billing-check-failure.png"), fullPage: true }).catch(() => {});
+    await writeFile(resolve(output, "billing-check-failure.txt"), (await page.locator("body").innerText().catch(() => "Page not readable")).slice(0,12000));
+  }
+  throw error;
 } finally {
   await browser?.close();
   if (server?.pid) {

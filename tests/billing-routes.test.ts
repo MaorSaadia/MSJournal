@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
   status: vi.fn(),
   drain: vi.fn(),
   sweep: vi.fn(),
+  cancel: vi.fn(),
+  annualChange: vi.fn(),
+  retryChanges: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("next/server", () => ({ after: vi.fn() }));
@@ -27,6 +30,8 @@ vi.mock("@/lib/session", () => {
   };
 });
 vi.mock("@/lib/billing/status", () => ({ billingStatus: mocks.status }));
+vi.mock("@/lib/billing/cancellation", () => ({ cancelRenewal: mocks.cancel }));
+vi.mock("@/lib/billing/switching", () => ({ startAnnualChange: mocks.annualChange, retryAnnualChanges: mocks.retryChanges }));
 vi.mock("@/lib/billing/provider", () => ({
   startCheckout: mocks.checkout,
   startRecovery: mocks.link,
@@ -63,6 +68,29 @@ const request = (body: object, origin = "http://localhost:3000") =>
   });
 afterEach(() => vi.unstubAllEnvs());
 describe("billing request boundaries", () => {
+  it("starts an annual change only for the session owner, without accepting plan, source or payment claims", async () => {
+    mocks.signedIn = false;
+    expect((await POST(request({ action: "switch_annual" }))).status).toBe(401);
+    mocks.signedIn = true;
+    expect((await POST(request({ action: "switch_annual" }, "https://foreign.example"))).status).toBe(403);
+    for (const extra of [{ fromMembershipId: "mem_other" }, { ownerId: "other" }, { paid: true }, { option: 0 }])
+      expect((await POST(request({ action: "switch_annual", ...extra }))).status).toBe(400);
+    expect(mocks.annualChange).not.toHaveBeenCalled();
+    mocks.annualChange.mockResolvedValue({ url: "https://sandbox.whop.com/checkout/ch_fixture" });
+    expect((await POST(request({ action: "switch_annual" }))).status).toBe(200);
+    expect(mocks.annualChange).toHaveBeenCalledExactlyOnceWith("session-owner");
+  });
+  it("cancels only for the session owner and rejects client timing or membership claims", async () => {
+    mocks.signedIn = false;
+    expect((await POST(request({ action: "cancel" }))).status).toBe(401);
+    mocks.signedIn = true;
+    expect((await POST(request({ action: "cancel" }, "https://foreign.example"))).status).toBe(403);
+    for (const claim of [{ membershipId: "mem_foreign" }, { ownerId: "other" }, { cancel_at_period_end: false }])
+      expect((await POST(request({ action: "cancel", ...claim }))).status).toBe(400);
+    expect(mocks.cancel).not.toHaveBeenCalled();
+    expect((await POST(request({ action: "cancel" }))).status).toBe(200);
+    expect(mocks.cancel).toHaveBeenCalledExactlyOnceWith("session-owner");
+  });
   it("requires a local authenticated session and exact origin", async () => {
     mocks.signedIn = false;
     expect(

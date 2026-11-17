@@ -51,6 +51,7 @@ import {
 } from "@/lib/billing/provider";
 import { acceptWebhook, processBillingEvent } from "@/lib/billing/webhooks";
 import { WHOP_API_VERSION } from "@/lib/billing/policy";
+import { startAnnualChange, completeAnnualChange } from "@/lib/billing/switching";
 import {
   createWorksheet,
   updateWorksheet,
@@ -184,6 +185,7 @@ describe.skipIf(!enabled)(
         await readFile("drizzle/0015_whop_billing.sql", "utf8")
       ).replaceAll('"public".', `"${namespace}".`);
       await pool.query(migration);
+      await pool.query((await readFile("drizzle/0016_billing_plan_changes.sql", "utf8")).replaceAll('"public".', `"${namespace}".`));
       await pool.query(
         (await readFile("drizzle/0014_book_companion.sql", "utf8")).replaceAll(
           '"public".',
@@ -457,5 +459,88 @@ describe.skipIf(!enabled)(
       expect(entitlement.freeAccountId).toBe(legacy2);
       expect(entitlement.usage).toBe(1);
     }, 30000);
+    it("changes to yearly only after verified payment, retries monthly cancellation, and never cancels on failed checkout or foreign identity", async () => {
+      await pool.query("insert into auth_users(id) values('switcher')");
+      vi.stubEnv("WHOP_PRO_ANNUAL_PLAN_ID", "plan_yearly");
+      vi.stubEnv("WHOP_ANNUAL_CHECKOUT_ENABLED", "true");
+      const buyer = "user_switcher";
+      const period = new Date(Date.now() + 86400000);
+      await fixture.db.insert(schema.billingMemberships).values({
+        environment: "sandbox", membershipId: "mem_monthly", ownerId: "switcher", whopUserId: buyer,
+        businessId: "biz_fixture", productId: "prod_fixture", planId: "plan_fixture", status: "active", hasAccess: true,
+        cancelAtPeriodEnd: false, periodEnd: period, providerUpdatedAt: new Date(), verifiedAt: new Date(), checkedAt: new Date(), eligibleUntil: period,
+      });
+      let metadata: Record<string, string> = {}, paid = false, access = true, canceled = false, failCancellation = true;
+      let payer = buyer, cancelCalls = 0, checkoutCalls = 0;
+      vi.stubGlobal("fetch", vi.fn(async (url: unknown, options?: RequestInit) => {
+        const path = String(url);
+        if (!path.startsWith("https://sandbox-api.whop.com/")) throw Error("Live calls forbidden");
+        if (path.includes("/variants/")) {
+          const yearly = path.endsWith("plan_yearly");
+          return Response.json({ id: yearly ? "plan_yearly" : "plan_fixture", account: { id: "biz_fixture" }, product: { id: "prod_fixture" },
+            billing_type: "renewal", currency: "usd", billing_period: yearly ? 365 : 30, initial_price: 0,
+            renewal_price: yearly ? 89.99 : 9.99, trial_period_days: 0, initial_price_due: { currency: "usd", amount: yearly ? "89.99" : "9.99" } });
+        }
+        if (path.endsWith("/checkout_configurations")) {
+          checkoutCalls++;
+          metadata = JSON.parse(String(options?.body)).metadata;
+          return Response.json({ id: "ch_switch", account_id: "biz_fixture", variant: { id: "plan_yearly" }, mode: "payment", purchase_url: "https://sandbox.whop.com/checkout/ch_switch" });
+        }
+        if (path.includes("/checkout_configurations/ch_switch")) return Response.json({ account_id: "biz_fixture", variant: { id: "plan_yearly" }, metadata, purchase_url: "https://sandbox.whop.com/checkout/ch_switch" });
+        if (path.endsWith("/memberships/mem_monthly/cancel")) {
+          expect(paid && access).toBe(true);
+          expect(JSON.parse(String(options?.body))).toEqual({ cancel_at_period_end: true });
+          cancelCalls++;
+          if (failCancellation) return new Response(null, { status: 503 });
+          canceled = true;
+          return Response.json({});
+        }
+        if (path.includes("/memberships/")) {
+          const yearly = path.endsWith("mem_yearly");
+          return Response.json({ ...remoteMembership(), id: yearly ? "mem_yearly" : "mem_monthly", user_id: yearly ? payer : buyer,
+            status: "active", variant_id: yearly ? "plan_yearly" : "plan_fixture", current_period_end: period.toISOString(),
+            billing_period_days: yearly ? 365 : 30, renewal_price: { amount: yearly ? "89.99" : "9.99", currency: "usd" },
+            cancel_at_period_end: yearly ? false : canceled, metadata: yearly ? metadata : {}, updated_at: new Date().toISOString() });
+        }
+        if (path.includes("/payments?")) return Response.json({ data: paid ? [{
+          id: "pay_switch", status: "paid", substatus: "succeeded", account_id: "biz_fixture", product_id: "prod_fixture",
+          membership_id: "mem_yearly", variant_id: "plan_yearly", checkout_configuration_id: "ch_switch", user: { id: buyer },
+          currency: "usd", subtotal: { amount: "89.99", currency: "usd" }, total: { amount: "106.19", currency: "usd" }, refunded_amount: { amount: "0.00", currency: "usd" },
+        }] : [] });
+        if (path.includes("/access/")) return Response.json({ has_access: access, access_level: access ? "customer" : "no_access" });
+        throw Error("Unexpected fixture request");
+      }));
+      await expect(startAnnualChange("foreign")).rejects.toMatchObject({ status: 409 });
+      expect(checkoutCalls).toBe(0);
+      const checkout = await startAnnualChange("switcher");
+      expect(checkout.url).toContain("ch_switch");
+      expect(cancelCalls).toBe(0);
+      expect((await startAnnualChange("switcher")).url).toBe(checkout.url);
+      expect(checkoutCalls).toBe(1);
+      payer = "user_other";
+      expect(await reconcileMembership("mem_yearly")).toEqual({ linked: false });
+      expect(cancelCalls).toBe(0);
+      payer = buyer;
+      await reconcileMembership("mem_yearly");
+      await completeAnnualChange("mem_yearly");
+      expect(cancelCalls).toBe(0); // Active/access alone cannot cancel monthly without payment.
+      paid = true; access = false;
+      await completeAnnualChange("mem_yearly");
+      expect(cancelCalls).toBe(0);
+      access = true;
+      await completeAnnualChange("mem_yearly");
+      expect(cancelCalls).toBe(1);
+      expect((await pool.query("select state from billing_plan_changes where owner_id='switcher'")).rows[0].state).toBe("cancel_pending");
+      expect((await getEntitlement("switcher")).plan).toBe("Pro");
+      failCancellation = false;
+      await Promise.all([completeAnnualChange("mem_yearly"), completeAnnualChange("mem_yearly")]);
+      await completeAnnualChange("mem_yearly");
+      expect(cancelCalls).toBe(2); // One failed attempt, one confirmed retry; duplicate events do nothing.
+      expect((await pool.query("select state from billing_plan_changes where owner_id='switcher'")).rows[0].state).toBe("complete");
+      expect((await pool.query("select cancel_at_period_end from billing_memberships where membership_id='mem_monthly'")).rows[0].cancel_at_period_end).toBe(true);
+      expect((await pool.query("select cancel_at_period_end from billing_memberships where membership_id='mem_yearly'")).rows[0].cancel_at_period_end).toBe(false);
+      await expect(startAnnualChange("switcher")).rejects.toMatchObject({ status: 409 });
+      expect(checkoutCalls).toBe(1);
+    }, 60000);
   },
 );

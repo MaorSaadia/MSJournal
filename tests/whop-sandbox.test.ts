@@ -12,6 +12,14 @@ const production = {
   DATABASE_URL: "postgresql://fixture:fixture@live-branch.neon.tech/main",
 };
 describe("isolated Whop sandbox launch", () => {
+  it("supports annual checkout only with explicit opt-in and a distinct plan ID", () => {
+    expect(sandboxEnvironment({ ...values, WHOP_PRO_ANNUAL_PLAN_ID: "plan_yearly" }, production).WHOP_PRO_ANNUAL_PLAN_ID).toBe("");
+    const env = sandboxEnvironment({ ...values, WHOP_PRO_ANNUAL_PLAN_ID: "plan_yearly", WHOP_ANNUAL_CHECKOUT_ENABLED: "true" }, production);
+    expect(env.WHOP_PRO_ANNUAL_PLAN_ID).toBe("plan_yearly");
+    expect(env.WHOP_ANNUAL_CHECKOUT_ENABLED).toBe("true");
+    expect(env.WHOP_LIVE_VERIFIED).toBe("false");
+    expect(() => sandboxEnvironment({ ...values, WHOP_PRO_ANNUAL_PLAN_ID: values.WHOP_PRO_MONTHLY_PLAN_ID, WHOP_ANNUAL_CHECKOUT_ENABLED: "true" }, production)).toThrow("distinct");
+  });
   it("uses the exact HTTPS tunnel origin for authentication and checkout returns", () => {
     const env = sandboxEnvironment({ ...values, WHOP_SANDBOX_PUBLIC_URL: "https://fixture.ngrok-free.dev" }, production);
     expect(env.BETTER_AUTH_URL).toBe("https://fixture.ngrok-free.dev");

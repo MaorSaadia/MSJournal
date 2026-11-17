@@ -10,12 +10,17 @@ import {
   startRecovery,
 } from "@/lib/billing/provider";
 import { drainBillingEvents } from "@/lib/billing/webhooks";
+import { cancelRenewal } from "@/lib/billing/cancellation";
+import { startAnnualChange, retryAnnualChanges } from "@/lib/billing/switching";
 import { readReviewJson } from "@/lib/reviews/request";
 export const maxDuration = 60;
 export async function GET(request: Request) {
   try {
     const status = await billingStatus(request.headers);
-    after(() => drainBillingEvents().catch(() => 0));
+    after(async () => {
+      await drainBillingEvents().catch(() => 0);
+      await retryAnnualChanges(status.userId).catch(() => {});
+    });
     return privateJson(status);
   } catch (e) {
     return privateError(e);
@@ -31,6 +36,8 @@ const action = z.discriminatedUnion("action", [
     .strict(),
   z.object({ action: z.literal("refresh") }).strict(),
   z.object({ action: z.literal("link") }).strict(),
+  z.object({ action: z.literal("cancel") }).strict(),
+  z.object({ action: z.literal("switch_annual") }).strict(),
 ]);
 export async function POST(request: Request) {
   try {
@@ -39,12 +46,17 @@ export async function POST(request: Request) {
       body = action.parse(await readReviewJson(request));
     if (body.action === "checkout")
       return privateJson(await startCheckout(user.id, body.option));
+    if (body.action === "switch_annual")
+      return privateJson(await startAnnualChange(user.id));
     if (body.action === "link")
       return privateJson(await startRecovery(user.id));
     if (body.action === "select")
       await chooseFreeAccount(user.id, body.accountId);
+    if (body.action === "cancel")
+      await cancelRenewal(user.id);
     if (body.action === "refresh") {
       await refreshOwner(user.id, true);
+      await retryAnnualChanges(user.id);
       after(() => drainBillingEvents().catch(() => 0));
     }
     return privateJson(await billingStatus(request.headers, false));

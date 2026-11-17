@@ -53,6 +53,26 @@ export const billingCheckouts = pgTable("billing_checkouts", {
   nonceHash:text("nonce_hash").notNull(),configurationId:text("configuration_id"),
   createdAt:timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
 },t=>[uniqueIndex("billing_checkout_nonce").on(t.nonceHash),index("billing_checkout_owner").on(t.ownerId,t.createdAt),uniqueIndex("billing_checkout_configuration").on(t.environment,t.configurationId)]);
+// Checkout proofs remain private; this separate record is the portable change audit.
+export const billingPlanChanges = pgTable("billing_plan_changes", {
+  checkoutId: uuid("checkout_id").primaryKey(),
+  ownerId: text("owner_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  environment: text("environment").$type<"sandbox" | "live">().notNull(),
+  fromMembershipId: text("from_membership_id").notNull(),
+  toPlanId: text("to_plan_id").notNull(),
+  toMembershipId: text("to_membership_id"),
+  state: text("state").$type<"checkout" | "awaiting_payment" | "cancel_pending" | "complete" | "failed">().notNull().default("checkout"),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+}, t => [
+  check("billing_change_environment", sql`${t.environment} in ('sandbox','live')`),
+  check("billing_change_state", sql`${t.state} in ('checkout','awaiting_payment','cancel_pending','complete','failed')`),
+  index("billing_change_owner").on(t.ownerId, t.environment),
+  uniqueIndex("billing_change_pending_source").on(t.environment, t.fromMembershipId).where(sql`${t.state} not in ('complete','failed')`),
+  foreignKey({ columns: [t.environment, t.fromMembershipId], foreignColumns: [billingMemberships.environment, billingMemberships.membershipId] }),
+]);
 export const billingOAuthStates = pgTable("billing_oauth_states", {
   stateHash:text("state_hash").primaryKey(),ownerId:text("owner_id").notNull().references(()=>user.id,{onDelete:"cascade"}),
   environment:text("environment").$type<"sandbox"|"live">().notNull(),verifier:text("verifier").notNull(),

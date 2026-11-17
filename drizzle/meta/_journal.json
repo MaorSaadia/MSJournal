@@ -113,6 +113,13 @@
       "when": 1794562191490,
       "tag": "0015_whop_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794928512955,
+      "tag": "0016_billing_plan_changes",
+      "breakpoints": true
     }
   ]
 }

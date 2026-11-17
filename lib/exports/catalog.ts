@@ -8,6 +8,7 @@ export const backupTables = [
   schema.billingProfiles,
   schema.billingIdentities,
   schema.billingMemberships,
+  schema.billingPlanChanges,
   schema.tradingAccounts,
   schema.importBatches,
   schema.importFiles,

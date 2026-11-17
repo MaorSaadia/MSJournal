@@ -50,4 +50,6 @@ next-env.d.ts
 /artifacts/books/
 
 /artifacts/billing/
+/artifacts/settings/
 /.next-whop-sandbox/
+/.next-billing-ui-check/

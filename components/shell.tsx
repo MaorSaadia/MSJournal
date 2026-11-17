@@ -98,6 +98,7 @@ export function Shell({
   displayName: string;
 }) {
   const pathname = usePathname();
+  const isActive = (href: string) => pathname === href || (href === "/settings" && pathname.startsWith("/settings/"));
   const {
     returnHref,
     tradesHref,
@@ -142,13 +143,13 @@ export function Shell({
               pageFilters,
             )}
             title={compact ? item.title : undefined}
-            aria-current={pathname === item.href ? "page" : undefined}
+            aria-current={isActive(item.href) ? "page" : undefined}
             onClick={() => setMobileOpen(false)}
-            className={`nav-link ${pathname === item.href ? "active" : ""} ${index === 8 ? "settings-link" : ""}`}
+            className={`nav-link ${isActive(item.href) ? "active" : ""} ${index === 8 ? "settings-link" : ""}`}
           >
             <item.icon size={18} />
             {!compact && <span>{item.title}</span>}
-            {!compact && pathname === item.href && (
+            {!compact && isActive(item.href) && (
               <span className="active-dot" />
             )}
           </Link>

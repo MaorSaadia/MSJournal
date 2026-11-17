@@ -45,6 +45,10 @@ export function sandboxEnvironment(settings, production = {}) {
       throw Error("WHOP_SANDBOX_PUBLIC_URL must be an HTTPS origin without a path or credentials.");
     origin = url.origin;
   }
+  const annualEnabled = settings.WHOP_ANNUAL_CHECKOUT_ENABLED === "true";
+  if (annualEnabled && (!/^plan_[A-Za-z0-9]+$/.test(settings.WHOP_PRO_ANNUAL_PLAN_ID ?? "") ||
+      settings.WHOP_PRO_ANNUAL_PLAN_ID === settings.WHOP_PRO_MONTHLY_PLAN_ID))
+    throw Error("Configure a distinct sandbox annual plan ID before enabling annual checkout.");
   return {
     DATABASE_URL: settings.DATABASE_URL,
     BETTER_AUTH_SECRET: randomBytes(32).toString("hex"),
@@ -60,9 +64,9 @@ export function sandboxEnvironment(settings, production = {}) {
     WHOP_PRO_MONTHLY_PLAN_ID: settings.WHOP_PRO_MONTHLY_PLAN_ID,
     WHOP_WEBHOOK_SECRET: settings.WHOP_WEBHOOK_SECRET,
     WHOP_PRO_PLAN_IDS: "",
-    WHOP_PRO_ANNUAL_PLAN_ID: "",
+    WHOP_PRO_ANNUAL_PLAN_ID: annualEnabled ? settings.WHOP_PRO_ANNUAL_PLAN_ID : "",
     WHOP_OAUTH_CLIENT_ID: "",
-    WHOP_ANNUAL_CHECKOUT_ENABLED: "false",
+    WHOP_ANNUAL_CHECKOUT_ENABLED: annualEnabled ? "true" : "false",
     WHOP_CHECKOUT_ENABLED: "true",
     WHOP_LIVE_VERIFIED: "false",
     BILLING_RECONCILE_SECRET: "",
@@ -113,6 +117,17 @@ async function verify(settings) {
     throw Error(
       "Sandbox Monthly plan must match the sandbox business/product and $9.99 USD every 30 days, without a trial/setup fee.",
     );
+  if (settings.WHOP_ANNUAL_CHECKOUT_ENABLED === "true") {
+    const annual = await get(`/variants/${settings.WHOP_PRO_ANNUAL_PLAN_ID}`);
+    if (annual.account?.id !== settings.WHOP_BUSINESS_ID ||
+        annual.product?.id !== settings.WHOP_PRO_PRODUCT_ID ||
+        annual.currency !== "usd" || annual.billing_type !== "renewal" ||
+        annual.billing_period !== 365 || annual.initial_price !== 0 ||
+        annual.renewal_price !== 89.99 || annual.initial_price_due?.currency !== "usd" ||
+        annual.initial_price_due?.amount !== "89.99" || (annual.trial_period_days ?? 0) !== 0)
+      throw Error("Sandbox annual plan must match the Pro product and $89.99 USD every 365 days, without a trial/setup fee.");
+    console.log("Sandbox annual pricing verified; both schedules grant the same Pro entitlement.");
+  }
 }
 async function main() {
   if (!fs.existsSync(filename))

@@ -36,10 +36,13 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     ".next-whop-sandbox/types/**/*.ts",
-    ".next-whop-sandbox/dev/types/**/*.ts"
+    ".next-whop-sandbox/dev/types/**/*.ts",
+    ".next-billing-ui-check/types/**/*.ts",
+    ".next-billing-ui-check/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    ".next-whop-sandbox"
+    ".next-whop-sandbox",
+    ".next-billing-ui-check"
   ]
 }

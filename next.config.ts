@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 import { indexableDeployment } from "./lib/seo";
 
 const nextConfig: NextConfig = {
+  ...(process.env.MSJOURNAL_BILLING_UI_CHECK === "true" && process.env.NODE_ENV === "development"
+    ? { distDir: ".next-billing-ui-check" }
+    : {}),
   ...(process.env.MSJOURNAL_WHOP_SANDBOX === "true" &&
   process.env.WHOP_ENVIRONMENT === "sandbox" &&
   process.env.NODE_ENV === "development"

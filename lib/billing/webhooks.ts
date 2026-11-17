@@ -8,6 +8,7 @@ import { ReviewError } from "@/lib/reviews/model";
 import { whopConfig } from "./config";
 import { WHOP_API_VERSION } from "./policy";
 import { reconcileMembership, sweepMemberships, whopRequest } from "./provider";
+import { completeAnnualChange } from "./switching";
 
 export const billingEvents = [
   "membership.activated",
@@ -116,6 +117,7 @@ export async function processBillingEvent(
           state = "failed";
           lastError = "awaiting_secure_link";
         }
+        if (result.linked) await completeAnnualChange(membershipId);
       } else {
         await sweepMemberships(1);
       }

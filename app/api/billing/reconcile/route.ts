@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { drainBillingEvents } from "@/lib/billing/webhooks";
 import { sweepMemberships } from "@/lib/billing/provider";
 import { whopConfig } from "@/lib/billing/config";
+import { retryAnnualChanges } from "@/lib/billing/switching";
 export const maxDuration = 60;
 export async function GET(request: Request) {
   const secret = process.env.BILLING_RECONCILE_SECRET,
@@ -22,6 +23,7 @@ export async function GET(request: Request) {
   try {
     const events = await drainBillingEvents();
     const memberships = await sweepMemberships(events ? 1 : 3);
+    await retryAnnualChanges();
     return Response.json(
       { events, memberships },
       { headers: { "Cache-Control": "no-store" } },

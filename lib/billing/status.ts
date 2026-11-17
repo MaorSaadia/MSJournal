@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { billingMemberships } from "@/db/schema";
+import { billingMemberships, billingPlanChanges } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { getPreferences } from "@/lib/preferences";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
@@ -48,7 +48,12 @@ export async function billingStatus(headers?: Headers, refresh = true) {
       /* no guessed price */
     }
   }
-  const m = memberships[0];
+  const [change] = await getDb().select().from(billingPlanChanges).where(and(
+    eq(billingPlanChanges.ownerId, user.id), eq(billingPlanChanges.environment, billingEnvironment() as "sandbox" | "live"),
+  )).orderBy(desc(billingPlanChanges.createdAt)).limit(1);
+  const target = memberships.find(m => m.membershipId === change?.toMembershipId && m.hasAccess && m.eligibleUntil > new Date());
+  const m = target ?? memberships.find(m => !m.cancelAtPeriodEnd && m.hasAccess && m.eligibleUntil > new Date()) ?? memberships[0];
+  const interval = config?.purchasePlans.find(p => p.id === m?.planId)?.interval ?? null;
   return {
     userId: user.id,
     timezone: preferences.displayTimezone,
@@ -67,6 +72,8 @@ export async function billingStatus(headers?: Headers, refresh = true) {
     checkoutAvailable: !!config?.checkoutEnabled && plans.length > 0,
     linkingAvailable: !!config?.clientId,
     plans,
+    ...(m ? { currentInterval: interval } : {}),
+    ...(change ? { billingChange: { state: change.state, updatedAt: change.updatedAt.toISOString() } } : {}),
   };
 }
 export type BillingStatus = Awaited<ReturnType<typeof billingStatus>>;
