@@ -100,7 +100,7 @@ export function SignupForm({
             autoComplete="new-password"
             error={errors.password?.message}
           />
-          <small className="muted">Use 8–128 characters.</small>
+          <small className="muted">Use at least 8 characters.</small>
           <PasswordField
             {...register("confirmPassword")}
             label="Confirm password"
@@ -126,7 +126,7 @@ export function SignupForm({
           </Button>
         </fieldset>
       </form>
-      <p className="login-privacy">
+      <p className="login-privacy login-signup-prompt">
         Already have an account? <Link href={`/login?next=${encodeURIComponent(destination)}`}>Sign in</Link>
       </p>
     </AuthFrame>

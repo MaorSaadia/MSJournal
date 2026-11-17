@@ -24,7 +24,9 @@ const eventSchema = z.object({
   id: z.string().min(1).max(200),
   type: z.string().max(100),
   api_version: z.literal("v1"),
-  api_version_date: z.literal(WHOP_API_VERSION),
+  // Both signed envelope versions use the fields consumed below. Provider
+  // reads remain pinned independently; an event body never grants access.
+  api_version_date: z.enum([WHOP_API_VERSION, "2026-11-14-1"]),
   account_id: z.string(),
   data: z
     .object({

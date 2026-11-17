@@ -51,6 +51,13 @@ import {
 } from "@/lib/billing/provider";
 import { acceptWebhook, processBillingEvent } from "@/lib/billing/webhooks";
 import { WHOP_API_VERSION } from "@/lib/billing/policy";
+import {
+  createWorksheet,
+  updateWorksheet,
+  readWorksheet,
+} from "@/lib/book/service";
+import { templates } from "@/lib/book/templates";
+import { emptyFields } from "@/lib/book/model";
 const enabled = process.env.MSJOURNAL_TEST_DISPOSABLE === "true";
 const namespace = `msjournal_billing_test_${randomUUID().replaceAll("-", "")}`;
 let admin: Pool,
@@ -177,6 +184,12 @@ describe.skipIf(!enabled)(
         await readFile("drizzle/0015_whop_billing.sql", "utf8")
       ).replaceAll('"public".', `"${namespace}".`);
       await pool.query(migration);
+      await pool.query(
+        (await readFile("drizzle/0014_book_companion.sql", "utf8")).replaceAll(
+          '"public".',
+          `"${namespace}".`,
+        ),
+      );
       vi.stubGlobal(
         "fetch",
         vi.fn(async (url: unknown, options?: RequestInit) => {
@@ -303,6 +316,14 @@ describe.skipIf(!enabled)(
         "insert into import_batches(owner_id,trading_account_id) values('legacy',$1)",
         [legacy1],
       );
+      await pool.query(
+        "insert into tradovate_performance_records(owner_id,trading_account_id) values('legacy',$1)",
+        [legacy1],
+      );
+      await pool.query(
+        "insert into journal_reviews(owner_id,trading_account_id,fields) values('legacy',$1,$2::jsonb)",
+        [legacy1, JSON.stringify({ note: "Preserve this review" })],
+      );
       await expect(
         saveTradingAccount(
           { ...input("Legacy one"), firmChoice: "Lucid Trading" },
@@ -317,6 +338,8 @@ describe.skipIf(!enabled)(
       });
       const checkout = await startCheckout("legacy", 0);
       expect(checkout.url).toContain("sandbox.whop.com");
+      // A hosted checkout / success-return URL is not an entitlement signal.
+      expect((await getEntitlement("legacy")).plan).toBe("Free");
       const event = signedEvent("msg_activate", "membership.activated");
       await Promise.all([
         acceptWebhook(event.body, event.headers),
@@ -352,6 +375,14 @@ describe.skipIf(!enabled)(
         usage: 2,
         freeAccountId: legacy1,
       });
+      const retained = await pool.query(
+        "select (select count(*)::int from import_batches where owner_id='legacy') as imports,(select count(*)::int from tradovate_performance_records where owner_id='legacy') as sources,(select fields->>'note' from journal_reviews where owner_id='legacy' limit 1) as review_note",
+      );
+      expect(retained.rows[0]).toEqual({
+        imports: 1,
+        sources: 1,
+        review_note: "Preserve this review",
+      });
       fixture.status = "active";
       fixture.hasAccess = true;
       fixture.cancel = false;
@@ -380,6 +411,27 @@ describe.skipIf(!enabled)(
       ).rejects.toMatchObject({ status: 400 });
       expect((await getEntitlement("foreign")).plan).toBe("Free");
     }, 30000);
+    it("keeps all four worksheets free to create, save and read", async () => {
+      fixture.owner = "foreign";
+      expect((await getEntitlement("foreign")).plan).toBe("Free");
+      for (const template of templates) {
+        const created = await createWorksheet({
+          templateId: template.id,
+          clientId: randomUUID(),
+          fields: emptyFields(template),
+          status: "draft",
+        });
+        const saved = await updateWorksheet(created.id, {
+          revision: created.revision,
+          fields: { ...created.fields, title: "Free worksheet fixture" },
+          status: "draft",
+        });
+        expect(saved.revision).toBe(2);
+        expect((await readWorksheet(created.id)).fields.title).toBe(
+          "Free worksheet fixture",
+        );
+      }
+    }, 45000);
     it("keeps last verified access on outages, bounds it, rate-limits refresh and permits replacement only after deletion", async () => {
       const mock = vi.mocked(fetch);
       mock.mockRejectedValueOnce(new Error("Fixture outage"));

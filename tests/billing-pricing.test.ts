@@ -33,6 +33,7 @@ beforeEach(() => {
     WHOP_PRO_PLAN_IDS: "",
     WHOP_PRO_MONTHLY_PLAN_ID: monthly.id,
     WHOP_PRO_ANNUAL_PLAN_ID: "",
+    WHOP_ANNUAL_CHECKOUT_ENABLED: "false",
     WHOP_CHECKOUT_ENABLED: "true",
   }))
     vi.stubEnv(key, value);
@@ -99,6 +100,9 @@ describe("owner-confirmed Pro billing schedules", () => {
   it("launches with Monthly only and allows an explicitly configured optional annual ID", () => {
     expect(whopConfig()?.purchasePlans).toEqual([monthly]);
     vi.stubEnv("WHOP_PRO_ANNUAL_PLAN_ID", annual.id);
+    expect(whopConfig()?.purchasePlans).toEqual([monthly]);
+    expect(configuredPlanReferences().planIds).toEqual([monthly.id, annual.id]);
+    vi.stubEnv("WHOP_ANNUAL_CHECKOUT_ENABLED", "true");
     expect(whopConfig()?.purchasePlans).toEqual([monthly, annual]);
     expect(configuredPlanReferences().planIds).toEqual([monthly.id, annual.id]);
     vi.stubEnv("WHOP_PRO_ANNUAL_PLAN_ID", "not-a-plan");
@@ -109,6 +113,7 @@ describe("owner-confirmed Pro billing schedules", () => {
       WHOP_PRO_PLAN_IDS: "plan_legacy1,plan_legacy2",
       WHOP_PRO_MONTHLY_PLAN_ID: monthly.id,
       WHOP_PRO_ANNUAL_PLAN_ID: annual.id,
+      WHOP_ANNUAL_CHECKOUT_ENABLED: "true",
     });
     expect(config.planIds).toEqual([
       "plan_legacy1",
@@ -138,6 +143,7 @@ describe("owner-confirmed Pro billing schedules", () => {
   });
   it("hides an invalid or unavailable annual plan while keeping Monthly purchasable", async () => {
     vi.stubEnv("WHOP_PRO_ANNUAL_PLAN_ID", annual.id);
+    vi.stubEnv("WHOP_ANNUAL_CHECKOUT_ENABLED", "true");
     for (const response of [
       Response.json({ ...variant(true), renewal_price: 99.99 }),
       new Response(null, { status: 503 }),
@@ -157,6 +163,7 @@ describe("owner-confirmed Pro billing schedules", () => {
   });
   it("shows annual only after verification and never substitutes it for a stale Monthly choice", async () => {
     vi.stubEnv("WHOP_PRO_ANNUAL_PLAN_ID", annual.id);
+    vi.stubEnv("WHOP_ANNUAL_CHECKOUT_ENABLED", "true");
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url) =>

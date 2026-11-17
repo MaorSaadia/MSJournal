@@ -173,4 +173,13 @@ describe("Whop Standard Webhooks verification", () => {
       "envelope",
     );
   });
+  it("accepts the verified newer envelope only with a valid signature and matching event ID", () => {
+    const body = raw().replace(WHOP_API_VERSION, "2026-11-14-1");
+    expect(verifiedWebhook(body, signed(body), key).api_version_date).toBe("2026-11-14-1");
+    expect(() => verifiedWebhook(body + " ", signed(body), key)).toThrow("signature");
+    const unknown = raw().replace(WHOP_API_VERSION, "2099-01-01");
+    expect(() => verifiedWebhook(unknown, signed(unknown), key)).toThrow("envelope");
+    const mismatch = body.replace('"id":"msg_fixture"', '"id":"msg_other"');
+    expect(() => verifiedWebhook(mismatch, signed(mismatch), key)).toThrow("envelope");
+  });
 });

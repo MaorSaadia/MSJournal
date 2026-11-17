@@ -500,6 +500,35 @@ export async function startRecovery(ownerId: string) {
       "Subscription linking is not available yet. Please try again later.",
       503,
     );
+  // This integration uses the public-client S256 PKCE exchange. Verify the
+  // configured app before creating local OAuth state; confidential apps need
+  // different token authentication and must not silently fall through here.
+  const app = z
+    .object({
+      id: z.string(),
+      account: z.object({ id: z.string() }).nullable(),
+      oauth_client_type: z.literal("public"),
+      redirect_uris: z.array(z.string()),
+    })
+    .safeParse(
+      await whopRequest(
+        `/apps/${encodeURIComponent(config.clientId)}`,
+        {},
+        config,
+      ),
+    );
+  if (
+    !app.success ||
+    app.data.id !== config.clientId ||
+    app.data.account?.id !== config.businessId ||
+    !app.data.redirect_uris.includes(
+      `${config.origin}/api/billing/whop/callback`,
+    )
+  )
+    throw new ReviewError(
+      "Subscription linking is not configured yet. Please try again later.",
+      503,
+    );
   const state = randomBytes(32).toString("hex"),
     verifier = randomBytes(32).toString("base64url");
   await getDb().transaction(async (tx) => {

@@ -50,3 +50,4 @@ next-env.d.ts
 /artifacts/books/
 
 /artifacts/billing/
+/.next-whop-sandbox/

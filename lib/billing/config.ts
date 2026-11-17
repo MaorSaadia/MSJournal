@@ -20,10 +20,20 @@ export function configuredPlanReferences(
       : undefined;
   const purchasePlans: PurchasePlan[] = [];
   if (monthly) purchasePlans.push({ id: monthly, interval: "monthly" });
-  if (annual && annual !== monthly)
+  if (
+    annual &&
+    annual !== monthly &&
+    env.WHOP_ANNUAL_CHECKOUT_ENABLED === "true"
+  )
     purchasePlans.push({ id: annual, interval: "annual" });
   return {
-    planIds: [...new Set([...legacy, ...purchasePlans.map((p) => p.id)])],
+    planIds: [
+      ...new Set([
+        ...legacy,
+        ...(monthly ? [monthly] : []),
+        ...(annual ? [annual] : []),
+      ]),
+    ],
     purchasePlans,
   };
 }

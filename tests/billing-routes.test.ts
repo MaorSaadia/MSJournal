@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
+  configured: true,
   signedIn: true,
   checkout: vi.fn(),
   link: vi.fn(),
@@ -11,6 +12,10 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("next/server", () => ({ after: vi.fn() }));
+vi.mock("@/lib/billing/config", () => ({
+  whopConfig: () => (mocks.configured ? {} : null),
+  billingEnvironment: () => "sandbox",
+}));
 vi.mock("@/lib/session", () => {
   class UnauthorizedError extends Error {}
   return {
@@ -38,6 +43,7 @@ import { GET as reconcile } from "@/app/api/billing/reconcile/route";
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.signedIn = true;
+  mocks.configured = true;
   vi.stubEnv("BETTER_AUTH_URL", "http://localhost:3000");
   vi.stubEnv("DATABASE_URL", "postgresql://fixture:fixture@localhost/fixture");
   vi.stubEnv(
@@ -112,5 +118,14 @@ describe("billing request boundaries", () => {
     );
     expect(result.status).toBe(200);
     expect(mocks.sweep).toHaveBeenCalledWith(1);
+    mocks.configured = false;
+    mocks.sweep.mockClear();
+    const unconfigured = await reconcile(
+      new Request("http://localhost/api/billing/reconcile", {
+        headers: { authorization: "Bearer fixture_scheduler_secret" },
+      }),
+    );
+    expect(unconfigured.status).toBe(503);
+    expect(mocks.sweep).not.toHaveBeenCalled();
   });
 });

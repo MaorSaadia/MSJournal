@@ -2,6 +2,8 @@
 
 Implemented 13 November 2026. Better Auth remains MSJournal's only application login. Whop collects payments and manages subscriptions; card data never enters MSJournal. CSV imports remain CSV imports.
 
+See the [15 November verification results and exact remaining blockers](whop-verification.md) for the current `www.msjournal.app` deployment, verified live Monthly IDs, OAuth configuration mismatch and Hobby scheduler setup. Earlier missing-credential observations below describe the initial implementation, not the current verification state.
+
 ## Account policy
 
 - **Free:** one real trading account total, belonging to one firm. Archived accounts count. There are no new import quotas or restrictions on the selected account's existing features.
@@ -26,12 +28,14 @@ All values are **server-only**; never use `NEXT_PUBLIC_` for them. See [.env.exa
 | `WHOP_PRO_PRODUCT_ID` | The MSJournal Pro product's `prod_…` ID. |
 | `WHOP_PRO_MONTHLY_PLAN_ID` | Launch plan: the `plan_…` variant for **$9.99 USD every 30 days**. No setup charge or trial. |
 | `WHOP_PRO_ANNUAL_PLAN_ID` | Optional later: `plan_…` variant for **$89.99 USD every 365 days**. Leave blank for launch. Its purchase option stays hidden until verified. |
+| `WHOP_ANNUAL_CHECKOUT_ENABLED` | Default `false`. A later annual purchase additionally requires this explicit opt-in and a verified annual variant under the Pro product. |
 | `WHOP_PRO_PLAN_IDS` | Optional legacy membership allowlist; its IDs remain eligible for existing subscription reconciliation. A single legacy ID can serve as Monthly only after matching all Monthly checks. When several legacy IDs exist, set the explicit Monthly/Annual variables; their intervals are never guessed. |
 | `WHOP_WEBHOOK_SECRET` | Complete signing secret from the webhook's dashboard configuration, including `ws_`. |
 | `WHOP_OAUTH_CLIENT_ID` | The Whop developer app ID (`app_…`) used for existing-subscription recovery. Uses PKCE, not an email match. |
 | `WHOP_CHECKOUT_ENABLED` | Default `false`. Set `true` for a configured sandbox checkout after review. |
 | `WHOP_LIVE_VERIFIED` | Default `false`. Live checkout also requires this independent gate to be `true`; leave off until the release checklist is complete. |
 | `BILLING_RECONCILE_SECRET` | Independent long random value for the protected reconciliation endpoint. Never put it in a URL. |
+| `CRON_SECRET` | For Vercel Cron, the same value as `BILLING_RECONCILE_SECRET`; both must be set on the deployment. |
 | `SITE_URL` | Existing canonical production HTTPS origin. Repository default is `https://ms-journal.vercel.app`; this does not assert another custom domain is connected. |
 | `BETTER_AUTH_URL` | Existing authentication/mutation origin. Local callbacks use this origin; production billing redirects use `SITE_URL`. Keep both aligned in production. |
 
@@ -59,6 +63,8 @@ Portable backups now use **format 7** and include the owner's billing profile/Fr
 4. Subscribe to `membership.activated`, `membership.updated`, `payment.succeeded`, `payment.failed`, `payment.requires_action`, `refund.created`, `refund.updated`, `dispute.created`, and `dispute.updated`. These are the current dated API events, not older `membership.went_valid` examples. Event processing fetches authoritative state; it does not grant access from notification fields.
 5. Create/select a Whop developer OAuth app. Register the exact redirect URI `http://localhost:3000/api/billing/whop/callback` for local development and the final production `SITE_URL` plus `/api/billing/whop/callback` when preparing a release. Enable `openid` for this app and copy its app/client ID. This implementation uses the documented PKCE public-client exchange, not a client secret or a new Better Auth provider.
 6. Configure a protected scheduled request to `GET /api/billing/reconcile`, preferably once per minute, with `Authorization: Bearer <BILLING_RECONCILE_SECRET>`. Use the host's existing scheduler/secure job facility; no new infrastructure is included. Do not place the bearer secret in query parameters or public cron metadata.
+
+   Current Hobby setup: `vercel.json` now declares the supported daily `0 2 * * *` schedule. Set Production `CRON_SECRET` to the same value as `BILLING_RECONCILE_SECRET` and deploy the configuration. Daily recovery is slower than the six-hour lease; see the [verification report](whop-verification.md) for the failed production authentication probe and remaining activation/log checks. The runtime returns 503 when provider configuration is missing/disabled rather than reporting a successful empty sweep.
 
 Whop's sandbox guide documents the frontend/API hosts, but does not explicitly document the sandbox OAuth host. The recovery adapter uses the corresponding `sandbox-api.whop.com/oauth` host; confirm its availability with Whop in sandbox before treating recovery as verified. No sandbox credentials were supplied, so real hosted checkout, OAuth, management URLs and delivered webhooks still need that operator test. If Whop does not provide sandbox OAuth for the app, test recovery in a separately approved provider test environment before enabling live checkout; never send sandbox tokens to the live host.
 
