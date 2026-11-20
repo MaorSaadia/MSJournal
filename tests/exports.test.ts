@@ -83,7 +83,6 @@ describe("portable export safety", () => {
       "billing_checkouts",
       "billing_oauth_states",
       "billing_webhook_events",
-      "contact_submissions",
     ];
     const tables = Object.values(schema)
       .filter((value) => is(value, PgTable))

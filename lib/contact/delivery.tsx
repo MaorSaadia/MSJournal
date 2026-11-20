@@ -1,7 +1,7 @@
 import "server-only";
 import { createHmac } from "node:crypto";
 import { isIP } from "node:net";
-import { render } from "react-email";
+import { render } from "@react-email/components";
 import { Resend } from "resend";
 import { z } from "zod";
 import { readConfig, emailConfigured } from "@/lib/config";
@@ -42,7 +42,7 @@ export async function deliverContact({ id, topic, email, message, receipt }: Con
       subject: `[MSJournal Support] ${topics[topic].subject} · ${reference}`,
       html: await render(<SupportNotification reference={reference} topic={label} email={email} message={message} receipt={receipt} />),
       text: `MSJournal · New support message\nReference: ${reference}\nTopic: ${label}\nReply email: ${email}${receipt ? `\nWhop receipt or order ID: ${receipt}` : ""}\n\n${message}`,
-    }, { idempotencyKey: `contact-support/${id}`, signal: AbortSignal.timeout(8_000) });
+    }, { idempotencyKey: `contact-support/${id}` });
     if (result.error || !result.data?.id) throw new Error("Provider did not confirm acceptance");
   } catch {
     console.warn("Contact notification unconfirmed", { reference });
@@ -58,7 +58,7 @@ export async function deliverContact({ id, topic, email, message, receipt }: Con
         subject: `We received your MSJournal message · ${reference}`,
         html: await render(<VisitorConfirmation reference={reference} topic={label} />),
         text: `MSJournal\n\n${confirmationCopy}\n\nTopic: ${label}\nReference: ${reference}`,
-      }, { idempotencyKey: `contact-confirmation/${id}`, signal: AbortSignal.timeout(8_000) });
+      }, { idempotencyKey: `contact-confirmation/${id}` });
       console.info(result.error || !result.data?.id ? "Contact confirmation unconfirmed" : "Contact confirmation accepted", { reference });
     }
   } catch {
