@@ -621,7 +621,6 @@ export function TradingCalendar({
               </p>
             )}
             <CalendarGrid
-              reviewQuery={mode === "real" ? query.toString() : undefined}
               data={data}
               view={view}
               dayButton={dayButton}

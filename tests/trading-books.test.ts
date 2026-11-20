@@ -36,13 +36,12 @@ describe("public trading books", () => {
     expect(html).toContain('href="https://www.amazon.com/dp/EXAMPLE"');
   });
   it("renders the supplied purchase links for the matching books", () => {
-    const expected: Record<string,string> = {"absolute-beginners":"B0FQBBK2SH","smart-money":"B0FMDZ98CL","ict-playbook":"B0FMJWBDJ3","masterclass":"B0FRM58PL5","ict-codex":"B0G83TBLYC","disciplined-edge":"B0GFCX3QGV","operator-1":"B0GX2YKYJH","operator-2":"B0H3THY9VN"};
+    const expected: Record<string,string> = {"absolute-beginners":"B0FQBBK2SH","smart-money":"B0FMDZ98CL","ict-playbook":"B0FMJWBDJ3","masterclass":"B0FRM58PL5","ict-codex":"B0G83TBLYC","disciplined-edge":"B0GFCX3QGV","operator-1":"B0GX2YKYJH","operator-2":"B0H3THY9VN","consistent-day-trader":"B0HRG63Y8C"};
     for (const [id,asin] of Object.entries(expected)) {
       const book=tradingBooks.find((b)=>b.id===id)!;
       expect(book.amazonUrl).toBe(`https://www.amazon.com/dp/${asin}`);
       expect(renderToStaticMarkup(createElement(AmazonAction,{book}))).toContain(`href="https://www.amazon.com/dp/${asin}"`);
     }
-    expect(tradingBooks.find((b)=>b.id==="consistent-day-trader")?.amazonUrl).toBe("");
   });
   it("uses supplied book facts in sharing metadata and structured data", () => {
     for (const book of tradingBooks) {

@@ -1,5 +1,4 @@
 import { Skeleton } from "@/components/ui/loading";
-import { WeeklyReviewButton } from "./weekly-review";
 import { CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { Help } from "@/components/dashboard/panel";
@@ -54,14 +53,12 @@ export function CalendarGrid({
   dayButton,
   compact,
   fullHref,
-  reviewQuery,
 }: {
   data: CalendarMonth;
   view: "auto" | "grid" | "agenda";
   dayButton: (day: string, agenda?: boolean) => React.ReactNode;
   compact: boolean;
   fullHref: string;
-  reviewQuery?: string;
 }) {
   return (
     <>
@@ -91,7 +88,6 @@ export function CalendarGrid({
                 {week.dates.map((date) => dayButton(date))}
                 <div className="weekly-summary">
                   <span>Week {i + 1}</span>
-                  {reviewQuery && <WeeklyReviewButton query={reviewQuery} week={week.dates[0]} />}
                   <strong
                     className={
                       new D(week.summary.total ?? 0).gt(0)
@@ -124,7 +120,6 @@ export function CalendarGrid({
               Week {i + 1}
               <strong>{journalMoney(week.summary.total, true)}</strong>
               <small>{week.summary.activeDays} days</small>
-              {reviewQuery && <WeeklyReviewButton query={reviewQuery} week={week.dates[0]} />}
             </span>
           ))}
         </div>

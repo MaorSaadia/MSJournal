@@ -164,7 +164,7 @@ export const tradingBooks: TradingBook[] = [
       "Turn your trading journal into useful action by reviewing recurring patterns and practicing one deliberate change at a time.",
       "Evaluate progress without racing someone else’s timeline, while staying honest about your results, costs, and reasons to continue.",
     ],
-    cover: cover("the-consistent-day-trader", "The Consistent Day Trader", 1343), companionHref: "/book", amazonUrl: "", order: 9, featured: false,
+    cover: cover("the-consistent-day-trader", "The Consistent Day Trader", 1343), companionHref: "/book", amazonUrl: "https://www.amazon.com/dp/B0HRG63Y8C", order: 9, featured: false,
     related: ["disciplined-edge", "operator-2"],
   },
 ];
