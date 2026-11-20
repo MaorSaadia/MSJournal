@@ -26,6 +26,7 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
   const [data, setData] = useState(initial),
     [busy, setBusy] = useState(""),
     [error, setError] = useState(""),
+    [checkoutError, setCheckoutError] = useState(""),
     [message, setMessage] = useState("");
   const router = useRouter(),
     search = useSearchParams(),
@@ -63,6 +64,7 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
     if (busy) return;
     setBusy(key);
     setError("");
+    setCheckoutError("");
     setMessage("");
     try {
       const result = await requestJson<BillingStatus | { url: string }>(
@@ -80,11 +82,11 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
           : "Subscription status refreshed.",
       );
     } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "This action could not finish. Please try again.",
-      );
+      const reason = e instanceof Error
+        ? e.message
+        : "This action could not finish. Please try again.";
+      if (body.action === "checkout") setCheckoutError(reason);
+      else setError(reason);
     } finally {
       setBusy("");
     }
@@ -334,6 +336,7 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
         currentPlan={data.plan}
         plans={data.plans}
         checkoutAvailable={data.checkoutAvailable}
+        checkoutError={checkoutError}
         busy={busy}
         manageUrl={subscription?.manageUrl}
         onCheckout={(option) => void action({ action: "checkout", option }, `checkout-${option}`)}

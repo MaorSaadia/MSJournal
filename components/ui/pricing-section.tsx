@@ -11,6 +11,7 @@ type Props = {
   currentPlan: "Free" | "Pro";
   plans: VerifiedPlanOption[];
   checkoutAvailable: boolean;
+  checkoutError: string;
   busy: string;
   manageUrl?: string | null;
   onCheckout: (option: number) => void;
@@ -19,7 +20,7 @@ type Props = {
   onChangeAnnual?: () => void;
 };
 
-export default function PricingSection({ currentPlan, plans, checkoutAvailable, busy, manageUrl, onCheckout, currentInterval, changeState, onChangeAnnual }: Props) {
+export default function PricingSection({ currentPlan, plans, checkoutAvailable, checkoutError, busy, manageUrl, onCheckout, currentInterval, changeState, onChangeAnnual }: Props) {
   const [interval, setInterval] = useState<ProInterval>(
     changeState && ["checkout", "awaiting_payment", "cancel_pending"].includes(changeState) ? "annual" : currentInterval ?? "monthly",
   );
@@ -84,11 +85,14 @@ export default function PricingSection({ currentPlan, plans, checkoutAvailable, 
           ) : pro ? (
             manageUrl ? <Button asChild className="billing-tier-cta"><a href={manageUrl} target="_blank" rel="noopener noreferrer">Manage subscription<ArrowUpRight size={16} /><span className="sr-only"> (opens in a new tab)</span></a></Button>
               : <Button disabled className="billing-tier-cta"><Check size={16} />Your Pro plan is active</Button>
-          ) : checkoutAvailable && selected ? (
-            <Button className="billing-tier-cta" disabled={!!busy} onClick={() => onCheckout(selected.option)}>
-              {busy === `checkout-${selected.option}` ? <><LoadingSpinner size={15} />Opening checkout</> : <>Get Pro {selectedInterval === "annual" ? "Yearly" : "Monthly"}<ArrowUpRight size={16} /></>}
-            </Button>
-          ) : <div className="billing-unavailable" role="status">Pro checkout isn&apos;t available yet. Your Free account and worksheets remain available.</div>}
+          ) : (
+            <>
+              <Button className="billing-tier-cta" disabled={!!busy} onClick={() => onCheckout(price.option)}>
+                {busy === `checkout-${price.option}` ? <><LoadingSpinner size={15} />Checking checkout</> : <>Get Pro {selectedInterval === "annual" ? "Yearly" : "Monthly"}<ArrowUpRight size={16} /></>}
+              </Button>
+              {checkoutError && <p className="form-error" role="alert">{checkoutError}</p>}
+            </>
+          )}
           {selectedInterval === "annual" && <p className="billing-annual-saving">{annualSaving}</p>}
           {pro && currentInterval && <p className="billing-current-period">Your current billing period: {currentInterval === "annual" ? "Yearly" : "Monthly"}.</p>}
           <div className="billing-tier-divider" />
