@@ -346,6 +346,7 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
           )) void action({ action: "switch_annual" }, "switch_annual");
         }}
       />
+      <p className="small"><Link href="/contact?topic=billing">Need help with a payment?</Link></p>
       <p className="small muted billing-footer-note">
         Payments and subscription changes are handled on Whop. MSJournal imports
         trades by CSV; it doesn’t automatically sync with a broker.{" "}

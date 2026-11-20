@@ -1,0 +1,15 @@
+# Weekly Trading Review
+
+Calendar weekly totals now include Review my week for real signed-in accounts, on desktop and mobile. Demo has no entry point and the endpoint rejects Demo. The selected calendar month, week, account IDs, archived visibility, symbol/direction/date filters and saved journal timezone are reused. Month-edge weeks intentionally use only the dates in the displayed calendar month and range, matching its weekly summary.
+
+The private no-store endpoint authenticates first and checks current writable account entitlements before querying and again before returning links. Free reviews are limited to the selected permitted account. Pro reviews use owned permitted accounts. Calendar totals and fee fallback come directly from calendarData; no grouped/source double counting or replacement financial formulas. Strongest-day evidence is checked against the initial daily count and amount to detect concurrent corrections.
+
+Facts, deterministic local wording and UI live separately under lib/weekly-review and components/calendar. The initial observation describes strongest-day results versus the remaining days, only with at least four active days, eight closed trades and a positive strongest day. This is descriptive, not a causal or predictive finding. It deliberately does not infer entry size from partial exits or infer motives. Empty/small samples receive no invented insight. Fee estimates remain labeled, gross fallback is preserved. Imports may not represent complete trading history; existing calendar processing warnings appear in the review.
+
+Practice questions can be copied and pasted into the existing journal. No worksheet is silently created or overwritten. Reopening uses the existing identity/timezone/filter-scoped private calendar cache, cleared by logout and invalidated by import/fee mutations. Cached text is hidden on a request error. No public/shared response cache.
+
+No external AI dependency, request, production key or unpaid Gemini use. Whop and pricing are unchanged. A future live provider would implement the wording boundary using validated server facts, with a server-only key, appropriate paid-provider data terms and user controls, output validation, budget/rate limits and local fallback. A future Pro + AI entitlement must be separately authorized and verified before charging or advertising it; nothing in this milestone enables that tier.
+
+Checks: focused calendar and weekly tests validate shared summary values, fallback labels, denied foreign/restricted scope, Demo rejection and no external request. Scoped TypeScript/lint and a mocked dialog browser check cover the new entry point. No deployment or migration required.
+
+Final validation: 12 focused checks passed, including access withdrawal during a request. The mocked dialog browser check passed evidence destinations, cached reopening, Escape, desktop/mobile and both themes. Scoped TypeScript and ESLint passed. Screenshot fixtures are private under artifacts/settings/weekly-review. No customer data was sent to an AI provider, and no live customer session was impersonated for QA.

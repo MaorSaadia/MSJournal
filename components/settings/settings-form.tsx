@@ -177,6 +177,10 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
       </div>
       <ChangePassword email={preferences.email} />
       <section className="panel settings-session">
+        <div><h2>Help &amp; support</h2><p>Get help with your MSJournal account.</p></div>
+        <Button asChild variant="outline"><Link href="/contact">Contact us</Link></Button>
+      </section>
+      <section className="panel settings-session">
         <ShieldCheck size={21} />
         <div>
           <h2>Your private session</h2>

@@ -3,6 +3,7 @@ import { listTradingAccounts } from "@/lib/accounts/service";
 import { ImportPage } from "@/components/imports/import-page";
 import { getPreferences } from "@/lib/preferences";
 import { lastSourceTimezones } from "@/lib/imports/service";
+import { getFeeSettings } from "@/lib/journal/service";
 export const metadata = { title: "Import Trades" };
 export default async function Page({ searchParams }: PageProps<"/imports">) {
   await requirePageUser();
@@ -22,11 +23,16 @@ export default async function Page({ searchParams }: PageProps<"/imports">) {
     getPreferences(),
     lastSourceTimezones(),
   ]);
+  const feeSettings = Object.fromEntries(await Promise.all(ordered.map(async (account) => {
+    const settings = await getFeeSettings(account.id);
+    return [account.id, { perSide: settings.perSide, contractOverrides: settings.contractOverrides }];
+  })));
   return (
     <ImportPage
       accounts={ordered}
       displayTimezone={preferences.displayTimezone}
       lastTimezones={lastTimezones}
+      feeSettings={feeSettings}
     />
   );
 }

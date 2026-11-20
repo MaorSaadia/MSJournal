@@ -79,9 +79,7 @@ export function RecoveryForm({
       )}
       {!emailReady && (
         <p className="setup-notice" role="status">
-          Email {verify ? "verification" : "recovery"} is currently unavailable.
-          You can still sign up and sign in when email verification is not
-          required.
+          {verify ? "Email verification" : "Password reset email"} is currently unavailable. Please try again later.
         </p>
       )}
       {sent ? (
@@ -93,6 +91,8 @@ export function RecoveryForm({
             receive a secure {verify ? "verification" : "reset"} link. Check
             your spam folder too.
           </p>
+          <p className="small muted">Links expire after one hour.{!verify && " Your password stays unchanged until you choose a new one."}</p>
+          <Button variant="outline" onClick={() => {setSent(false);setError("");}}>Try again or use another email</Button>
         </div>
       ) : (
         <form method="post" onSubmit={handleSubmit(submit)} noValidate aria-busy={isSubmitting}>
@@ -142,7 +142,7 @@ export function RecoveryForm({
         </form>
       )}
       <p className="login-privacy">
-        <Link href="/login">Back to sign in</Link>
+        <Link href="/login">Back to sign in</Link>{!verify && <> ? <Link href="/contact?topic=access">Contact support</Link></>}
       </p>
     </AuthFrame>
   );

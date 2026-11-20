@@ -19,6 +19,7 @@ import { TimezoneSelector } from "@/components/ui/timezone-selector";
 import { journalTimestamp } from "@/lib/timezones";
 import { inspectReportType } from "@/lib/imports/reports";
 import { FeeSummary } from "@/components/fees/summary";
+import { FeeSettings } from "@/components/journal/fee-settings";
 import {
   MAX_FILE_BYTES,
   type Preview,
@@ -28,14 +29,18 @@ export function ImportPage({
   accounts,
   displayTimezone,
   lastTimezones,
+  feeSettings = {},
 }: {
   accounts: TradingAccount[];
   displayTimezone: string;
   lastTimezones: Record<string, string>;
+  feeSettings?: Record<string, { perSide: string | null; contractOverrides: Record<string, string> }>;
 }) {
   const router = useRouter();
   const guard = useRef(false);
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
+  const [savedFeeSettings, setSavedFeeSettings] = useState(feeSettings);
+  const [feeSettingsBusy, setFeeSettingsBusy] = useState(false);
   const [timezone, setTimezone] = useState(
     lastTimezones[accounts[0]?.id] ?? "Asia/Jerusalem",
   );
@@ -93,6 +98,7 @@ export function ImportPage({
   const checkingFile = Object.values(checking).some(Boolean);
   const fileBlocked = Object.values(fileIssues).some(Boolean);
   async function send(action: "preview" | "confirm") {
+    if (feeSettingsBusy) return;
     if (checkingFile || fileBlocked) return;
     if (guard.current) return;
     guard.current = true;
@@ -194,7 +200,7 @@ export function ImportPage({
         <>
           <section className="import-card">
             <div className="import-step">01 · Choose the destination</div>
-            <fieldset className="import-fields" disabled={!!busy}>
+            <fieldset className="import-fields" disabled={!!busy || feeSettingsBusy}>
               <label>
                 Trading account
                 <select
@@ -222,7 +228,7 @@ export function ImportPage({
                 <span>CSV source timezone</span>
                 <TimezoneSelector
                   label="CSV source timezone"
-                  disabled={!!busy}
+                  disabled={!!busy || feeSettingsBusy}
                   value={timezone}
                   onChange={(value) => {
                     setTimezone(value);
@@ -248,7 +254,7 @@ export function ImportPage({
             <UploadArea
               type="performance"
               file={files.performance}
-              disabled={!!busy}
+              disabled={!!busy || feeSettingsBusy}
               issue={fileIssues.performance}
               checking={checking.performance}
               choose={(f) => void choose("performance", f)}
@@ -265,13 +271,13 @@ export function ImportPage({
               <UploadArea
                 type="orders"
                 file={files.orders}
-                disabled={!!busy}
+                disabled={!!busy || feeSettingsBusy}
                 issue={fileIssues.orders}
                 checking={checking.orders}
                 choose={(f) => void choose("orders", f)}
               />
             </details>
-            <fieldset className="import-confirmations" disabled={!!busy}>
+            <fieldset className="import-confirmations" disabled={!!busy || feeSettingsBusy}>
               {files.orders &&
                 !fileIssues.orders &&
                 !checking.orders &&
@@ -318,12 +324,29 @@ export function ImportPage({
                   <span className="import-fees-icon" aria-hidden="true"><ReceiptText size={21} /></span>
                   <div>
                     <h3 id="import-fees-heading">Trading fees &amp; commissions <span>Optional</span></h3>
-                    <p>Add your broker-report fees to see your net P&amp;L after trading costs.</p>
+                    <p>Save an automatic estimate once, or enter the actual total for this report.</p>
                   </div>
                 </header>
+                <div className="import-auto-fees" key={accountId}>
+                  <strong>Automatic fees for {account?.displayName}</strong>
+                  <p className="small muted">{savedFeeSettings[accountId]?.perSide != null
+                    ? `Saved estimate: $${savedFeeSettings[accountId].perSide} per contract, per side. Contract overrides take priority. Enter an actual report total below only when you want to replace estimates for those records.`
+                    : Object.keys(savedFeeSettings[accountId]?.contractOverrides ?? {}).length
+                      ? "Contract-specific estimates are saved. Other contracts remain unknown unless you set a default rate."
+                      : "Set your broker’s per-contract rate to estimate fees automatically on future imports. No rate is assumed."}</p>
+                  <details>
+                    <summary>{savedFeeSettings[accountId]?.perSide != null ? "Change automatic fee estimate" : "Set up automatic fee estimates"}</summary>
+                    <FeeSettings accountId={accountId} initialRate={savedFeeSettings[accountId]?.perSide ?? null}
+                      initialOverrides={savedFeeSettings[accountId]?.contractOverrides ?? {}} disabled={!!busy || feeSettingsBusy}
+                      onSavingChange={setFeeSettingsBusy} onSaved={(settings) => {
+                        setSavedFeeSettings(old => ({ ...old, [accountId]: settings }));
+                        invalidate();
+                      }} />
+                  </details>
+                </div>
                 <label className="field-label">
                   Total fees for this Performance report (USD)
-                  <input inputMode="decimal" value={feeTotal} disabled={!!busy} placeholder="For example, 24.96" onChange={(e) => {
+                  <input inputMode="decimal" value={feeTotal} disabled={!!busy || feeSettingsBusy} placeholder="For example, 24.96" onChange={(e) => {
                     setFeeTotal(e.target.value);
                     setFeesConfirmed(false);
                     setReplaceFees(false);
@@ -333,23 +356,28 @@ export function ImportPage({
                 <p className="small muted">Copy the all-in trading fees for these same report records from Tradovate. Include commissions, exchange, clearing and regulatory fees. Exclude deposits, withdrawals and subscription costs. Enter 0 only if fees are actually zero.</p>
                 {feeTotal.trim() && (
                   <label className="import-confirm">
-                    <input type="checkbox" disabled={!!busy} checked={feesConfirmed} onChange={(e) => { setFeesConfirmed(e.target.checked); invalidate(); }} />
+                    <input type="checkbox" disabled={!!busy || feeSettingsBusy} checked={feesConfirmed} onChange={(e) => { setFeesConfirmed(e.target.checked); invalidate(); }} />
                     <span>I confirm these fees apply to all closed Performance records in this file, including duplicates, not only the newly imported rows. Fees for unrelated records or open positions are excluded.</span>
                   </label>
                 )}
-                <p className="small muted import-fees-note">You can also add or correct totals later in <Link href="/fees">Fees</Link>. Leave blank if unknown; existing fees and account estimates are preserved.</p>
+                <p className="small muted import-fees-note">Leave the report total blank to use saved estimates for new trades and keep existing actual fees. Estimates remain labeled; a matching actual report total replaces them, rather than adding more fees. Manage totals and contract overrides in <Link href={`/fees?accountId=${accountId}`}>Fees</Link>.</p>
               </section>
             )}
             {error && (
               <div role="alert" className="import-error">
                 {error}
+                {error.startsWith("These records overlap part of an existing fee total") && (
+                  <Button variant="outline" disabled={feeSettingsBusy || !!busy} onClick={() => {
+                    setFeeTotal(""); setFeesConfirmed(false); invalidate();
+                  }}>Keep existing fees and use saved estimates for new trades</Button>
+                )}
               </div>
             )}
             <Button
               onClick={() => send("preview")}
               aria-busy={busy === "preview"}
               disabled={
-                !!busy ||
+                !!busy || feeSettingsBusy ||
                 checkingFile ||
                 fileBlocked ||
                 !Object.values(files).some(Boolean) ||
@@ -398,7 +426,7 @@ export function ImportPage({
                   timezone={displayTimezone}
                 />
               ))}
-              {preview.feeReview && <><FeeSummary quote={preview.feeReview} />{preview.feeReview.replaceRequired && <label className="import-confirm"><input type="checkbox" checked={replaceFees} disabled={!!busy} onChange={(e) => setReplaceFees(e.target.checked)} />Replace the existing fees shown above with this total. Keep the previous totals in history.</label>}</>}
+              {preview.feeReview && <><FeeSummary quote={preview.feeReview} />{preview.feeReview.replaceRequired && <label className="import-confirm"><input type="checkbox" checked={replaceFees} disabled={!!busy || feeSettingsBusy} onChange={(e) => setReplaceFees(e.target.checked)} />Replace the existing fees shown above with this total. Keep the previous totals in history.</label>}</>}
               <p className="small muted">
                 Confirmation reparses your files and rechecks the database.
                 Duplicates are skipped; any invalid or conflicting records block
@@ -408,7 +436,7 @@ export function ImportPage({
                 onClick={() => send("confirm")}
               aria-busy={busy === "confirm"}
                 disabled={
-                  !!busy || checkingFile || fileBlocked || !preview.canConfirm || (!!preview.feeReview?.replaceRequired && !replaceFees)
+                  !!busy || feeSettingsBusy || checkingFile || fileBlocked || !preview.canConfirm || (!!preview.feeReview?.replaceRequired && !replaceFees)
                 }
               >
                 {busy === "confirm" ? (

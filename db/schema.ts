@@ -24,6 +24,19 @@ import {
   foreignKey,
 } from "drizzle-orm/pg-core";
 
+export const contactSubmissions = pgTable("contact_submissions", {
+  id: text("id").primaryKey(),
+  fingerprint: text("fingerprint").notNull(),
+  emailKey: text("email_key").notNull(),
+  networkKey: text("network_key").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+}, (t) => [
+  index("contact_email_rate").on(t.emailKey, t.createdAt),
+  index("contact_network_rate").on(t.networkKey, t.createdAt),
+  index("contact_expiry").on(t.createdAt),
+]);
+
 export const billingProfiles = pgTable("billing_profiles", {
   ownerId:text("owner_id").primaryKey().references(()=>user.id,{onDelete:"cascade"}),
   freeAccountId:uuid("free_account_id").references(()=>tradingAccounts.id,{onDelete:"set null"}),

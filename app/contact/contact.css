@@ -1,0 +1,28 @@
+.contact-card {
+  width: min(100% - 2rem, 640px);
+  margin: clamp(2rem, 6vw, 5rem) auto;
+  padding: clamp(1.25rem, 5vw, 2.75rem);
+  border-radius: 16px;
+}
+.contact-card h1 { font-size: clamp(1.8rem, 5vw, 2.5rem); font-weight: 700; line-height: 1.15; }
+.contact-intro { margin: .75rem 0 1.75rem; line-height: 1.6; }
+.contact-fields { display: grid; gap: 1.25rem; min-width: 0; }
+.contact-fields .form-field { font-size: .92rem; }
+.contact-fields :is(input, select, textarea) { min-height: 44px; font-size: 1rem; }
+.contact-fields textarea { resize: vertical; }
+.contact-submit { justify-self: start; min-height: 44px; }
+.contact-success {
+  background: var(--accent);
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.contact-success :is(svg, strong) { color: var(--primary); }
+.contact-success h2 { font-size: 1.25rem; margin-block: .65rem .4rem; }
+.contact-success p { margin-bottom: .5rem; }
+@media (max-width: 480px) { .contact-submit { width: 100%; } }
+@media (prefers-reduced-motion: no-preference) {
+  .contact-success { animation: contact-arrival 220ms ease-out; }
+  @keyframes contact-arrival { from { opacity: .5; transform: translateY(5px); } }
+}

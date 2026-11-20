@@ -6,14 +6,21 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { requestJson } from "@/lib/client-api";
 import { useWritingGuard } from "@/components/daily/writing-guard";
+import Decimal from "decimal.js";
 export function FeeSettings({
   accountId,
   initialRate,
   initialOverrides,
+  disabled = false,
+  onSaved,
+  onSavingChange,
 }: {
   accountId: string;
   initialRate: string | null;
   initialOverrides: Record<string, string>;
+  disabled?: boolean;
+  onSaved?: (settings: { perSide: string | null; contractOverrides: Record<string, string> }) => void;
+  onSavingChange?: (saving: boolean) => void;
 }) {
   const router = useRouter(),
     guard = useRef(false);
@@ -48,6 +55,7 @@ export function FeeSettings({
     }
     guard.current = true;
     setBusy(true);
+    onSavingChange?.(true);
     try {
       await requestJson("/api/journal/fees", {
         method: "POST",
@@ -61,6 +69,7 @@ export function FeeSettings({
         }),
       });
       setSavedSignature(signature);
+      onSaved?.({ perSide: rate.trim() || null, contractOverrides: Object.fromEntries(overrides.map(o => [o.contract.trim(), o.rate.trim()])) });
       setMessage(
         apply
           ? "Fee settings saved and applied to existing nonmanual trades. Entered fee totals and manual overrides were preserved."
@@ -72,11 +81,12 @@ export function FeeSettings({
     } finally {
       guard.current = false;
       setBusy(false);
+      onSavingChange?.(false);
     }
   }
   return (
     <form className="journal-fee-form" onSubmit={save}>
-      <fieldset disabled={busy} className="fee-estimate-fields">
+      <fieldset disabled={busy || disabled} className="fee-estimate-fields">
         <label className="field-label">
           Estimated all-in fee per contract, per side (USD)
           <input
@@ -87,6 +97,9 @@ export function FeeSettings({
             pattern="[0-9]+(\.[0-9]{1,8})?"
           />
         </label>
+        {/^[0-9]+(\.[0-9]{1,8})?$/.test(rate.trim()) && (
+          <p className="fee-rate-example">One contract, entry + exit: <strong>${new Decimal(rate.trim()).times(2).toFixed()} estimated fees</strong>. Three contracts: ${new Decimal(rate.trim()).times(6).toFixed()}.</p>
+        )}
         <p className="small muted">
           Estimated round-trip fees = matched quantity × 2 × per-side fee. Missing
           fees remain unknown; an explicit 0 means zero. No prop-firm fee schedule

@@ -369,3 +369,25 @@
   .fees-workspace .fee-totals fieldset > button,
   .fee-estimate-fields > button { width: 100%; }
 }
+.import-auto-fees {
+  padding: 16px;
+  margin: 16px 0 22px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 10px;
+  background: var(--background);
+  min-width: 0;
+}
+.import-auto-fees > strong { font-size: 14px; }
+.import-auto-fees summary { color: var(--primary); cursor: pointer; font-size: 12px; padding: 10px 0; }
+.import-auto-fees .journal-fee-form { margin-top: 12px; }
+.fee-rate-example { padding: 12px; border-radius: 8px; background: var(--accent); font-size: 12px; line-height: 1.7; }
+.import-error > button { display: flex; margin-top: 12px; white-space: normal; text-align: left; height: auto; min-height: 40px; }
+.weekly-review-dialog { width: min(760px, calc(100vw - 24px)); max-height: 88dvh; overflow-y: auto; }
+.weekly-review-dialog section { padding: 18px 0; border-bottom: 1px solid var(--border); }
+.weekly-review-dialog h3 { font-size: 15px; margin-bottom: 10px; }
+.weekly-review-dialog p { line-height: 1.7; margin: 10px 0; }
+.weekly-review-dialog ul { padding-left: 20px; max-height: 220px; overflow-y: auto; }
+.weekly-review-dialog li { padding: 6px 0; font-size: 12px; }
+.weekly-review-dialog a { color: var(--primary); }
+.weekly-summary button { white-space: normal; height: auto; font-size: 11px; padding: 6px 2px; }

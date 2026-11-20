@@ -41,6 +41,7 @@
     "radix-ui": "^1.6.7",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-email": "^6.11.16",
     "react-hook-form": "^7.89.0",
     "recharts": "^3.10.1",
     "resend": "^6.32.0",

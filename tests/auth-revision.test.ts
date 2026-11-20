@@ -115,14 +115,20 @@ describe("Resend delivery", () => {
       data: null,
     });
     await expect(
-      sendAuthEmail("user@example.com", "https://example.com/reset", "reset"),
+      sendAuthEmail("user@example.com", "http://localhost:3000/reset-password?token=fixture", "reset"),
     ).rejects.toBeInstanceOf(EmailDeliveryError);
   });
   it("awaits an accepted provider delivery instead of reporting false success", async () => {
     email.send.mockResolvedValue({ data: { id: "accepted" }, error: null });
     await expect(
-      sendAuthEmail("user@example.com", "https://example.com/reset", "reset"),
+      sendAuthEmail("user@example.com", "http://localhost:3000/reset-password?token=fixture", "reset"),
     ).resolves.toBeUndefined();
     expect(email.send).toHaveBeenCalledTimes(1);
+    expect(email.send.mock.calls[0][0].html).toContain("Reset password");
+    expect(email.send.mock.calls[0][0].text).toContain("expires in one hour");
+  });
+  it("never sends password reset links to an unrelated origin", async () => {
+    await expect(sendAuthEmail("user@example.com", "https://untrusted.example/reset", "reset")).rejects.toBeInstanceOf(EmailDeliveryError);
+    expect(email.send).not.toHaveBeenCalled();
   });
 });
