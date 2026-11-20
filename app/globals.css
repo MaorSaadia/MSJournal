@@ -259,6 +259,11 @@ input[type="checkbox"] {
   flex-direction: column;
   overflow: hidden;
 }
+.desktop-sidebar > nav {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
 .sidebar-brand {
   min-height: 100px;
   display: flex;

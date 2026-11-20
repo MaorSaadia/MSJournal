@@ -1,4 +1,4 @@
-import { Body, Container, Head, Heading, Html, Preview, Section, Text } from "@react-email/components";
+import { Body, Container, Head, Heading, Html, Preview, Section, Text } from "react-email";
 import type { ReactNode } from "react";
 
 function Frame({ title, reference, topic, children }: { title: string; reference: string; topic: string; children: ReactNode }) {

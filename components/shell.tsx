@@ -143,6 +143,7 @@ export function Shell({
               pageFilters,
             )}
             title={compact ? item.title : undefined}
+            aria-label={compact ? item.title : undefined}
             aria-current={isActive(item.href) ? "page" : undefined}
             onClick={() => setMobileOpen(false)}
             className={`nav-link ${isActive(item.href) ? "active" : ""} ${index === 8 ? "settings-link" : ""}`}

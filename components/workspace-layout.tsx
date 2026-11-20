@@ -23,13 +23,25 @@ export async function WorkspaceLayout({
   const owner = session.user;
   const preferences = await getPreferences();
   return (
+    <WorkspaceFrame owner={owner} preferences={preferences}>
+      <BillingAccess initial={await getEntitlement(owner.id)} userId={owner.id}>{children}</BillingAccess>
+    </WorkspaceFrame>
+  );
+}
+
+export function WorkspaceFrame({ owner, preferences, children }: {
+  owner: { id: string; name: string };
+  preferences: { displayTimezone: string; weekStartsOn: 0 | 1 };
+  children: React.ReactNode;
+}) {
+  return (
     <CalendarCacheProvider
       key={owner.id}
       userId={owner.id}
       timezone={preferences.displayTimezone}
       weekStartsOn={preferences.weekStartsOn}
     >
-      <Shell displayName={owner.name}><BillingAccess initial={await getEntitlement(owner.id)} userId={owner.id}>{children}</BillingAccess></Shell>
+      <Shell displayName={owner.name}>{children}</Shell>
     </CalendarCacheProvider>
   );
 }

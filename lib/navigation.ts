@@ -8,6 +8,7 @@ import {
   TrendingUp,
   WalletCards,
   Settings,
+  MessageSquareText,
 } from "lucide-react";
 export const navigation = [
   {
@@ -71,5 +72,11 @@ export const navigation = [
     icon: Settings,
     description:
       "Manage your profile, display timezone, appearance, and private session.",
+  },
+  {
+    title: "Contact us",
+    href: "/contact",
+    icon: MessageSquareText,
+    description: "Ask for help, report a problem, or suggest a feature.",
   },
 ];

@@ -129,7 +129,7 @@ export function summarize(days: CalendarDay[], basis: Basis) {
     zero: days.filter((d) => value(d) !== null && new D(value(d)!).isZero())
       .length,
     count: days.reduce((n, d) => n + d.count, 0),
-    best: ranked[0] ?? null,
+    best: ranked.at(0) ?? null,
     worst: ranked.at(-1) ?? null,
   };
 }

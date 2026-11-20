@@ -1,10 +1,10 @@
 import "server-only";
 import { createHmac } from "node:crypto";
 import { isIP } from "node:net";
-import { render } from "@react-email/components";
+import { render } from "react-email";
 import { Resend } from "resend";
 import { z } from "zod";
-import { readConfig, emailConfigured } from "@/lib/config";
+import { readConfig } from "@/lib/config";
 import { ReviewError } from "@/lib/reviews/model";
 import { topics, type ContactSubmission } from "./model";
 import { SupportNotification, VisitorConfirmation, confirmationCopy } from "./templates";
@@ -13,7 +13,11 @@ import { reserveSubmission, markAccepted } from "./reservations";
 export async function deliverContact({ id, topic, email, message, receipt }: ContactSubmission, headers: Headers) {
   const config = readConfig();
   const inbox = z.email().safeParse(process.env.SUPPORT_INBOX_EMAIL?.trim());
-  if (!emailConfigured(config) || !inbox.success) {
+  const missing = (["RESEND_API_KEY", "AUTH_EMAIL_FROM"] as const).filter(key => !config[key]?.trim());
+  if (missing.length || !inbox.success) {
+    console.warn("Contact delivery configuration incomplete", {
+      settings: [...missing, ...(!inbox.success ? ["SUPPORT_INBOX_EMAIL"] : [])],
+    });
     throw new ReviewError("Contact is temporarily unavailable. Your message is still here. Please try again later.", 503);
   }
   const created = Number(id.split(":")[0]);
