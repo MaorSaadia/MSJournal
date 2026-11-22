@@ -21,18 +21,17 @@ type Props = {
 };
 
 export default function PricingSection({ currentPlan, plans, checkoutAvailable, checkoutError, busy, manageUrl, onCheckout, currentInterval, changeState, onChangeAnnual }: Props) {
-  const [interval, setInterval] = useState<ProInterval>(
+  const [selectedInterval, setInterval] = useState<ProInterval>(
     changeState && ["checkout", "awaiting_payment", "cancel_pending"].includes(changeState) ? "annual" : currentInterval ?? "monthly",
   );
   const switchId = useId();
   const reducedMotion = useReducedMotion();
   const yearly = plans.find((p) => p.interval === "annual");
-  // A refreshed configuration can withdraw an option; never retain a stale price or CTA.
-  const selectedInterval = interval === "annual" && yearly ? "annual" : "monthly";
   const selected = plans.find((p) => p.interval === selectedInterval);
   const price = proPricing[selectedInterval];
   const liveTest = selected?.liveTest;
   const checkoutOption = selected?.option ?? price.option;
+  const yearlyUnavailable = selectedInterval === "annual" && (!selected || !checkoutAvailable);
   const pro = currentPlan === "Pro";
 
   return (
@@ -41,19 +40,17 @@ export default function PricingSection({ currentPlan, plans, checkoutAvailable, 
         <span className="billing-kicker">YOUR JOURNAL, YOUR PACE</span>
         <h2 id="billing-pricing-title">Make room for <span>your trading.</span></h2>
         <p>Start with one account. Bring your whole practice together with Pro.</p>
-        {yearly && (
-          <div className="billing-period-switch" role="group" aria-label="Pro billing period">
-            {(["monthly", "annual"] as const).map((value) => (
-              <button type="button" key={value} aria-pressed={selectedInterval === value} onClick={() => setInterval(value)}>
-                {selectedInterval === value && (
-                  <motion.span className="billing-period-active" layoutId={switchId} transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }} />
-                )}
-                <span>{value === "monthly" ? "Monthly" : "Yearly"}</span>
-                {value === "annual" && <small>{yearly.liveTest ? "Live test" : "Save 25%"}</small>}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="billing-period-switch" role="group" aria-label="Pro billing period">
+          {(["monthly", "annual"] as const).map((value) => (
+            <button type="button" key={value} aria-pressed={selectedInterval === value} onClick={() => setInterval(value)}>
+              {selectedInterval === value && (
+                <motion.span className="billing-period-active" layoutId={switchId} transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }} />
+              )}
+              <span>{value === "monthly" ? "Monthly" : "Yearly"}</span>
+              {value === "annual" && yearly && <small>{yearly.liveTest ? "Live test" : "Save 25%"}</small>}
+            </button>
+          ))}
+        </div>
       </header>
 
       <div className="billing-comparison billing-pricing-grid">
@@ -78,8 +75,17 @@ export default function PricingSection({ currentPlan, plans, checkoutAvailable, 
           <div className="billing-tier-top"><span className="billing-tier-icon"><Layers3 size={20} /></span><span className="billing-tier-label">ROOM TO GROW</span><span className="billing-pro-badge"><Sparkles size={12} />{pro ? "Your plan" : "More accounts"}</span></div>
           <h3 id="pro-plan-title">MSJournal Pro</h3>
           <p className="billing-tier-description">One workspace for multiple accounts and prop firms.</p>
-          <div className="billing-tier-price" aria-label={selected?.price ?? price.price}><strong>${liveTest ? liveAnnualTestAmount : price.amount}</strong><span>/ {selectedInterval === "annual" ? "year" : "month"}</span></div>
-          <p className="billing-tier-price-note">{liveTest ? "Live test price. Whop will charge a real payment. Taxes may apply." : selectedInterval === "annual" ? annualEquivalent : "Billed monthly in USD. Taxes may apply."}</p>
+          {yearlyUnavailable ? (
+            <>
+              <div className="billing-tier-price"><strong>Yearly billing</strong></div>
+              <p className="billing-tier-price-note">Yearly checkout is currently unavailable.</p>
+            </>
+          ) : (
+            <>
+              <div className="billing-tier-price" aria-label={selected?.price ?? price.price}><strong>${liveTest ? liveAnnualTestAmount : price.amount}</strong><span>/ {selectedInterval === "annual" ? "year" : "month"}</span></div>
+              <p className="billing-tier-price-note">{liveTest ? "Live test price. Whop will charge a real payment. Taxes may apply." : selectedInterval === "annual" ? annualEquivalent : "Billed monthly in USD. Taxes may apply."}</p>
+            </>
+          )}
           {pro && selectedInterval === "annual" && currentInterval === "monthly" && selected && checkoutAvailable && onChangeAnnual ? (
             <Button className="billing-tier-cta" disabled={!!busy || changeState === "cancel_pending"} onClick={onChangeAnnual}>
               {busy === "switch_annual" ? <><LoadingSpinner size={15} />Opening yearly checkout</> : changeState === "cancel_pending" ? "Finishing your billing change" : <>{changeState === "awaiting_payment" ? "Continue yearly checkout" : "Change to yearly"}<ArrowUpRight size={16} /></>}
@@ -87,6 +93,8 @@ export default function PricingSection({ currentPlan, plans, checkoutAvailable, 
           ) : pro ? (
             manageUrl ? <Button asChild className="billing-tier-cta"><a href={manageUrl} target="_blank" rel="noopener noreferrer">Manage subscription<ArrowUpRight size={16} /><span className="sr-only"> (opens in a new tab)</span></a></Button>
               : <Button disabled className="billing-tier-cta"><Check size={16} />Your Pro plan is active</Button>
+          ) : yearlyUnavailable ? (
+            <Button variant="outline" className="billing-tier-cta" onClick={() => setInterval("monthly")}>View Monthly</Button>
           ) : (
             <>
               <Button className="billing-tier-cta" disabled={!!busy} onClick={() => onCheckout(checkoutOption)}>
@@ -95,7 +103,7 @@ export default function PricingSection({ currentPlan, plans, checkoutAvailable, 
               {checkoutError && <p className="form-error" role="alert">{checkoutError}</p>}
             </>
           )}
-          {selectedInterval === "annual" && !liveTest && <p className="billing-annual-saving">{annualSaving}</p>}
+          {selectedInterval === "annual" && !yearlyUnavailable && !liveTest && <p className="billing-annual-saving">{annualSaving}</p>}
           {pro && currentInterval && <p className="billing-current-period">Your current billing period: {currentInterval === "annual" ? "Yearly" : "Monthly"}.</p>}
           <div className="billing-tier-divider" />
           <p className="billing-feature-title">Everything in Free, across your accounts</p>

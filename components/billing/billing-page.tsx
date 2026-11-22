@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, ExternalLink, Layers3 } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, Layers3, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { confirmAction } from "@/components/ui/confirm-action";
@@ -349,7 +349,17 @@ export function BillingPage({ initial }: { initial: BillingStatus }) {
           )) void action({ action: "switch_annual" }, "switch_annual");
         }}
       />
-      <p className="small"><Link href="/contact?topic=billing">Need help with a payment?</Link></p>
+      <section className="panel billing-support" aria-labelledby="billing-support-title">
+        <div className="billing-support-heading">
+          <span className="billing-support-icon"><MessageCircle size={18} aria-hidden="true" /></span>
+          <h2 id="billing-support-title">Need help with a payment?</h2>
+        </div>
+        <Button asChild variant="outline" className="billing-support-action">
+          <Link href="/contact?topic=billing">
+            Contact billing support <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </Button>
+      </section>
       <p className="small muted billing-footer-note">
         Payments and subscription changes are handled on Whop. MSJournal imports
         trades by CSV; it doesn’t automatically sync with a broker.{" "}

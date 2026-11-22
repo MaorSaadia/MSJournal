@@ -177,6 +177,11 @@ export default function Page(){
     await page.getByRole("heading", { name: "MSJournal Free" }).count(),
     2,
   );
+  const billingSupport = page.getByRole("region", { name: "Need help with a payment?" });
+  assert.equal(
+    await billingSupport.getByRole("link", { name: "Contact billing support" }).getAttribute("href"),
+    "/contact?topic=billing",
+  );
   await page.getByRole("button", { name: "Use this account" }).first().click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page
@@ -258,6 +263,11 @@ export default function Page(){
     await page.getByText("$89.99/year", { exact: false }).count(),
     0,
   );
+  await page.getByRole("button", { name: "Yearly", exact: true }).click();
+  await page.getByText("Yearly checkout is currently unavailable.", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Get Pro Yearly" }).count(), 0);
+  await page.getByRole("button", { name: "View Monthly", exact: true }).click();
+  await page.getByRole("button", { name: "Get Pro Monthly", exact: true }).waitFor();
   status.plans.push({
     option: 1,
     interval: "annual",

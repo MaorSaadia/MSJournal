@@ -177,6 +177,37 @@
 .billing-account > svg {
   color: var(--primary);
 }
+.billing-support {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 16px 20px;
+  border-radius: 14px;
+}
+.billing-support-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.billing-support-heading h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.billing-support-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--primary);
+}
+.billing-support-action {
+  min-height: 40px;
+}
 .billing-footer-note {
   line-height: 1.9;
   margin-top: 22px;
@@ -354,6 +385,12 @@
     flex-direction: column;
   }
   .billing-actions .billing-cancel-renewal { margin-left: 0; }
+  .billing-support {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+  }
   .billing-access-note {
     flex-wrap: wrap;
     padding: 14px;
