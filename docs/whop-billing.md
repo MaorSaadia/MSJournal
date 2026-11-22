@@ -29,6 +29,7 @@ All values are **server-only**; never use `NEXT_PUBLIC_` for them. See [.env.exa
 | `WHOP_PRO_MONTHLY_PLAN_ID` | Launch plan: the `plan_…` variant for **$9.99 USD every 30 days**. No setup charge or trial. |
 | `WHOP_PRO_ANNUAL_PLAN_ID` | Optional later: `plan_…` variant for **$89.99 USD every 365 days**. Leave blank for launch. Its purchase option stays hidden until verified. |
 | `WHOP_ANNUAL_CHECKOUT_ENABLED` | Default `false`. A later annual purchase additionally requires this explicit opt-in and a verified annual variant under the Pro product. |
+| `WHOP_LIVE_ANNUAL_TEST_EMAIL` | Optional. Offer the verified $1.02 USD recurring annual variant to the matching signed-in Free account for live payment-to-access verification. Clear this setting after testing. |
 | `WHOP_PRO_PLAN_IDS` | Optional legacy membership allowlist; its IDs remain eligible for existing subscription reconciliation. A single legacy ID can serve as Monthly only after matching all Monthly checks. When several legacy IDs exist, set the explicit Monthly/Annual variables; their intervals are never guessed. |
 | `WHOP_WEBHOOK_SECRET` | Complete signing secret from the webhook's dashboard configuration, including `ws_`. |
 | `WHOP_OAUTH_CLIENT_ID` | The Whop developer app ID (`app_…`) used for existing-subscription recovery. Uses PKCE, not an email match. |

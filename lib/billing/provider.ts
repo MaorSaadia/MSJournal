@@ -67,8 +67,11 @@ export async function whopRequest(
     throw new ProviderUnavailable();
   }
 }
-export async function configuredPlans(config: Config) {
+export async function configuredPlans(config: Config, buyerEmail?: string) {
   const plans = [];
+  const testEmail = process.env.WHOP_LIVE_ANNUAL_TEST_EMAIL?.trim().toLowerCase();
+  const allowLiveAnnualTest = config.environment === "live" &&
+    Boolean(testEmail && buyerEmail?.trim().toLowerCase() === testEmail);
   for (const expected of config.purchasePlans) {
     try {
       const plan = verifiedPlanOption(
@@ -79,6 +82,7 @@ export async function configuredPlans(config: Config) {
         ),
         expected,
         config,
+        allowLiveAnnualTest,
       );
       if (plan) plans.push(plan);
     } catch {
@@ -424,14 +428,14 @@ export async function refreshOwner(ownerId: string, manual = false) {
   if (failed && manual)
     throw new ReviewError(new ProviderUnavailable().message, 503);
 }
-export async function startCheckout(ownerId: string, planChoice: number, change?: { fromMembershipId: string }) {
+export async function startCheckout(ownerId: string, planChoice: number, change?: { fromMembershipId: string }, buyerEmail?: string) {
   const config = whopConfig();
   if (!config?.checkoutEnabled)
     throw new ReviewError(
       "Pro checkout is not available yet. Your Free account and worksheets remain available.",
       503,
     );
-  const plans = await configuredPlans(config),
+  const plans = await configuredPlans(config, change ? undefined : buyerEmail),
     plan = plans.find((p) => p.option === planChoice);
   if (!plan) throw new ReviewError("Choose an available Pro option.", 400);
   if (change && plan.interval !== "annual") throw new ReviewError("Choose verified Yearly pricing.", 400);

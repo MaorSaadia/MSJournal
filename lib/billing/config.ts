@@ -44,22 +44,32 @@ export function billingEnvironment(): WhopEnvironment | "disabled" {
     return "disabled";
   return value;
 }
-export function whopConfig() {
+export function whopConfig(invalidSettings?: string[]) {
   const environment = billingEnvironment(),
     apiKey = process.env.WHOP_API_KEY;
   const businessId = process.env.WHOP_BUSINESS_ID,
-    productId = process.env.WHOP_PRO_PRODUCT_ID;
+    productId =
+      process.env.WHOP_PRO_PRODUCT_ID?.trim() ||
+      process.env.WHOP_PRO_MONTHLY_PRODUCT_ID?.trim();
   const { planIds, purchasePlans } = configuredPlanReferences();
+  const validBusiness = /^biz_[A-Za-z0-9]+$/.test(businessId ?? "");
+  const validProduct = /^prod_[A-Za-z0-9]+$/.test(productId ?? "");
+  const validPlans = planIds.length > 0 && planIds.length <= 5 &&
+    planIds.every((p) => /^plan_[A-Za-z0-9]+$/.test(p));
   if (
     environment === "disabled" ||
     !apiKey ||
-    !/^biz_[A-Za-z0-9]+$/.test(businessId ?? "") ||
-    !/^prod_[A-Za-z0-9]+$/.test(productId ?? "") ||
-    !planIds.length ||
-    planIds.length > 5 ||
-    planIds.some((p) => !/^plan_[A-Za-z0-9]+$/.test(p))
-  )
+    !validBusiness ||
+    !validProduct ||
+    !validPlans
+  ) {
+    if (environment === "disabled") invalidSettings?.push("WHOP_ENVIRONMENT");
+    if (!apiKey) invalidSettings?.push("WHOP_API_KEY");
+    if (!validBusiness) invalidSettings?.push("WHOP_BUSINESS_ID");
+    if (!validProduct) invalidSettings?.push("WHOP_PRO_PRODUCT_ID");
+    if (!validPlans) invalidSettings?.push("WHOP_PRO_MONTHLY_PLAN_ID / WHOP_PRO_PLAN_IDS");
     return null;
+  }
   return {
     environment,
     apiKey,

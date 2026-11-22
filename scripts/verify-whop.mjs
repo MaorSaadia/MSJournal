@@ -4,7 +4,7 @@ import { writeFile, mkdir } from "node:fs/promises";
 nextEnv.loadEnvConfig(process.cwd());
 const env = process.env,
   version = "2026-11-12";
-const origin = new URL(env.SITE_URL ?? "https://ms-journal.vercel.app").origin;
+const origin = new URL(env.SITE_URL ?? "https://www.msjournal.app").origin;
 const monthly = env.WHOP_PRO_MONTHLY_PLAN_ID?.trim(),
   business = env.WHOP_BUSINESS_ID?.trim();
 const report = {

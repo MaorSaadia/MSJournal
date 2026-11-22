@@ -18,10 +18,13 @@ export const proPricing = {
 export type ProInterval = keyof typeof proPricing;
 export const annualSaving = "Save 25% compared with monthly billing.";
 export const annualEquivalent = "About $7.50/month, billed annually at $89.99.";
+export const liveAnnualTestAmount = "1.02";
+export const liveAnnualTestOption = 2;
 export type PurchasePlan = { id: string; interval: ProInterval };
 export type VerifiedPlanOption = {
   option: number;
   interval: ProInterval;
   title: string;
   price: string;
+  liveTest?: true;
 };

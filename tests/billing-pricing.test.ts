@@ -3,7 +3,7 @@ vi.mock("server-only", () => ({}));
 import { verifiedPlanOption } from "@/lib/billing/plan-verification";
 import { configuredPlanReferences, whopConfig } from "@/lib/billing/config";
 import { configuredPlans, startCheckout } from "@/lib/billing/provider";
-import { annualEquivalent, annualSaving } from "@/lib/billing/pricing";
+import { annualEquivalent, annualSaving, liveAnnualTestOption } from "@/lib/billing/pricing";
 const scope = { businessId: "biz_fixture", productId: "prod_fixture" };
 const monthly = { id: "plan_monthly", interval: "monthly" as const },
   annual = { id: "plan_annual", interval: "annual" as const };
@@ -108,6 +108,25 @@ describe("owner-confirmed Pro billing schedules", () => {
     vi.stubEnv("WHOP_PRO_ANNUAL_PLAN_ID", "not-a-plan");
     expect(whopConfig()?.purchasePlans).toEqual([monthly]);
   });
+  it("accepts the monthly product variable when the canonical product variable is unset", () => {
+    vi.stubEnv("WHOP_PRO_MONTHLY_PRODUCT_ID", scope.productId);
+    vi.stubEnv("WHOP_PRO_PRODUCT_ID", undefined);
+    expect(whopConfig()?.productId).toBe(scope.productId);
+    vi.stubEnv("WHOP_PRO_PRODUCT_ID", "prod_explicit");
+    expect(whopConfig()?.productId).toBe("prod_explicit");
+  });
+  it("identifies invalid configuration by variable name only", () => {
+    vi.stubEnv("WHOP_API_KEY", "");
+    vi.stubEnv("WHOP_PRO_PRODUCT_ID", "malformed-product-value");
+    vi.stubEnv("WHOP_PRO_PLAN_IDS", "malformed-plan-value");
+    const issues: string[] = [];
+    expect(whopConfig(issues)).toBeNull();
+    expect(issues).toEqual([
+      "WHOP_API_KEY",
+      "WHOP_PRO_PRODUCT_ID",
+      "WHOP_PRO_MONTHLY_PLAN_ID / WHOP_PRO_PLAN_IDS",
+    ]);
+  });
   it("preserves the legacy membership allowlist without guessing purchase intervals from several IDs", () => {
     const config = configuredPlanReferences({
       WHOP_PRO_PLAN_IDS: "plan_legacy1,plan_legacy2",
@@ -160,6 +179,29 @@ describe("owner-confirmed Pro billing schedules", () => {
         (await configuredPlans(whopConfig()!)).map((p) => p.option),
       ).toEqual([0]);
     }
+  });
+  it("offers the exact live test price only to the configured buyer", async () => {
+    vi.stubEnv("WHOP_ENVIRONMENT", "live");
+    vi.stubEnv("WHOP_LIVE_VERIFIED", "true");
+    vi.stubEnv("WHOP_PRO_ANNUAL_PLAN_ID", annual.id);
+    vi.stubEnv("WHOP_ANNUAL_CHECKOUT_ENABLED", "true");
+    vi.stubEnv("WHOP_LIVE_ANNUAL_TEST_EMAIL", "owner@example.test");
+    vi.stubGlobal("fetch", vi.fn(async (url) => Response.json(
+      String(url).endsWith(annual.id)
+        ? { ...variant(true), renewal_price: 1.02, initial_price_due: { amount: "1.02", currency: "usd" } }
+        : variant(),
+    )));
+    for (const email of [undefined, "other@example.test"]) {
+      expect((await configuredPlans(whopConfig()!, email)).map((p) => p.option)).toEqual([0]);
+      await expect(startCheckout("fixture", liveAnnualTestOption, undefined, email)).rejects.toMatchObject({ status: 400 });
+    }
+    expect(await configuredPlans(whopConfig()!, "owner@example.test")).toContainEqual({
+      id: annual.id, interval: "annual", option: liveAnnualTestOption,
+      title: "Pro Yearly", price: "$1.02/year", liveTest: true,
+    });
+    await expect(startCheckout("fixture", 1, { fromMembershipId: "mem_fixture" }, "owner@example.test")).rejects.toMatchObject({ status: 400 });
+    vi.stubEnv("WHOP_ENVIRONMENT", "sandbox");
+    expect((await configuredPlans(whopConfig()!, "owner@example.test")).map((p) => p.option)).toEqual([0]);
   });
   it("shows annual only after verification and never substitutes it for a stale Monthly choice", async () => {
     vi.stubEnv("WHOP_PRO_ANNUAL_PLAN_ID", annual.id);

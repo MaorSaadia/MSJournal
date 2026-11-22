@@ -25,7 +25,7 @@ vi.mock("@/lib/session", () => {
     UnauthorizedError,
     requireUser: async () => {
       if (!mocks.signedIn) throw new UnauthorizedError("Sign in");
-      return { id: "session-owner" };
+      return { id: "session-owner", email: "owner@example.test" };
     },
   };
 });
@@ -111,6 +111,7 @@ describe("billing request boundaries", () => {
       { membershipId: "mem_forged" },
       { ownerId: "foreign" },
       { planId: "plan_forged" },
+      { email: "other@example.test" },
     ])
       expect(
         (await POST(request({ action: "checkout", option: 0, ...claim })))
@@ -119,7 +120,7 @@ describe("billing request boundaries", () => {
     expect(mocks.checkout).not.toHaveBeenCalled();
     const response = await POST(request({ action: "checkout", option: 0 }));
     expect(response.status).toBe(200);
-    expect(mocks.checkout).toHaveBeenCalledWith("session-owner", 0);
+    expect(mocks.checkout).toHaveBeenCalledWith("session-owner", 0, undefined, "owner@example.test");
     expect(response.headers.get("cache-control")).toBe("private, no-store");
   });
   it("requires the scheduler secret and does not starve reconciliation behind retrying events", async () => {

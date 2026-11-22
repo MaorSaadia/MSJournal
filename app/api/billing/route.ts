@@ -13,6 +13,7 @@ import { drainBillingEvents } from "@/lib/billing/webhooks";
 import { cancelRenewal } from "@/lib/billing/cancellation";
 import { startAnnualChange, retryAnnualChanges } from "@/lib/billing/switching";
 import { readReviewJson } from "@/lib/reviews/request";
+import { liveAnnualTestOption } from "@/lib/billing/pricing";
 export const maxDuration = 60;
 export async function GET(request: Request) {
   try {
@@ -31,7 +32,7 @@ const action = z.discriminatedUnion("action", [
   z
     .object({
       action: z.literal("checkout"),
-      option: z.number().int().min(0).max(1),
+      option: z.number().int().min(0).max(liveAnnualTestOption),
     })
     .strict(),
   z.object({ action: z.literal("refresh") }).strict(),
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
     const user = await requireUser(request.headers),
       body = action.parse(await readReviewJson(request));
     if (body.action === "checkout")
-      return privateJson(await startCheckout(user.id, body.option));
+      return privateJson(await startCheckout(user.id, body.option, undefined, user.email));
     if (body.action === "switch_annual")
       return privateJson(await startAnnualChange(user.id));
     if (body.action === "link")

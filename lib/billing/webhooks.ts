@@ -21,6 +21,7 @@ export const billingEvents = [
   "dispute.created",
   "dispute.updated",
 ];
+let loggedWebhookConfigError = false;
 const eventSchema = z.object({
   id: z.string().min(1).max(200),
   type: z.string().max(100),
@@ -51,9 +52,17 @@ export function verifiedWebhook(raw: string, headers: Headers, key: string) {
   return parsed.data;
 }
 export async function acceptWebhook(raw: string, headers: Headers) {
-  const config = whopConfig(),
-    key = process.env.WHOP_WEBHOOK_SECRET;
-  if (!config || !key) throw new ReviewError("Webhook is not configured.", 503);
+  const invalidSettings: string[] = [];
+  const config = whopConfig(invalidSettings);
+  const key = process.env.WHOP_WEBHOOK_SECRET;
+  if (!config || !key) {
+    if (!key) invalidSettings.push("WHOP_WEBHOOK_SECRET");
+    if (process.env.NODE_ENV === "production" && !loggedWebhookConfigError) {
+      loggedWebhookConfigError = true;
+      console.warn("[Whop webhook] Missing or invalid settings", invalidSettings);
+    }
+    throw new ReviewError("Webhook is not configured.", 503);
+  }
   const event = verifiedWebhook(raw, headers, key);
   if (event.account_id !== config.businessId)
     throw new ReviewError("Webhook account is not configured.", 403);

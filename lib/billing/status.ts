@@ -37,12 +37,13 @@ export async function billingStatus(headers?: Headers, refresh = true) {
   let plans: VerifiedPlanOption[] = [];
   if (config?.checkoutEnabled) {
     try {
-      plans = (await configuredPlans(config)).map(
-        ({ title, price, option, interval }) => ({
+      plans = (await configuredPlans(config, entitlement.plan === "Free" ? user.email : undefined)).map(
+        ({ title, price, option, interval, liveTest }) => ({
           title,
           price,
           option,
           interval,
+          ...(liveTest ? { liveTest } : {}),
         }),
       );
     } catch {
