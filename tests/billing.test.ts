@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createHmac } from "node:crypto";
+import { PgDialect } from "drizzle-orm/pg-core";
 vi.mock("server-only", () => ({}));
 import {
   deriveEntitlement,
@@ -10,6 +11,7 @@ import {
   whopMembershipSchema,
 } from "@/lib/billing/policy";
 import { billingEnvironment, whopConfig } from "@/lib/billing/config";
+import { billingLock, type BillingTx } from "@/lib/billing/entitlements";
 import { acceptWebhook, verifiedWebhook } from "@/lib/billing/webhooks";
 const now = new Date("2026-11-13T10:00:00Z");
 const membership = () =>
@@ -29,6 +31,18 @@ const membership = () =>
   });
 afterEach(() => vi.unstubAllEnvs());
 describe("billing access policy", () => {
+  it("passes the configured product alias to the database entitlement check", async () => {
+    vi.stubEnv("WHOP_PRO_PRODUCT_ID", undefined);
+    vi.stubEnv("WHOP_PRO_MONTHLY_PRODUCT_ID", "  prod_fixture  ");
+    const execute = vi.fn<BillingTx["execute"]>();
+    const tx = { execute, insert: () => ({
+      values: () => ({ onConflictDoNothing: async () => {} }),
+    }) } as unknown as BillingTx;
+    await billingLock(tx, "owner-fixture");
+    const query = new PgDialect().sqlToQuery(execute.mock.calls[2][0] as Parameters<PgDialect["sqlToQuery"]>[0]);
+    expect(query.sql).toContain("msjournal.billing_product");
+    expect(query.params[1]).toBe("prod_fixture");
+  });
   it("always provides an environment-safe management link when Whop omits its URL", () => {
     expect(whopManagementUrl(null, "live")).toBe("https://whop.com/@me/settings/orders/");
     expect(whopManagementUrl(null, "sandbox")).toBe("https://sandbox.whop.com/@me/settings/orders/");

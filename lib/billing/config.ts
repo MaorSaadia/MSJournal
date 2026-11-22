@@ -44,13 +44,15 @@ export function billingEnvironment(): WhopEnvironment | "disabled" {
     return "disabled";
   return value;
 }
+export function configuredProProductId() {
+  return process.env.WHOP_PRO_PRODUCT_ID?.trim() ||
+    process.env.WHOP_PRO_MONTHLY_PRODUCT_ID?.trim();
+}
 export function whopConfig(invalidSettings?: string[]) {
   const environment = billingEnvironment(),
     apiKey = process.env.WHOP_API_KEY;
   const businessId = process.env.WHOP_BUSINESS_ID,
-    productId =
-      process.env.WHOP_PRO_PRODUCT_ID?.trim() ||
-      process.env.WHOP_PRO_MONTHLY_PRODUCT_ID?.trim();
+    productId = configuredProProductId();
   const { planIds, purchasePlans } = configuredPlanReferences();
   const validBusiness = /^biz_[A-Za-z0-9]+$/.test(businessId ?? "");
   const validProduct = /^prod_[A-Za-z0-9]+$/.test(productId ?? "");

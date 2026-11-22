@@ -4,7 +4,7 @@ import { getDb } from "@/db/client";
 import { billingProfiles, tradingAccounts } from "@/db/schema";
 import { ReviewError } from "@/lib/reviews/model";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
-import { billingEnvironment, configuredPlanReferences } from "./config";
+import { billingEnvironment, configuredPlanReferences, configuredProProductId } from "./config";
 import { deriveEntitlement } from "./policy";
 export type BillingTx = Parameters<
   Parameters<ReturnType<typeof getDb>["transaction"]>[0]
@@ -40,7 +40,7 @@ export async function billingLock(tx: BillingTx, ownerId: string) {
     sql`select set_config('msjournal.billing_environment',${billingEnvironment()},true)`,
   );
   await tx.execute(
-    sql`select set_config('msjournal.billing_business',${process.env.WHOP_BUSINESS_ID ?? ""},true), set_config('msjournal.billing_product',${process.env.WHOP_PRO_PRODUCT_ID ?? ""},true), set_config('msjournal.billing_plans',${configuredPlanReferences().planIds.join(",")},true)`,
+    sql`select set_config('msjournal.billing_business',${process.env.WHOP_BUSINESS_ID ?? ""},true), set_config('msjournal.billing_product',${configuredProProductId() ?? ""},true), set_config('msjournal.billing_plans',${configuredPlanReferences().planIds.join(",")},true)`,
   );
   await tx.insert(billingProfiles).values({ ownerId }).onConflictDoNothing();
 }
