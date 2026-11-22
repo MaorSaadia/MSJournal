@@ -204,9 +204,18 @@ describe("Whop Standard Webhooks verification", () => {
       .replace('"id":"mem_fixture"', '"id":"mem_fixture","account":{"id":"biz_fixture"}');
     expect(verifiedWebhook(body, signed(body), key).account_id).toBe("biz_fixture");
     const conflicting = body.replace('"account_id":null', '"account_id":"biz_other"');
-    expect(() => verifiedWebhook(conflicting, signed(conflicting), key)).toThrow("membership account disagrees");
+    expect(() => verifiedWebhook(conflicting, signed(conflicting), key)).toThrow("payload account disagrees");
     const payment = body.replace("membership.updated", "payment.succeeded");
     expect(() => verifiedWebhook(payment, signed(payment), key)).toThrow("no business account ID");
+  });
+  it("uses the signed payment business ID when the envelope omits it", () => {
+    const body = raw().replace(',"account_id":"biz_fixture"', "")
+      .replace("membership.updated", "payment.succeeded")
+      .replace('"id":"mem_fixture"', '"id":"pay_fixture","account_id":"biz_fixture"');
+    expect(verifiedWebhook(body, signed(body), key).account_id).toBe("biz_fixture");
+    expect(() => verifiedWebhook(body + " ", signed(body), key)).toThrow("signature");
+    const conflicting = body.replace('"type":"payment.succeeded"', '"type":"payment.succeeded","account_id":"biz_other"');
+    expect(() => verifiedWebhook(conflicting, signed(conflicting), key)).toThrow("payload account disagrees");
   });
   it("rejects a legacy event scoped to a different business before storing it", async () => {
     vi.stubEnv("NODE_ENV", "production");

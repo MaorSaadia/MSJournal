@@ -43,6 +43,9 @@ const eventSchema = z.object({
 const membershipAccountSchema = z.object({
   account: z.object({ id: z.string().min(1) }),
 });
+const paymentAccountSchema = z.object({
+  account_id: z.string().min(1),
+});
 export function verifiedWebhook(raw: string, headers: Headers, key: string) {
   let event: unknown;
   try {
@@ -75,9 +78,15 @@ export function verifiedWebhook(raw: string, headers: Headers, key: string) {
   const membershipAccountId = membershipAccount?.success
     ? membershipAccount.data.account.id
     : undefined;
-  if (envelopeAccountId && membershipAccountId && envelopeAccountId !== membershipAccountId)
-    throw new ReviewError("Unsupported webhook envelope (membership account disagrees with the envelope).", 400);
-  const accountId = envelopeAccountId ?? membershipAccountId;
+  const paymentAccount = envelope.type.startsWith("payment.")
+    ? paymentAccountSchema.safeParse(envelope.data)
+    : undefined;
+  const payloadAccountId = paymentAccount?.success
+    ? paymentAccount.data.account_id
+    : membershipAccountId;
+  if (envelopeAccountId && payloadAccountId && envelopeAccountId !== payloadAccountId)
+    throw new ReviewError("Unsupported webhook envelope (payload account disagrees with the envelope).", 400);
+  const accountId = envelopeAccountId ?? payloadAccountId;
   if (!accountId)
     throw new ReviewError("Unsupported webhook envelope (no business account ID).", 400);
   return { ...envelope, account_id: accountId };
