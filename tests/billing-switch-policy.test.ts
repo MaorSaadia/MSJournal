@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { monthlyChangeSource, verifiedAnnualPayment } from "@/lib/billing/switch-policy";
+import { monthlyChangeSource, verifiedAnnualPayment, verifiedPaidMembershipPeriod } from "@/lib/billing/switch-policy";
+import { whopMembershipSchema } from "@/lib/billing/policy";
 const scope = { membershipId: "mem_monthly", whopUserId: "user_buyer", businessId: "biz_fixture", productId: "prod_fixture", monthlyPlanId: "plan_monthly" };
 const monthly = () => ({ id: scope.membershipId, user_id: scope.whopUserId, account: { id: scope.businessId },
   product_id: scope.productId, variant_id: scope.monthlyPlanId, status: "active", billing_period_days: 30,
@@ -29,5 +30,43 @@ describe("verified monthly-to-yearly change boundaries", () => {
       { subtotal: { amount: "89.98", currency: "usd" } }, { total: { amount: "0.00", currency: "usd" } },
       { refunded_amount: { amount: "1.00", currency: "usd" } }])
       expect(verifiedAnnualPayment({ ...payment(), ...patch }, paidScope)).toBe(false);
+  });
+});
+
+describe("paid membership verification for Whop admins", () => {
+  const now = new Date("2026-11-22T17:26:00Z");
+  const membership = whopMembershipSchema.parse({
+    ...monthly(),
+    id: paidScope.membershipId,
+    variant_id: paidScope.planId,
+    current_period_start: "2026-11-22T17:00:08Z",
+    current_period_end: "2027-11-22T17:00:08Z",
+  });
+  const paid = {
+    ...payment(),
+    billing_reason: "subscription_create",
+    paid_at: "2026-11-22T17:00:10Z",
+    total: { amount: "1.02", currency: "usd" },
+  };
+  it("requires a positive, unrefunded subscription payment tied to the member and current period", () => {
+    expect(verifiedPaidMembershipPeriod([paid], membership, now)).toBe(true);
+    expect(verifiedPaidMembershipPeriod([{ ...paid, billing_reason: "subscription_cycle" }], { ...membership, status: "canceling" }, now)).toBe(true);
+    expect(verifiedPaidMembershipPeriod([], membership, now)).toBe(false);
+    expect(verifiedPaidMembershipPeriod([paid], membership, new Date(membership.current_period_end!))).toBe(false);
+    expect(verifiedPaidMembershipPeriod([paid], { ...membership, status: "expired" }, now)).toBe(false);
+    for (const patch of [
+      { paid_at: "2025-11-22T17:00:10Z" },
+      { paid_at: "2026-11-22T17:30:00Z" },
+      { status: "pending" },
+      { substatus: "partially_refunded" },
+      { refunded_amount: { amount: "0.01", currency: "usd" } },
+      { total: { amount: "0", currency: "usd" } },
+      { billing_reason: "one_time" },
+      { membership_id: "mem_other" },
+      { account_id: "biz_other" },
+      { product_id: "prod_other" },
+      { variant_id: "plan_other" },
+      { user: { id: "user_other" } },
+    ]) expect(verifiedPaidMembershipPeriod([{ ...paid, ...patch }], membership, now)).toBe(false);
   });
 });

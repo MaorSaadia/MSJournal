@@ -15,6 +15,7 @@ import { ReviewError } from "@/lib/reviews/model";
 import { billingLock } from "./entitlements";
 import { billingEnvironment, whopConfig } from "./config";
 import { verifiedPlanOption } from "./plan-verification";
+import { verifiedPaidMembershipPeriod } from "./switch-policy";
 import {
   RECHECK_MS,
   WHOP_API_VERSION,
@@ -308,12 +309,24 @@ export async function reconcileMembership(
             config,
           ),
         );
-      const now = new Date(),
-        valid = access.has_access && access.access_level === "customer";
+      const now = new Date();
       // A provider response older than our confirmed membership revision is not
       // allowed to restore stale access. Retain the bounded existing lease.
       if (known && Date.parse(m.updated_at) < known.providerUpdatedAt.getTime())
         return { linked: true };
+      let valid = access.has_access && access.access_level === "customer";
+      if (access.has_access && access.access_level === "admin") {
+        // Whop reports the admin role even if this buyer has a paid subscription.
+        // Require a provider-confirmed payment for the same membership and term.
+        const params = new URLSearchParams({
+          account_id: config.businessId,
+          membership_id: m.id,
+          status: "paid",
+          first: "10",
+        });
+        const payments = await whopRequest(`/payments?${params}`, {}, config);
+        valid = verifiedPaidMembershipPeriod(payments.data, m, now);
+      }
       let manageUrl: string | null = null;
       if (m.manage_url) {
         try {

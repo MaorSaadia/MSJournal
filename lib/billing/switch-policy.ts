@@ -1,8 +1,48 @@
 import { z } from "zod";
 import { D } from "@/lib/journal/processing";
-import { whopMembershipSchema } from "./policy";
+import { whopMembershipSchema, type WhopMembership } from "./policy";
 
 const money = z.object({ amount: z.string(), currency: z.literal("usd") });
+const paymentMoney = z.object({
+  amount: z.string().regex(/^\d+(\.\d+)?$/),
+  currency: z.string().regex(/^[a-z]{3}$/),
+});
+const paidPeriodPayment = z.object({
+  status: z.literal("paid"),
+  substatus: z.literal("succeeded"),
+  billing_reason: z.enum(["subscription_create", "subscription_cycle"]),
+  paid_at: z.iso.datetime({ offset: true }),
+  membership_id: z.string(),
+  variant_id: z.string(),
+  account_id: z.string(),
+  product_id: z.string(),
+  user: z.object({ id: z.string() }),
+  total: paymentMoney,
+  refunded_amount: paymentMoney,
+});
+
+export function verifiedPaidMembershipPeriod(raw: unknown, membership: WhopMembership, now: Date) {
+  if (membership.status !== "active" && membership.status !== "canceling") return false;
+  if (!membership.current_period_start || !membership.current_period_end || !Array.isArray(raw)) return false;
+  const start = Date.parse(membership.current_period_start);
+  const end = Date.parse(membership.current_period_end);
+  if (now.getTime() < start || now.getTime() >= end) return false;
+  return raw.some((payment: unknown) => {
+    const parsed = paidPeriodPayment.safeParse(payment);
+    if (!parsed.success) return false;
+    const p = parsed.data;
+    const paidAt = Date.parse(p.paid_at);
+    return p.membership_id === membership.id &&
+      p.variant_id === membership.variant_id &&
+      p.account_id === membership.account.id &&
+      p.product_id === membership.product_id &&
+      p.user.id === membership.user_id &&
+      paidAt >= start && paidAt <= now.getTime() &&
+      p.total.currency === p.refunded_amount.currency &&
+      new D(p.total.amount).gt(0) &&
+      new D(p.refunded_amount.amount).isZero();
+  });
+}
 export function monthlyChangeSource(raw: unknown, expected: {
   membershipId: string; whopUserId: string; businessId: string; productId: string; monthlyPlanId: string;
 }) {
