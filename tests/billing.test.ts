@@ -175,10 +175,19 @@ describe("Whop Standard Webhooks verification", () => {
   });
   it("rejects authentic envelopes pinned to the wrong API or with another event ID", () => {
     const body = raw().replace(WHOP_API_VERSION, "2020-01-01");
-    expect(() => verifiedWebhook(body, signed(body), key)).toThrow("envelope");
+    expect(() => verifiedWebhook(body, signed(body), key)).toThrow(
+      "Unsupported webhook envelope (invalid fields: api_version_date).",
+    );
     const mismatch = raw().replace('"id":"msg_fixture"', '"id":"msg_other"');
     expect(() => verifiedWebhook(mismatch, signed(mismatch), key)).toThrow(
-      "envelope",
+      "id does not match webhook-id",
+    );
+  });
+  it("reports schema fields without echoing signed payload values", () => {
+    const body = raw().replace(',"account_id":"biz_fixture"', "")
+      .replace('"id":"mem_fixture"', '"id":null,"membership_id":"private_fixture_value","payment_id":42');
+    expect(() => verifiedWebhook(body, signed(body), key)).toThrow(
+      "Unsupported webhook envelope (invalid fields: account_id, data.id, data.payment_id).",
     );
   });
   it("accepts the verified newer envelope only with a valid signature and matching event ID", () => {

@@ -47,8 +47,18 @@ export function verifiedWebhook(raw: string, headers: Headers, key: string) {
     throw new ReviewError("Webhook signature verification failed.", 401);
   }
   const parsed = eventSchema.safeParse(event);
-  if (!parsed.success || parsed.data.id !== headers.get("webhook-id"))
-    throw new ReviewError("Unsupported webhook envelope or API version.", 400);
+  if (!parsed.success) {
+    // Report schema paths only. Never return webhook field values or headers.
+    const fields = [...new Set(parsed.error.issues.map(
+      (issue) => issue.path.join(".") || "body",
+    ))];
+    throw new ReviewError(
+      `Unsupported webhook envelope (invalid fields: ${fields.join(", ")}).`,
+      400,
+    );
+  }
+  if (parsed.data.id !== headers.get("webhook-id"))
+    throw new ReviewError("Unsupported webhook envelope (id does not match webhook-id).", 400);
   return parsed.data;
 }
 export async function acceptWebhook(raw: string, headers: Headers) {
