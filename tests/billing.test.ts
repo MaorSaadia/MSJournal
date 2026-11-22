@@ -10,7 +10,7 @@ import {
   whopMembershipSchema,
 } from "@/lib/billing/policy";
 import { billingEnvironment, whopConfig } from "@/lib/billing/config";
-import { verifiedWebhook } from "@/lib/billing/webhooks";
+import { acceptWebhook, verifiedWebhook } from "@/lib/billing/webhooks";
 const now = new Date("2026-11-13T10:00:00Z");
 const membership = () =>
   whopMembershipSchema.parse({
@@ -184,11 +184,41 @@ describe("Whop Standard Webhooks verification", () => {
     );
   });
   it("reports schema fields without echoing signed payload values", () => {
-    const body = raw().replace(',"account_id":"biz_fixture"', "")
+    const body = raw().replace('"account_id":"biz_fixture"', '"account_id":42')
       .replace('"id":"mem_fixture"', '"id":null,"membership_id":"private_fixture_value","payment_id":42');
     expect(() => verifiedWebhook(body, signed(body), key)).toThrow(
       "Unsupported webhook envelope (invalid fields: account_id, data.id, data.payment_id).",
     );
+  });
+  it("normalizes the legacy account field in signed v1 events", () => {
+    const legacy = raw().replace('"account_id"', '"company_id"');
+    expect(verifiedWebhook(legacy, signed(legacy), key).account_id).toBe("biz_fixture");
+    expect(() => verifiedWebhook(legacy + " ", signed(legacy), key)).toThrow("signature");
+    const missing = raw().replace(',"account_id":"biz_fixture"', "");
+    expect(() => verifiedWebhook(missing, signed(missing), key)).toThrow("no business account ID");
+    const conflicting = legacy.replace('"company_id"', '"account_id":"biz_other","company_id"');
+    expect(() => verifiedWebhook(conflicting, signed(conflicting), key)).toThrow("account_id and company_id disagree");
+  });
+  it("uses a signed membership account when the envelope account is null", () => {
+    const body = raw().replace('"account_id":"biz_fixture"', '"account_id":null')
+      .replace('"id":"mem_fixture"', '"id":"mem_fixture","account":{"id":"biz_fixture"}');
+    expect(verifiedWebhook(body, signed(body), key).account_id).toBe("biz_fixture");
+    const conflicting = body.replace('"account_id":null', '"account_id":"biz_other"');
+    expect(() => verifiedWebhook(conflicting, signed(conflicting), key)).toThrow("membership account disagrees");
+    const payment = body.replace("membership.updated", "payment.succeeded");
+    expect(() => verifiedWebhook(payment, signed(payment), key)).toThrow("no business account ID");
+  });
+  it("rejects a legacy event scoped to a different business before storing it", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("WHOP_ENVIRONMENT", "live");
+    vi.stubEnv("WHOP_API_KEY", "api_fixture");
+    vi.stubEnv("WHOP_WEBHOOK_SECRET", key);
+    vi.stubEnv("WHOP_BUSINESS_ID", "biz_other");
+    vi.stubEnv("WHOP_PRO_PRODUCT_ID", "prod_fixture");
+    vi.stubEnv("WHOP_PRO_MONTHLY_PLAN_ID", "plan_fixture");
+    vi.stubEnv("WHOP_PRO_PLAN_IDS", "");
+    const legacy = raw().replace('"account_id"', '"company_id"');
+    await expect(acceptWebhook(legacy, signed(legacy))).rejects.toMatchObject({ status: 403 });
   });
   it("accepts the verified newer envelope only with a valid signature and matching event ID", () => {
     const body = raw().replace(WHOP_API_VERSION, "2026-11-14-1");

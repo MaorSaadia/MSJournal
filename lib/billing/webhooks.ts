@@ -29,7 +29,8 @@ const eventSchema = z.object({
   // Both signed envelope versions use the fields consumed below. Provider
   // reads remain pinned independently; an event body never grants access.
   api_version_date: z.enum([WHOP_API_VERSION, "2026-11-14-1"]),
-  account_id: z.string(),
+  account_id: z.string().min(1).nullish(),
+  company_id: z.string().min(1).nullish(),
   data: z
     .object({
       id: z.string(),
@@ -38,6 +39,9 @@ const eventSchema = z.object({
       membership: z.object({ id: z.string() }).nullable().optional(),
     })
     .passthrough(),
+});
+const membershipAccountSchema = z.object({
+  account: z.object({ id: z.string().min(1) }),
 });
 export function verifiedWebhook(raw: string, headers: Headers, key: string) {
   let event: unknown;
@@ -59,7 +63,24 @@ export function verifiedWebhook(raw: string, headers: Headers, key: string) {
   }
   if (parsed.data.id !== headers.get("webhook-id"))
     throw new ReviewError("Unsupported webhook envelope (id does not match webhook-id).", 400);
-  return parsed.data;
+  const { account_id, company_id, ...envelope } = parsed.data;
+  // Whop uses company_id in the legacy v1 envelope. The REST API pin and
+  // provider-side membership verification are independent of this field name.
+  if (account_id && company_id && account_id !== company_id)
+    throw new ReviewError("Unsupported webhook envelope (account_id and company_id disagree).", 400);
+  const envelopeAccountId = account_id ?? company_id;
+  const membershipAccount = envelope.type.startsWith("membership.")
+    ? membershipAccountSchema.safeParse(envelope.data)
+    : undefined;
+  const membershipAccountId = membershipAccount?.success
+    ? membershipAccount.data.account.id
+    : undefined;
+  if (envelopeAccountId && membershipAccountId && envelopeAccountId !== membershipAccountId)
+    throw new ReviewError("Unsupported webhook envelope (membership account disagrees with the envelope).", 400);
+  const accountId = envelopeAccountId ?? membershipAccountId;
+  if (!accountId)
+    throw new ReviewError("Unsupported webhook envelope (no business account ID).", 400);
+  return { ...envelope, account_id: accountId };
 }
 export async function acceptWebhook(raw: string, headers: Headers) {
   const invalidSettings: string[] = [];
