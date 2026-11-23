@@ -2,7 +2,7 @@ import { absoluteUrl, noIndex } from "@/lib/seo";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
-import { isConfigured } from "@/lib/config";
+import { googleOAuthConfig, isConfigured } from "@/lib/config";
 import { userSession } from "@/lib/session";
 import { safeRedirect } from "@/lib/auth-policy";
 export const dynamic = "force-dynamic";
@@ -11,9 +11,10 @@ export const metadata = { title: "Sign in", description: "Sign in to your privat
 export default async function Login({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; google?: string }>;
 }) {
-  const destination = safeRedirect((await searchParams).next);
+  const query = await searchParams;
+  const destination = safeRedirect(query.next);
   let signedIn = false,
     unavailable = false;
   try {
@@ -27,6 +28,8 @@ export default async function Login({
       configured={isConfigured()}
       destination={destination}
       unavailable={unavailable}
+      googleEnabled={!unavailable && !!googleOAuthConfig()}
+      googleError={query.google === "error"}
     />
   );
 }

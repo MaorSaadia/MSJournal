@@ -1,7 +1,7 @@
 import { toNextJsHandler } from "better-auth/next-js";
 import { getAuth } from "@/lib/auth";
-import { isConfigured, emailConfigured } from "@/lib/config";
-import { publicAuthPaths } from "@/lib/auth-policy";
+import { isConfigured, emailConfigured, googleOAuthConfig } from "@/lib/config";
+import { googleSignInInput, publicAuthPaths } from "@/lib/auth-policy";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 async function handle(request: Request) {
@@ -26,6 +26,17 @@ async function handle(request: Request) {
       },
       { status: 503 },
     );
+  else if (
+    (path === "/sign-in/social" || path === "/callback/google") &&
+    !googleOAuthConfig()
+  )
+    response = Response.json({ message: "Google sign-in is unavailable." }, { status: 503 });
+  else if (
+    path === "/sign-in/social" &&
+    (request.method !== "POST" ||
+      !googleSignInInput.safeParse(await request.clone().json().catch(() => null)).success)
+  )
+    response = Response.json({ message: "Invalid Google sign-in request." }, { status: 400 });
   else if (
     ["/request-password-reset", "/send-verification-email"].includes(path) &&
     !emailConfigured()

@@ -63,9 +63,15 @@ test("landing copy and initial preview remain useful without JavaScript",async({
   try{const page=await context.newPage();await page.goto("/");
     await expect(page.getByRole("heading",{level:1})).toBeVisible();
     await expect(page.getByRole("link",{name:"Start your journal",exact:true})).toHaveAttribute("href","/signup");
+    const pricing = page.getByRole("region", { name: "Plans and pricing" });
+    await expect(pricing).toBeVisible();
+    await expect(pricing.getByText("$9.99", { exact: true })).toBeVisible();
+    await expect(pricing.getByText("$89.99", { exact: true })).toBeVisible();
+    await expect(pricing.getByRole("link",{name:"Get Pro",exact:true})).toHaveAttribute("href","/signup?next=%2Fsettings%2Fbilling");
     await expect(page.locator(".marketing-preview-image img")).toBeVisible();
     await expect(page.locator(".marketing-preview-image img")).toHaveJSProperty("complete",true);
     await page.getByLabel("Open navigation",{exact:true}).click();
     await expect(page.getByRole("navigation",{name:"Mobile navigation",exact:true})).toBeVisible();
+    await expect(page.getByRole("navigation",{name:"Mobile navigation",exact:true}).getByRole("link",{name:"Pricing",exact:true})).toHaveAttribute("href","#pricing");
   }finally{await context.close();}
 });

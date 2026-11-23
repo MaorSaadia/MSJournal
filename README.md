@@ -39,6 +39,14 @@ Open `http://localhost:3000/signup`. Enter your name, email, password and confir
 
 ## Email recovery and verification
 
+### Optional Google sign-in
+
+In Google Cloud's Google Auth Platform, configure the consent screen and create an OAuth client of type **Web application**. Use the public home, privacy and terms pages linked from the landing footer. For Vercel Production set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` and register `https://www.msjournal.app/api/auth/callback/google` as an authorized redirect URI. The hostname must match `BETTER_AUTH_URL`. For local testing register `http://localhost:3000/api/auth/callback/google` if that is the local auth origin, add the credentials to `.env.local`, and restart the server. Keep the client secret server-side. If Google's consent screen is in Testing, add the Google accounts that will test it.
+
+Both values are required for the buttons to appear. The Google signup button creates an account on first use and the Google sign-in button returns an existing Google user to their workspace. Accounts originally created by password continue to use their password. See [Better Auth’s Google setup](https://better-auth.com/docs/authentication/google).
+
+### Resend setup
+
 In Resend, verify a sending domain using its DNS instructions, create a sending API key, then set `RESEND_API_KEY` and `AUTH_EMAIL_FROM`. Restart MSJournal. Do not use Resend's limited test sender as a general sender for independent users.
 
 The forgot-password page uses Better Auth's supported token flow and a generic confirmation that does not reveal account existence. Reset emails contain a one-hour link. The reset page validates matching passwords, handles expired/invalid/used links, resets through Better Auth and returns to sign-in. Successful resets revoke previous database sessions; cached session cookies cannot restore access.

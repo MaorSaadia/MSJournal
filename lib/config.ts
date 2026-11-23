@@ -61,6 +61,16 @@ export function isConfigured() {
     return false;
   }
 }
+export function googleOAuthConfig(
+  env: { GOOGLE_CLIENT_ID?: string; GOOGLE_CLIENT_SECRET?: string } = {
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  },
+) {
+  const clientId = env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = env.GOOGLE_CLIENT_SECRET?.trim();
+  return clientId && clientSecret ? { clientId, clientSecret } : null;
+}
 export function emailConfigured(
   env: { RESEND_API_KEY?: string; AUTH_EMAIL_FROM?: string } = {
     RESEND_API_KEY: process.env.RESEND_API_KEY,

@@ -13,16 +13,22 @@ import { authError } from "@/lib/auth-messages";
 import { AuthFrame } from "./auth-frame";
 import { PasswordField } from "./password-field";
 import { Button } from "@/components/ui/button";
+import { GoogleAuthButton } from "./google-auth-button";
 export function SignupForm({
   configured,
   verificationRequired,
   destination = "/welcome",
+  googleEnabled = false,
+  googleError = false,
 }: {
   configured: boolean;
   verificationRequired: boolean;
   destination?: string;
+  googleEnabled?: boolean;
+  googleError?: boolean;
 }) {
   const [error, setError] = useState("");
+  const [googlePending, setGooglePending] = useState(false);
   const {
     register,
     handleSubmit,
@@ -63,14 +69,18 @@ export function SignupForm({
   }
   return (
     <AuthFrame
-      title="Your journal starts here"
-      description="A private space for your trading progress."
+      title="Create your account"
+      description="Start free with one trading account."
       configured={configured}
+      centered
     >
+      {configured && googleEnabled && (
+        <GoogleAuthButton destination={destination} mode="signup" returnedWithError={googleError} disabled={isSubmitting} onPending={setGooglePending} />
+      )}
       <form method="post" onSubmit={handleSubmit(submit)} noValidate aria-busy={isSubmitting}>
         <fieldset
           className="auth-fields"
-          disabled={!configured || isSubmitting}
+          disabled={!configured || isSubmitting || googlePending}
         >
           <label className="form-field">
             Name
@@ -126,6 +136,9 @@ export function SignupForm({
           </Button>
         </fieldset>
       </form>
+      <p className="auth-legal-note">
+        By creating an account, you agree to the <Link href="/terms">Terms of Use</Link> and acknowledge the <Link href="/privacy">Privacy Policy</Link>.
+      </p>
       <p className="login-privacy login-signup-prompt">
         Already have an account? <Link href={`/login?next=${encodeURIComponent(destination)}`}>Sign in</Link>
       </p>

@@ -2,11 +2,12 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { getDb } from "../db/client";
 import * as schema from "../db/schema";
-import { readConfig } from "./config";
+import { googleOAuthConfig, readConfig } from "./config";
 import { sendAuthEmail } from "./auth-email";
 
 export function createAuth() {
   const config = readConfig();
+  const google = googleOAuthConfig();
   const requireVerification = config.AUTH_REQUIRE_EMAIL_VERIFICATION === "true";
   return betterAuth({
     appName: "MSJournal",
@@ -45,7 +46,19 @@ export function createAuth() {
       updateAge: 60 * 60 * 24,
       cookieCache: { enabled: false },
     },
-    account: { accountLinking: { enabled: false } },
+    ...(google && {
+      socialProviders: {
+        google: {
+          ...google,
+          disableImplicitSignUp: true,
+          disableIdTokenSignIn: true,
+          includeGrantedScopes: false,
+          prompt: "select_account",
+        },
+      },
+      onAPIError: { errorURL: new URL("/login?google=error", config.BETTER_AUTH_URL).href },
+    }),
+    account: { accountLinking: { enabled: false }, encryptOAuthTokens: true },
     rateLimit: {
       enabled: true,
       storage: "database",
@@ -53,6 +66,7 @@ export function createAuth() {
       max: 60,
       customRules: {
         "/sign-in/email": { window: 60, max: 5 },
+        "/sign-in/social": { window: 60, max: 10 },
         "/sign-up/email": { window: 60, max: 5 },
         "/request-password-reset": { window: 60, max: 3 },
         "/send-verification-email": { window: 60, max: 3 },

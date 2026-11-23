@@ -19,6 +19,7 @@ import { navigation } from "@/lib/navigation";
 import { useCalendarCache } from "@/components/calendar/cache-provider";
 import { LogoutButton } from "@/components/auth/logout";
 import { Button } from "@/components/ui/button";
+import { BrandLink } from "@/components/brand-link";
 import {
   Dialog,
   DialogContent,
@@ -109,19 +110,12 @@ export function Shell({
   } = useCalendarCache();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const dashboardHref = workspaceHref("/", workspaceFilters);
   const links = (compact: boolean) => (
     <>
       <div className="sidebar-brand">
-        {compact ? (
-          <Sprout size={23} />
-        ) : (
-          <>
-            <span className="brand-name">
-              MS<span>Journal</span>
-            </span>
-            <span className="brand-caption">THE TRADER’S PERSPECTIVE</span>
-          </>
-        )}
+        <BrandLink href={dashboardHref} label="MSJournal dashboard" compact={compact} onClick={() => setMobileOpen(false)} />
+        {!compact && <span className="brand-caption">THE TRADER’S PERSPECTIVE</span>}
       </div>
       <ImportButton compact={compact} onNavigate={() => setMobileOpen(false)} />
       <div className="nav-label">{!compact && "WORKSPACE"}</div>
@@ -174,7 +168,7 @@ export function Shell({
       </a>
       <aside className="utility-rail" aria-label="Workspace utilities">
         <Link
-          href={workspaceHref("/", workspaceFilters)}
+          href={dashboardHref}
           aria-label="MSJournal dashboard"
           className="monogram"
         >
@@ -223,9 +217,7 @@ export function Shell({
               {links(false)}
             </DialogContent>
           </Dialog>
-          <Link href="/" className="brand-name">
-            MS<span>Journal</span>
-          </Link>
+          <BrandLink href={dashboardHref} label="MSJournal dashboard" />
           <ThemeControl />
         </div>
         <main id="main-content">{children}</main>

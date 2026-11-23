@@ -106,6 +106,7 @@ describe("private redirect policy", () => {
     ])
       expect(safeRedirect(url)).toBe("/");
     expect(safeRedirect("/prop-accounts")).toBe("/prop-accounts");
+    expect(safeRedirect("/settings/billing")).toBe("/settings/billing");
     expect(safeRedirect("/?mode=demo")).toBe("/?mode=demo");
   });
 });

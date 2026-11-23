@@ -13,16 +13,22 @@ import { loginInput } from "@/lib/auth-validation";
 import { AuthFrame } from "./auth-frame";
 import { PasswordField } from "./password-field";
 import { Button } from "@/components/ui/button";
+import { GoogleAuthButton } from "./google-auth-button";
 export function LoginForm({
   configured,
   destination,
   unavailable = false,
+  googleEnabled = false,
+  googleError = false,
 }: {
   configured: boolean;
   destination: string;
   unavailable?: boolean;
+  googleEnabled?: boolean;
+  googleError?: boolean;
 }) {
   const [error, setError] = useState("");
+  const [googlePending, setGooglePending] = useState(false);
   const {
     register,
     handleSubmit,
@@ -52,17 +58,21 @@ export function LoginForm({
   return (
     <AuthFrame
       title="Welcome back"
-      description="A little reflection. A better next trade."
+      description="Sign in to your private trading journal."
       configured={configured}
+      centered
     >
       {unavailable && (
         <p className="form-error" role="alert">
           Authentication is temporarily unavailable. Please try again later.
         </p>
       )}
-      <form method="post" onSubmit={handleSubmit(signIn)} noValidate>
+      {configured && googleEnabled && (
+        <GoogleAuthButton destination={destination} mode="login" returnedWithError={googleError} disabled={isSubmitting} onPending={setGooglePending} />
+      )}
+      <form method="post" onSubmit={handleSubmit(signIn)} noValidate aria-busy={isSubmitting}>
         <fieldset
-          disabled={!configured || isSubmitting}
+          disabled={!configured || isSubmitting || googlePending}
           className="auth-fields"
         >
           <label className="form-field">

@@ -1,8 +1,11 @@
+import { z } from "zod";
+
 const destinations = new Set([
   "/",
   "/welcome",
   "/prop-accounts",
   "/settings",
+  "/settings/billing",
   "/day-view",
   "/trade-view",
   "/notebook",
@@ -33,6 +36,8 @@ export function safeRedirect(value: unknown) {
 }
 export const publicAuthPaths = new Set([
   "/sign-in/email",
+  "/sign-in/social",
+  "/callback/google",
   "/sign-out",
   "/get-session",
   "/sign-up/email",
@@ -42,3 +47,11 @@ export const publicAuthPaths = new Set([
   "/send-verification-email",
   "/verify-email",
 ]);
+
+// Google uses the authorization-code flow with its default identity scopes.
+export const googleSignInInput = z.strictObject({
+  provider: z.literal("google"),
+  callbackURL: z.string(),
+  errorCallbackURL: z.string(),
+  requestSignUp: z.boolean(),
+});
