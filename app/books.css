@@ -18,7 +18,11 @@
 .books-nav { border-bottom: 1px solid var(--books-line); background: var(--books-paper); }
 .books-nav > div { min-height: 86px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .books-nav nav { display: flex; align-items: center; gap: 30px; font-size: 13px; }
-.books-brand-dot { color: var(--books-accent); }
+.books-brand { align-self: center; color: var(--books-ink); }
+.books-brand .brand-lockup-dot { color: var(--books-accent); }
+.books-nav-actions, .books-hero-actions { display: flex; align-items: center; gap: 16px; }
+.books-nav-actions { flex-shrink: 0; }
+.books-hero-actions { flex-wrap: wrap; gap: 16px 22px; }
 .books-nav nav > a { color: var(--books-muted); transition: color .2s; }
 .books-nav nav > a:hover { color: var(--books-accent); }
 .books-hero { display: grid; grid-template-columns: 1fr 1.1fr; align-items: center; gap: 50px; padding-block: 100px 110px; }
@@ -27,6 +31,7 @@
 .books-hero h1 em { font-style: normal; color: var(--books-accent); }
 .books-lead { font-size: 17px; line-height: 1.8; color: var(--books-muted); max-width: 49ch; }
 .books-author { font-size: 12px; color: var(--books-muted); margin: 20px 0 30px; }
+.books-journal-note { max-width: 46ch; margin: 15px 0 0; font-size: 13px; line-height: 1.65; color: var(--books-muted); }
 .books-text-link { display: inline-flex; gap: 10px; align-items: center; color: var(--books-accent); font-size: 13px; font-weight: 550; }
 .books-text-link svg { flex-shrink: 0; transition: transform .2s; }
 .books-text-link:hover svg { transform: translate(2px,-1px); }
@@ -141,9 +146,13 @@
 }
 @media(max-width:700px) {
   .books-wrap { width: calc(100% - 36px); }
-  .books-nav > div { min-height: 74px; gap: 12px; }
-  .books-nav nav { gap: 14px; font-size: 10px; }
-  .books-nav .marketing-brand { font-size: 19px; }
+  .books-nav > div { flex-wrap: wrap; gap: 4px 12px; padding-block: 12px 5px; }
+  .books-nav nav { order: 1; width: 100%; gap: 4px 16px; flex-wrap: wrap; font-size: 12px; }
+  .books-nav nav > a { padding-block: 10px; }
+  .books-nav .books-brand { font-size: 19px; gap: 6px; }
+  .books-nav .books-brand img { width: 25px; height: 25px; }
+  .books-nav-actions { gap: 4px; }
+  .books-nav-actions .books-button { padding-inline: 12px; }
   .books-hero { grid-template-columns: 1fr; gap: 30px; padding-block: 54px 60px; }
   .books-hero h1 { font-size: 53px; }
   .books-hero-copy { max-width: 450px; }
