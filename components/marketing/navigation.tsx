@@ -1,6 +1,6 @@
 "use client";
 import { useRef } from "react";
-import Link from "next/link";
+import { PublicPageLink } from "@/components/public-page-link";
 import { Menu, ArrowUpRight } from "lucide-react";
 import { ThemeControl } from "@/components/shell";
 
@@ -10,18 +10,18 @@ export function MarketingNavigation() {
     <a href="#features">Features</a>
     <a href="#get-started">How it works</a>
     <a href="#pricing">Pricing</a>
-    <Link href="/books">Trading Books</Link>
-    <Link href="/book">Book Companion</Link>
+    <PublicPageLink href="/books">Trading Books</PublicPageLink>
+    <PublicPageLink href="/book">Book Companion</PublicPageLink>
   </>;
   return (
     <div className="marketing-navigation">
       <nav className="marketing-desktop-nav" aria-label="Main navigation">{links}</nav>
       <div className="marketing-nav-actions">
         <ThemeControl />
-        <Link className="marketing-signin" href="/login">Sign in</Link>
-        <Link className="marketing-button compact" href="/signup">
+        <PublicPageLink className="marketing-signin" href="/login">Sign in</PublicPageLink>
+        <PublicPageLink className="marketing-button compact" href="/signup">
           Create account <ArrowUpRight size={15} aria-hidden="true" />
-        </Link>
+        </PublicPageLink>
       </div>
       <details ref={menu} className="marketing-mobile-menu" onKeyDown={(event) => {
         if (event.key === "Escape" && menu.current) {
@@ -34,7 +34,7 @@ export function MarketingNavigation() {
           if ((event.target as HTMLElement).closest("a") && menu.current) menu.current.open = false;
         }}>
           {links}
-          <Link href="/login">Sign in</Link>
+          <PublicPageLink href="/login">Sign in</PublicPageLink>
         </nav>
       </details>
     </div>

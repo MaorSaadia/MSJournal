@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { PublicPageLink } from "@/components/public-page-link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading";
@@ -103,7 +104,7 @@ const newTitle = () => `${template.shortTitle ?? template.title} — ${new Intl.
   const selectedLink=options.find(o=>o.id===fields.link?.id);
   return <div className="worksheet-editor" onClick={e=>{const target=e.target as HTMLElement;if(target.closest("button,a")){const menu=target.closest("details.worksheet-menu");if(menu instanceof HTMLDetailsElement)menu.open=false;}}} onKeyDown={e=>{if(e.key === "Escape"){const menu=(e.target as HTMLElement).closest("details.worksheet-menu");if(menu instanceof HTMLDetailsElement){menu.open=false;menu.querySelector<HTMLElement>("summary")?.focus();}}}}>
     <div className="book-screen">
-      {!user && <p className="worksheet-guest-note">Your draft is stored in this browser tab. <Link href={`/login?next=${encodeURIComponent(`/book/${template.slug}`)}`}>Sign in</Link> to save it to your account.</p>}
+      {!user && <p className="worksheet-guest-note">Your draft is stored in this browser tab. <PublicPageLink href={`/login?next=${encodeURIComponent(`/book/${template.slug}`)}`}>Sign in</PublicPageLink> to save it to your account.</p>}
       {user && !initial && transferable && <aside className="worksheet-banner"><strong>A temporary draft is ready</strong><p>From {recordTime(transferable.createdAt)}. Save it explicitly into {user.name}’s account as a separate entry.</p><Button onClick={transferGuest}>Save browser draft to my account</Button></aside>}
       {user && !initial && guest && !transferable && <p className="worksheet-banner">A temporary draft belongs to a different sign-in. It will not be attached to this account.</p>}
       {user && recovery && state.state !== "saved" && !state.dirty && <aside className="worksheet-banner"><strong>Unsaved edits are available in this tab.</strong><p>They are tied to this account and entry. A newer server revision will require conflict resolution.</p><Button onClick={()=>{transfer.current=!!recovery.transfer;controller.useLatest({...state.data,revision:recovery.revision});controller.edit({fields:recovery.fields,status:recovery.status});}}>Restore unsaved edits</Button><Button variant="outline" onClick={()=>writeDraft(rkey,null)}>Discard local recovery copy</Button></aside>}
@@ -127,7 +128,7 @@ const newTitle = () => `${template.shortTitle ?? template.title} — ${new Intl.
         <label className="worksheet-check"><input type="checkbox" checked={fields.retrospective} onChange={e=>edit({...fields,retrospective:e.target.checked})} />This entry includes retrospective additions or corrections.</label>{fields.retrospective && <label>What was reconstructed or corrected?<textarea value={fields.retrospectiveNote} maxLength={1000} onChange={e=>edit({...fields,retrospectiveNote:e.target.value})} /></label>}
         {user && template.linkKind && <details><summary>Optional link to an existing {template.linkKind}</summary><p>This is a reference only. No values are prefilled and no source record is changed.</p><select aria-label="Linked MSJournal record" value={fields.link?.id ?? ""} onChange={e=>edit({...fields,link:e.target.value ? {kind:template.linkKind!,id:e.target.value} : null})}><option value="">Standalone — no link</option>{fields.link && !selectedLink && <option value={fields.link.id}>Previous reference unavailable — detach to save changes</option>}{options.map(o=><option value={o.id} key={o.id}>{o.label} · {o.id.slice(0,8)}</option>)}</select>{selectedLink && <Link href={selectedLink.href}>Open linked record →</Link>}{!options.length && <p className="muted">No eligible records yet. You can use the worksheet on its own.</p>}</details>}
       </section></details>
-      {current ? <CurrentForm template={template} fields={fields} answer={answer} reading={reading} /> : (      <form onSubmit={e=>e.preventDefault()} className={`worksheet-form ${template.letter === "G" ? "worksheet-reset" : ""}`}>
+      {current ? <CurrentForm documentNavigation={!user} template={template} fields={fields} answer={answer} reading={reading} /> : (      <form onSubmit={e=>e.preventDefault()} className={`worksheet-form ${template.letter === "G" ? "worksheet-reset" : ""}`}>
         {template.blocks.map(b=>b.kind === "heading" ? <h2 key={b.id}>{b.text}</h2> : b.kind === "instruction" ? <p className="worksheet-instruction" key={b.id}>{b.text}</p> : b.kind === "table" ? <TableControl key={b.id} field={b} answer={fields.answers[b.id]} onChange={v=>answer(b.id,v)} /> : <CellControl key={b.id} field={b} cell={answerCell(fields.answers[b.id])} onChange={v=>answer(b.id,v)} />)}
       </form>)}
 

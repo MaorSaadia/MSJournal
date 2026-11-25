@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { PublicPageLink } from "@/components/public-page-link";
 import { LegalPage } from "@/components/legal-page";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function Terms() {
   return (
     <LegalPage title="Terms of Use">
-      <p>These terms apply when you create an account or use MSJournal. See the <Link href="/privacy">Privacy Policy</Link> for how personal information is handled.</p>
+      <p>These terms apply when you create an account or use MSJournal. See the <PublicPageLink href="/privacy">Privacy Policy</PublicPageLink> for how personal information is handled.</p>
 
       <h2>Using MSJournal</h2>
       <p>MSJournal is a journal for importing trading records, reviewing decisions, and tracking account progress. It does not execute trades, provide investment advice, or certify prop firm compliance. Confirm trading records, fees, and account rules with your broker or firm before relying on them for a decision.</p>
@@ -23,10 +23,10 @@ export default function Terms() {
 
       <h2>Plans, payments and cancellation</h2>
       <p>The Free plan supports one trading account. Pro supports multiple trading accounts. The checkout shows the applicable price, billing interval, and any taxes before you confirm. Whop processes payments and manages renewals. Use the link in Settings → Billing to manage or cancel a subscription in Whop. A cancellation at the end of the billing period preserves access through that period.</p>
-      <p>If Pro ends, the Free account limit applies. Retained account history remains available to read or export under the app’s account-access rules. For a billing question, use <Link href="/contact?topic=billing">billing support</Link>.</p>
+      <p>If Pro ends, the Free account limit applies. Retained account history remains available to read or export under the app’s account-access rules. For a billing question, use <PublicPageLink href="/contact?topic=billing">billing support</PublicPageLink>.</p>
 
       <h2>Service changes and contact</h2>
-      <p>Features may change or be temporarily unavailable. Keep your own copies of records you need. If you have questions about these terms, <Link href="/contact">contact MSJournal</Link>.</p>
+      <p>Features may change or be temporarily unavailable. Keep your own copies of records you need. If you have questions about these terms, <PublicPageLink href="/contact">contact MSJournal</PublicPageLink>.</p>
     </LegalPage>
   );
 }

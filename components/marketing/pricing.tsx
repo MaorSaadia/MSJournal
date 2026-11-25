@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PublicPageLink } from "@/components/public-page-link";
 import { ArrowUpRight, BookOpen, Check, Layers3 } from "lucide-react";
 import { annualSaving, proPricing } from "@/lib/billing/pricing";
 
@@ -24,9 +24,9 @@ export function MarketingPricing() {
             <li><Check size={16} aria-hidden="true" />CSV imports, analytics and trade reviews</li>
             <li><Check size={16} aria-hidden="true" />Four free Book Companion worksheets</li>
           </ul>
-          <Link className="marketing-button marketing-free-button" href="/signup">
+          <PublicPageLink className="marketing-button marketing-free-button" href="/signup">
             Start free <ArrowUpRight size={17} aria-hidden="true" />
-          </Link>
+          </PublicPageLink>
         </article>
         <article className="marketing-plan marketing-plan-pro" aria-labelledby="marketing-pro" data-reveal>
           <div className="marketing-plan-heading">
@@ -43,9 +43,9 @@ export function MarketingPricing() {
             <li><Check size={16} aria-hidden="true" />Analytics and trade reviews across your accounts</li>
             <li><Check size={16} aria-hidden="true" />Same Pro features with either billing option</li>
           </ul>
-          <Link className="marketing-button" href="/signup?next=%2Fsettings%2Fbilling">
+          <PublicPageLink className="marketing-button" href="/signup?next=%2Fsettings%2Fbilling">
             Get Pro <ArrowUpRight size={17} aria-hidden="true" />
-          </Link>
+          </PublicPageLink>
         </article>
       </div>
       <p className="marketing-pricing-terms">Prices in USD. Taxes may apply.</p>

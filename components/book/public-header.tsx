@@ -1,3 +1,4 @@
+import { PublicPageLink } from "@/components/public-page-link";
 import Link from "next/link";
 import { ThemeControl } from "@/components/shell";
-export function BookHeader(){return <header className="book-nav"><Link className="marketing-brand" href="/">MSJournal</Link><nav aria-label="Book companion"><Link href="/books">Trading Books</Link><Link href="/book">Book Companion</Link><Link href="/worksheets">My Worksheets</Link><ThemeControl /></nav></header>;}
+export function BookHeader({documentNavigation = true}: {documentNavigation?: boolean}){const PageLink = documentNavigation ? PublicPageLink : Link; return <header className="book-nav"><PageLink className="marketing-brand" href="/">MSJournal</PageLink><nav aria-label="Book companion"><PageLink href="/books">Trading Books</PageLink><PageLink href="/book">Book Companion</PageLink><PageLink href="/worksheets">My Worksheets</PageLink><ThemeControl /></nav></header>;}

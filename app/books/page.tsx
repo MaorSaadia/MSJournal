@@ -1,3 +1,4 @@
+import { PublicPageLink } from "@/components/public-page-link";
 import Link from "next/link";
 import { ArrowDown, ArrowUpRight, BookOpen } from "lucide-react";
 import { orderedBooks, bookCategories } from "@/lib/books/catalog";
@@ -19,24 +20,24 @@ export default async function BooksPage({searchParams}:{searchParams:Promise<{ca
         <p className="books-lead">Start with the foundations. Explore the setups. Work on the discipline behind your decisions.</p>
         <p className="books-author">Books by Maor Saadia, creator of MSJournal.</p>
         <div className="books-hero-actions">
-          <Link href="/" className="books-button">Explore the trading journal <ArrowUpRight size={16} aria-hidden="true"/></Link>
+          <PublicPageLink href="/" className="books-button">Explore the trading journal <ArrowUpRight size={16} aria-hidden="true"/></PublicPageLink>
           <a className="books-text-link" href="#catalog">Find your next read <ArrowDown size={16} aria-hidden="true"/></a>
         </div>
         <p className="books-journal-note">Bring what you read into your next session. Import trades and review your decisions with a free MSJournal account.</p>
       </div>
       <div className="books-hero-shelf" aria-label="Explore featured books">
         {orderedBooks.filter((book) => book.featured).map((book, index) => (
-          <Link
+          <PublicPageLink
             href={`/books/${book.slug}`}
             key={book.id}
             aria-label={`Explore ${book.title}${book.seriesLabel ? ` ? ${book.seriesLabel}` : ""}`}
           >
             <BookCover book={book} preload={index === 1} sizes="(max-width: 640px) 26vw, (max-width: 1000px) 25vw, 200px"/>
-          </Link>
+          </PublicPageLink>
         ))}
       </div>
     </section>
     <section id="catalog" className="books-catalog books-wrap" aria-labelledby="catalog-title"><div className="books-catalog-heading"><div><p className="books-eyebrow">CHOOSE YOUR FOCUS</p><h2 id="catalog-title">Read for where you are.</h2></div><p>Foundations, frameworks and a more considered practice.</p></div><nav className="books-filters" aria-label="Book categories">{["All",...bookCategories].map((c) => <Link href={c==="All" ? "/books#catalog" : `/books?category=${c.toLowerCase()}#catalog`} scroll={false} key={c} aria-current={(!selected && c==="All") || selected===c ? "page" : undefined}>{c}</Link>)}</nav><p className="books-count" aria-live="polite">{books.length} {books.length===1 ? "book" : "books"}{selected ? ` / ${selected}` : " / The collection"}</p><BooksMotion selection={selected ?? "All"}><div className="books-grid">{books.map((b) => <BookCard key={b.id} book={b}/>)}</div></BooksMotion></section>
-    <section className="books-companion books-wrap"><BookOpen size={28} strokeWidth={1.3} aria-hidden="true"/><div><p className="books-eyebrow">FROM READING TO REFLECTION</p><h2>Make the plan your own.</h2><p>Four free worksheets from The Consistent Day Trader. Use them online, print a copy, or save your work in MSJournal. No book purchase required.</p></div><Link className="books-button" href="/book">Open the free worksheets <ArrowUpRight size={16} aria-hidden="true"/></Link></section>
+    <section className="books-companion books-wrap"><BookOpen size={28} strokeWidth={1.3} aria-hidden="true"/><div><p className="books-eyebrow">FROM READING TO REFLECTION</p><h2>Make the plan your own.</h2><p>Four free worksheets from The Consistent Day Trader. Use them online, print a copy, or save your work in MSJournal. No book purchase required.</p></div><PublicPageLink className="books-button" href="/book">Open the free worksheets <ArrowUpRight size={16} aria-hidden="true"/></PublicPageLink></section>
   </main>;
 }

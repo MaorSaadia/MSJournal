@@ -1,4 +1,7 @@
+import { PublicWebAnalytics } from "@/components/public-web-analytics";
+import { indexableDeployment } from "@/lib/seo";
 import Link from "next/link";
+import { PublicPageLink } from "@/components/public-page-link";
 import { headers } from "next/headers";
 import { ThemeControl } from "@/components/shell";
 import { userSession } from "@/lib/session";
@@ -16,6 +19,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
   const [session, params] = await Promise.all([userSession(requestHeaders).catch(() => null), searchParams]);
   const topic = topicSchema.safeParse(params.topic);
   const preferences = session ? await getPreferences(requestHeaders).catch(() => null) : null;
+  const PageLink = session ? Link : PublicPageLink;
   const content = (
     <div className={`contact-workspace${session ? " contact-signed-in" : ""}`}>
       <header className="contact-hero">
@@ -38,7 +42,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             <LockKeyhole size={19} aria-hidden="true" />
             <h2>Trouble signing in?</h2>
             <p>Request a reset link if you’ve forgotten your password.</p>
-            <Link href="/forgot-password">Reset your password</Link>
+            <PageLink href="/forgot-password">Reset your password</PageLink>
           </section>
           <section className="panel contact-tip">
             <MessageSquareText size={19} aria-hidden="true" />
@@ -51,8 +55,9 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
   );
   if (session) return <WorkspaceFrame owner={session.user} preferences={preferences ?? { displayTimezone: "Asia/Jerusalem", weekStartsOn: 0 }}>{content}</WorkspaceFrame>;
   return <div className="login-page contact-page">
+    <PublicWebAnalytics enabled={indexableDeployment} />
     <header className="login-header">
-      <Link href="/" className="brand-name" aria-label="MSJournal home">MS<span>Journal</span></Link>
+      <PublicPageLink href="/" className="brand-name" aria-label="MSJournal home">MS<span>Journal</span></PublicPageLink>
       <ThemeControl />
     </header>
     <main>{content}</main>

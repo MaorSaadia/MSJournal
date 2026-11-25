@@ -1,16 +1,18 @@
 "use client";
 import Link from "next/link";
+import { PublicPageLink } from "@/components/public-page-link";
 import type { Block, Template } from "@/lib/book/templates";
 import { answerCell, type Answer, type WorksheetFields } from "@/lib/book/model";
 import { countWarnings, valueOf } from "@/lib/book/current-calculations";
 import { CellControl } from "./fields";
 
-export function CurrentForm({template,fields,answer,reading}:{template:Template;fields:WorksheetFields;answer:(id:string,value:Answer)=>void;reading:boolean}){
+export function CurrentForm({template,fields,answer,reading,documentNavigation}:{documentNavigation:boolean;template:Template;fields:WorksheetFields;answer:(id:string,value:Answer)=>void;reading:boolean}){
+  const PageLink = documentNavigation ? PublicPageLink : Link;
   function control(block: Block) {
     if(block.kind === "heading")return null;
     if(block.kind === "instruction"){
       if(block.id === `${template.id}-intro`)return null;
-      if(block.id === "reset-link")return <p className="worksheet-risk-warning" key={block.id}>The actual loss can exceed my estimate. If I feel the urge to chase or win money back, I use the <Link href="/book/after-a-missed-trade-or-loss">reset card in Appendix C →</Link>.</p>;
+      if(block.id === "reset-link")return <p className="worksheet-risk-warning" key={block.id}>The actual loss can exceed my estimate. If I feel the urge to chase or win money back, I use the <PageLink href="/book/after-a-missed-trade-or-loss">reset card in Appendix C →</PageLink>.</p>;
       return <p key={block.id} className={block.id.startsWith("step-") ? "reset-instruction" : "worksheet-inline-instruction"}>{block.text}</p>;
     }
     if(block.kind === "table")return null;
