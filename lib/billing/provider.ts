@@ -441,7 +441,7 @@ export async function refreshOwner(ownerId: string, manual = false) {
   if (failed && manual)
     throw new ReviewError(new ProviderUnavailable().message, 503);
 }
-export async function startCheckout(ownerId: string, planChoice: number, change?: { fromMembershipId: string }, buyerEmail?: string) {
+export async function startCheckout(ownerId: string, planChoice: number, change?: { fromMembershipId: string }, buyerEmail?: string, affiliateCode?: string) {
   const config = whopConfig();
   if (!config?.checkoutEnabled)
     throw new ReviewError(
@@ -511,6 +511,7 @@ export async function startCheckout(ownerId: string, planChoice: number, change?
         account_id: config.businessId,
         variant_id: plan.id,
         mode: "payment",
+        ...(!change && affiliateCode ? { affiliate_code: affiliateCode } : {}),
         metadata: { msjournal_checkout: requestId, msjournal_binding: binding },
         redirect_url: `${config.origin}/settings/billing?checkout=pending`,
       }),

@@ -1,4 +1,5 @@
-import { after } from "next/server";
+import { after, type NextRequest } from "next/server";
+import { affiliateCode, affiliateReferralCookie } from "@/lib/affiliates";
 import { z } from "zod";
 import { privateJson, privateError, requireOrigin } from "@/lib/private-api";
 import { requireUser } from "@/lib/session";
@@ -40,13 +41,14 @@ const action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("cancel") }).strict(),
   z.object({ action: z.literal("switch_annual") }).strict(),
 ]);
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     requireOrigin(request);
     const user = await requireUser(request.headers),
       body = action.parse(await readReviewJson(request));
     if (body.action === "checkout")
-      return privateJson(await startCheckout(user.id, body.option, undefined, user.email));
+      return privateJson(await startCheckout(user.id, body.option, undefined, user.email,
+        affiliateCode(request.cookies.get(affiliateReferralCookie)?.value)));
     if (body.action === "switch_annual")
       return privateJson(await startAnnualChange(user.id));
     if (body.action === "link")

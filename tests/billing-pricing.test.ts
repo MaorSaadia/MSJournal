@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+const checkoutDb = vi.hoisted(() => ({
+  transaction: vi.fn(),
+  update: vi.fn(),
+}));
+vi.mock("@/db/client", () => ({ getDb: () => checkoutDb }));
 import { verifiedPlanOption } from "@/lib/billing/plan-verification";
 import { configuredPlanReferences, whopConfig } from "@/lib/billing/config";
 import { configuredPlans, startCheckout } from "@/lib/billing/provider";
@@ -43,6 +48,39 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("owner-confirmed Pro billing schedules", () => {
+  it("sends the affiliate code alongside the verified plan and the existing checkout binding", async () => {
+    const inserted = vi.fn(() => ({ onConflictDoNothing: async () => undefined }));
+    checkoutDb.transaction.mockImplementation((work) => work({
+      execute: async () => ({ rows: [{ n: 0, pro: false }] }),
+      insert: () => ({ values: inserted }),
+    }));
+    checkoutDb.update.mockReturnValue({ set: () => ({ where: async () => undefined }) });
+    const fetchMock = vi.fn(async (url: string, options?: RequestInit) => {
+      if (options?.method === "POST") {
+        return Response.json({
+          account_id: scope.businessId, variant: { id: monthly.id }, mode: "payment",
+          id: "ch_fixture", purchase_url: "https://sandbox.whop.com/checkout/ch_fixture",
+        });
+      }
+      if (url.includes(monthly.id)) return Response.json(variant());
+      throw new Error("Unexpected fixture request");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(startCheckout("owner-fixture", 0, undefined, "owner@example.test", "trader_one"))
+      .resolves.toEqual({ url: "https://sandbox.whop.com/checkout/ch_fixture" });
+    const [url, options] = fetchMock.mock.calls.find(([, init]) => init?.method === "POST")!;
+    const body = JSON.parse(String(options?.body));
+    expect(url).toMatch(/\/checkout_configurations$/);
+    expect(body).toEqual({
+      account_id: scope.businessId, variant_id: monthly.id, mode: "payment",
+      affiliate_code: "trader_one", redirect_url: "http://localhost:3000/settings/billing?checkout=pending",
+      metadata: { msjournal_checkout: expect.any(String), msjournal_binding: expect.stringMatching(/^[a-f0-9]{64}$/) },
+    });
+    expect(inserted).toHaveBeenCalledWith(expect.objectContaining({
+      id: body.metadata.msjournal_checkout, ownerId: "owner-fixture", planId: monthly.id,
+    }));
+  });
   it("verifies USD Monthly and Yearly amounts and intervals with stable option identities", () => {
     expect(verifiedPlanOption(variant(), monthly, scope)).toMatchObject({
       option: 0,

@@ -27,6 +27,9 @@ export default function Privacy() {
       <h2>Sessions, preferences and security</h2>
       <p>We use authentication cookies to keep you signed in and browser storage for preferences such as appearance. We process operational information to secure the service, limit abuse, and diagnose errors.</p>
 
+      <h2>Affiliate referrals</h2>
+      <p>If you visit through a Whop affiliate link, MSJournal stores the referral code in a browser cookie for up to 30 days and sends it to Whop when you start a new Pro checkout. Whop uses it to attribute eligible purchases.</p>
+
       <h2>Public website analytics</h2>
       <p>We use Cloudflare Web Analytics to measure traffic and performance on public pages. The analytics beacon is excluded from sign-in, billing, and the private journal.</p>
 

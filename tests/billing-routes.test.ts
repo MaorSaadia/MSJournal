@@ -1,4 +1,7 @@
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
+import { NextRequest } from "next/server";
+import { proxy } from "@/proxy";
+import { affiliateJoinUrl, affiliateReferralCookie } from "@/lib/affiliates";
 const mocks = vi.hoisted(() => ({
   configured: true,
   signedIn: true,
@@ -14,7 +17,10 @@ const mocks = vi.hoisted(() => ({
   retryChanges: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
-vi.mock("next/server", () => ({ after: vi.fn() }));
+vi.mock("next/server", async (original) => ({
+  ...(await original<typeof import("next/server")>()),
+  after: vi.fn(),
+}));
 vi.mock("@/lib/billing/config", () => ({
   whopConfig: () => (mocks.configured ? {} : null),
   billingEnvironment: () => "sandbox",
@@ -60,10 +66,10 @@ beforeEach(() => {
   });
   mocks.status.mockResolvedValue({ plan: "Free" });
 });
-const request = (body: object, origin = "http://localhost:3000") =>
-  new Request("http://localhost:3000/api/billing", {
+const request = (body: object, origin = "http://localhost:3000", cookie = "") =>
+  new NextRequest("http://localhost:3000/api/billing", {
     method: "POST",
-    headers: { origin, "Content-Type": "application/json" },
+    headers: { origin, cookie, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 afterEach(() => vi.unstubAllEnvs());
@@ -120,8 +126,34 @@ describe("billing request boundaries", () => {
     expect(mocks.checkout).not.toHaveBeenCalled();
     const response = await POST(request({ action: "checkout", option: 0 }));
     expect(response.status).toBe(200);
-    expect(mocks.checkout).toHaveBeenCalledWith("session-owner", 0, undefined, "owner@example.test");
+    expect(mocks.checkout).toHaveBeenCalledWith("session-owner", 0, undefined, "owner@example.test", undefined);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+  it("carries a Whop referral into the signed-in checkout and ignores invalid or client-supplied codes", async () => {
+    const landing = proxy(new NextRequest("https://www.msjournal.app/?a=trader_one&campaign=video"));
+    expect(landing.headers.get("location")).toBe("https://www.msjournal.app/?campaign=video");
+    expect(landing.cookies.get(affiliateReferralCookie)).toMatchObject({
+      value: "trader_one", httpOnly: true, secure: true, sameSite: "lax", path: "/api/billing",
+    });
+    const cookie = landing.headers.get("set-cookie")!.split(";")[0];
+    const checkout = { action: "checkout", option: 0 };
+    const origin = "http://localhost:3000";
+    mocks.signedIn = false;
+    expect((await POST(request(checkout, origin, cookie))).status).toBe(401);
+    mocks.signedIn = true;
+    expect((await POST(request({ ...checkout, affiliate_code: "forged" }, origin, cookie))).status).toBe(400);
+    expect((await POST(request(checkout, origin, cookie))).status).toBe(200);
+    expect(mocks.checkout).toHaveBeenCalledExactlyOnceWith("session-owner", 0, undefined, "owner@example.test", "trader_one");
+    for (const query of ["a=one&a=two", "a=%3Cscript%3E", "a="]) {
+      const result = proxy(new NextRequest(`https://www.msjournal.app/?${query}`));
+      expect(result.headers.get("location")).toBe("https://www.msjournal.app/");
+      expect(result.cookies.has(affiliateReferralCookie)).toBe(false);
+    }
+  });
+  it("keeps enrollment closed without a configured Whop destination and rejects checkout and dashboard links", () => {
+    for (const url of ["", "http://whop.com/join", "https://evil.example/join", "https://whop.com/dashboard/biz_fixture", "https://whop.com/product/checkout/plan_fixture", "https://whop.com/store?a=affiliate"])
+      expect(affiliateJoinUrl(url)).toBeNull();
+    expect(affiliateJoinUrl("https://whop.com/msjournal/affiliate-program/")).toBe("https://whop.com/msjournal/affiliate-program/");
   });
   it("requires the scheduler secret and does not starve reconciliation behind retrying events", async () => {
     vi.stubEnv("BILLING_RECONCILE_SECRET", "fixture_scheduler_secret");

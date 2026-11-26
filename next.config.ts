@@ -31,10 +31,10 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
-      // Public book HTML pages opt into indexing through their own metadata.
+      // Public book and affiliate HTML pages opt into indexing through their own metadata.
       {
         source:
-          "/:path((?!books?(?:/|$)|_next|icon|apple-icon|opengraph-image|robots\\.txt|sitemap\\.xml).+)",
+          "/:path((?!(?:books?|affiliates)(?:/|$)|_next|icon|apple-icon|opengraph-image|robots\\.txt|sitemap\\.xml).+)",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
       {
