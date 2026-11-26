@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { propAccountSummary } from "@/lib/dashboard/prop-summary";
 import { phaseProgress, type Phase } from "@/lib/props/model";
 import {
   customTrackingRules,
@@ -64,6 +65,67 @@ const part: Portion = {
   boughtAt: "2026-10-02T21:50:00.000Z",
   soldAt: "2026-10-02T22:10:00.000Z",
 };
+
+describe("Dashboard prop account cards", () => {
+  const account = {
+    id: phase.tradingAccountId, displayName: "Evaluation fixture",
+    firm: "Custom", stage: "Evaluation" as const, status: "Active" as const, archivedAt: null,
+  };
+  const inputs = { account, phase, now: at, versions: [version()], portions: [part] };
+
+  it("matches the account overview without counting activity from another account", () => {
+    const fees = { source: { amount: "0.12", kind: "Estimated" as const } };
+    const foreign = { ...part, id: "foreign", tradingAccountId: "another", grossPnl: "999" };
+    const own = phaseProgress(phase, inputs.versions, [part], fees, [], [], at).imported;
+    const card = propAccountSummary({ ...inputs, portions: [part, foreign], fees });
+    expect(card.balance).toMatchObject({
+      value: own.balance, buffer: own.buffer, source: "journal", estimatedFees: true, estimatedBuffer: true,
+    });
+    expect(card.milestone).toEqual({ kind: "target", remaining: own.remainingProfit, estimated: true });
+  });
+
+  it("uses a dated snapshot with its own buffer if missing fees prevent the journal estimate", () => {
+    const snapshot = {
+      id: "snapshot", phaseId: phase.id, asOf: phase.startAt, balance: "50000",
+      threshold: "48000", qualifyingDays: null, note: "",
+    };
+    const { balance, milestone } = propAccountSummary({ ...inputs, snapshots: [
+      snapshot,
+      { ...snapshot, id: "foreign", phaseId: "another", asOf: at, balance: "90000" },
+      { ...snapshot, id: "future", asOf: "2026-10-11T00:00:00.000Z", balance: "90000" },
+    ] });
+    expect(balance).toMatchObject({ source: "snapshot", asOf: snapshot.asOf, value: "50000", buffer: "2000" });
+    expect(milestone).toEqual({ kind: "message", text: "Review missing fees" });
+    expect(propAccountSummary({ ...inputs, snapshots: [{ ...snapshot, threshold: null }] }).balance?.buffer).toBeNull();
+  });
+
+  it("shows payout trading days and keeps closed phases out of active tracking", () => {
+    const r = config();
+    r.stage = "Sim Funded";
+    r.payout.enabled = true;
+    r.payout.requiredDays = 5;
+    r.payout.dayBasis = "trading";
+    const funded = {
+      ...inputs, account: { ...account, stage: "Funded" as const },
+      phase: { ...phase, kind: "Funded" as const },
+      versions: [version(r)], fees: { source: { amount: "0", kind: "Manual" as const } },
+    };
+    expect(propAccountSummary(funded).milestone).toEqual({ kind: "payout-days", count: 1, required: 5, basis: "trading" });
+    expect(propAccountSummary({ ...funded, phase: { ...funded.phase, endAt: at, status: "Closed" } })).toMatchObject({
+      status: "Closed", milestone: null,
+    });
+  });
+
+  it("shows setup for an unconfigured account and suppresses milestones after archiving", () => {
+    expect(propAccountSummary({ account, now: at })).toMatchObject({
+      balance: null, milestone: { kind: "message", text: "Finish setup" },
+    });
+    expect(propAccountSummary({ ...inputs, account: { ...account, archivedAt: at } })).toMatchObject({
+      archived: true, milestone: null,
+    });
+  });
+});
+
 describe("prop overview presentation integrity", () => {
   it("keeps proportional marker ordering below the threshold, at negative balances, and beyond a target", () => {
     const below = phaseProgress(

@@ -27,6 +27,7 @@ import { Panel, Help } from "./panel";
 import { RealActivity } from "./activity";
 import { BalanceChart, PortionTimeChart } from "./real-charts";
 import { BalanceSetup } from "./balance-setup";
+import { DashboardPropAccountCards } from "./prop-account-cards";
 import { ReportChart } from "@/components/reports/charts";
 import { TradingCalendar } from "@/components/calendar/trading-calendar";
 import {
@@ -596,6 +597,13 @@ export function RealDashboard({
               </Panel>
             </div>
           </div>
+          <DashboardPropAccountCards
+            accounts={data.propAccounts ?? null}
+            timezone={displayTimezone}
+            onOpen={save}
+            onRetry={state.refresh}
+            pending={!!state.pending}
+          />
           <p className="panel-note">
             Calendar counts follow recorded exits. Complete-trade outcomes,
             when supported, use final-close dates; daily realized results follow

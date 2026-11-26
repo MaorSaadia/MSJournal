@@ -801,3 +801,35 @@
 .ms-score-context { padding: 0 16px 12px; margin: 0; font-size: 10px; line-height: 1.5; color: var(--muted-foreground); }
 .ms-score .real-profile-chart { height: 235px; }
 @media (max-width: 600px) { .ms-score-footer { gap: 12px; } }
+.dashboard-prop-accounts h2 { font-size: 14px; }
+.dashboard-prop-accounts > header p { font-size: 11px; }
+.dashboard-prop-accounts .prop-grid article { padding: 0; min-width: 0; }
+.dashboard-prop-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color .18s ease;
+}
+.dashboard-prop-card:hover { background: var(--muted); text-decoration: none; }
+.dashboard-prop-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.dashboard-prop-card .prop-account-top > div { min-width: 0; overflow-wrap: anywhere; }
+.dashboard-prop-card .prop-account-top h3 { font-size: 13px; }
+.dashboard-prop-card .prop-account-top p,
+.dashboard-prop-card .stage-badge,
+.dashboard-prop-card .prop-start { font-size: 10px; }
+.dashboard-prop-card .stage-badge { flex-shrink: 0; }
+.dashboard-prop-card .prop-balance { gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.dashboard-prop-card .prop-balance span { font-size: 11px; }
+.dashboard-prop-status { display: flex; flex-wrap: wrap; gap: 6px; }
+.dashboard-prop-status:not(:empty) { margin-top: 8px; }
+.dashboard-prop-buffer,
+.dashboard-prop-next { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 11px; }
+.dashboard-prop-buffer { padding-block: 10px 3px; color: var(--muted-foreground); }
+.dashboard-prop-buffer strong { color: var(--foreground); }
+.dashboard-prop-buffer strong.negative { color: var(--negative); }
+.dashboard-prop-next { align-items: center; padding-top: 12px; margin-top: auto; color: var(--primary); }
+.dashboard-prop-next svg { flex-shrink: 0; }

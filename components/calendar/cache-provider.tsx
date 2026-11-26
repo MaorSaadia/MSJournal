@@ -289,7 +289,7 @@ export function usePrivateRequest<
         : dailyEndpoint
           ? (key) => key.includes(`|${endpoint}|`)
           : propsOnly
-            ? (key) => key.includes("|/api/prop-progress|")
+            ? (key) => key.includes("|/api/prop-progress|") || key.includes("|/api/dashboard|")
             : undefined,
     );
     window.dispatchEvent(
@@ -339,7 +339,8 @@ export function usePrivateRequest<
         return;
       if (
         (event as CustomEvent<{ propsOnly?: boolean }>).detail?.propsOnly &&
-        endpoint !== "/api/prop-progress"
+        endpoint !== "/api/prop-progress" &&
+        endpoint !== "/api/dashboard"
       )
         return;
       if (

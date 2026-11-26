@@ -120,7 +120,7 @@ export function Shell({
       <ImportButton compact={compact} onNavigate={() => setMobileOpen(false)} />
       <div className="nav-label">{!compact && "WORKSPACE"}</div>
       <nav aria-label="Main navigation">
-        {navigation.map((item, index) => (
+        {navigation.map((item) => (
           <Link
             key={item.href}
             href={workspaceHref(
@@ -140,7 +140,7 @@ export function Shell({
             aria-label={compact ? item.title : undefined}
             aria-current={isActive(item.href) ? "page" : undefined}
             onClick={() => setMobileOpen(false)}
-            className={`nav-link ${isActive(item.href) ? "active" : ""} ${index === 8 ? "settings-link" : ""}`}
+            className={`nav-link ${isActive(item.href) ? "active" : ""} ${item.href === "/worksheets" ? "settings-link" : ""}`}
           >
             <item.icon size={18} />
             {!compact && <span>{item.title}</span>}

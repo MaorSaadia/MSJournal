@@ -24,6 +24,7 @@ import { summary, isCompleteTrade } from "@/lib/journal/statistics";
 import { automaticBaselines, type BalancePhase } from "@/lib/balances/automatic";
 import { balanceEstimates } from "@/lib/balances/model";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
+import { dashboardPropAccounts } from "./prop-accounts";
 export async function dashboardData(input: unknown, headers?: Headers) {
   const user = await requireUser(headers),
     q = dashboardSchema.parse(input);
@@ -230,6 +231,7 @@ export async function dashboardData(input: unknown, headers?: Headers) {
       baseline: phase.baseline, ledgerStart: phase.rules?.tracking?.ledgerStart ?? null,
     });
     const balanceMovements = cash.map((c) => ({ ...c, effectiveAt: c.effectiveAt.toISOString() }));
+    const propAccounts = dashboardPropAccounts(user.id, selectedAccounts, journal, balanceMovements).catch(() => null);
     const balances = balanceEstimates(
       automaticBaselines(selectedAccounts, journal.portions, [...anchors.values()], q.start, q.end, timezone, balanceMovements),
       journal.portions,
@@ -285,6 +287,7 @@ export async function dashboardData(input: unknown, headers?: Headers) {
       timeCount: known.length,
       excludedEntry: timeCandidates.length - known.length,
       balances,
+      propAccounts: await propAccounts,
       recent,
       pending:
         journal.unprocessedAccounts.some((id) => ids.includes(id)) ||

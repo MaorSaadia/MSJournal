@@ -8,6 +8,7 @@ import {
   TrendingUp,
   WalletCards,
   Settings,
+  Handshake,
   MessageSquareText,
 } from "lucide-react";
 export const navigation = [
@@ -28,6 +29,12 @@ export const navigation = [
     href: "/day-view",
     icon: CalendarDays,
     description: "Review each trading session and its results.",
+  },
+  {
+    title: "Prop Accounts",
+    href: "/prop-accounts",
+    icon: WalletCards,
+    description: "Manage evaluation, funded, and personal trading accounts.",
   },
   {
     title: "Trade View",
@@ -59,12 +66,6 @@ export const navigation = [
     icon: TrendingUp,
     description: "Follow your preparation, habits, and progress.",
   },
-  {
-    title: "Prop Accounts",
-    href: "/prop-accounts",
-    icon: WalletCards,
-    description: "Manage evaluation, funded, and personal trading accounts.",
-  },
   { title: "Worksheets", href: "/worksheets", icon: BookOpen, description: "Your book companion plans, session records and worksheets." },
   {
     title: "Settings",
@@ -72,6 +73,12 @@ export const navigation = [
     icon: Settings,
     description:
       "Manage your profile, display timezone, appearance, and private session.",
+  },
+  {
+    title: "Affiliate Program",
+    href: "/affiliates",
+    icon: Handshake,
+    description: "Learn about the MSJournal affiliate program and how to join on Whop.",
   },
   {
     title: "Contact us",
