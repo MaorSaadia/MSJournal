@@ -66,7 +66,7 @@ export function RealDashboard({
     accounts: ids.sort().join(","),
     archived: search.get("archived") ?? "0",
     basis: search.get("basis") ?? search.get("calBasis") ?? "net",
-    outcomeBasis: search.get("outcomeBasis") ?? "portions",
+    outcomeBasis: search.get("outcomeBasis") ?? "complete",
     ...(search.get("symbol") && search.get("symbol") !== "all"
       ? { symbol: search.get("symbol") }
       : {}),
@@ -132,7 +132,7 @@ export function RealDashboard({
     complete = q.outcomeBasis === "complete",
     dayStats = data?.realizedSummary;
   const statisticsHelp =
-    "Closed trades count recorded exits, including breakevens. Several exits may belong to one position. Complete trades require verified flat-to-flat coverage. Daily realized P&L always follows local exit dates.";
+    "Grouped trades combine exits linked by the import and count the result on the last recorded exit date. Realized P&L follows each exit date.";
 
   const dayHref = (date: string) =>
     `/trade-view?${new URLSearchParams({ ...Object.fromEntries(discoveryKeys.filter((k) => q[k] !== undefined).map((k) => [k, String(q[k])])), accounts: ids.join(","), archived: q.archived, start: date, end: date, dateBasis: "activity", basis: q.basis, outcomeBasis: "portions", dashboardFrom: href, ...(q.symbol ? { symbol: q.symbol } : {}), direction: q.direction })}`;
@@ -191,8 +191,8 @@ export function RealDashboard({
             value={q.outcomeBasis}
             onChange={(e) => update({ outcomeBasis: e.target.value })}
           >
-            <option value="portions">Closed trades</option>
-            <option value="complete">Complete trades</option>
+            <option value="portions">Recorded exits</option>
+            <option value="complete">Grouped trades</option>
           </select>
         </label>
         <Help label="Statistics basis" text={statisticsHelp} />
@@ -297,10 +297,8 @@ export function RealDashboard({
           )}
           {complete && data.completeCount === 0 && (
             <p className="dashboard-scope-note">
-              Performance matching does not verify complete positions.{" "}
-              <button onClick={() => update({ outcomeBasis: "portions" })}>
-                Use trade statistics
-              </button>
+              No grouped trade outcomes in this selection.{" "}
+              <button onClick={() => update({ outcomeBasis: "portions" })}>View recorded exits</button>
             </p>
           )}
           <div className="analysis-grid app-loading-reveal" aria-busy={state.pending && !state.error}>
@@ -589,9 +587,7 @@ export function RealDashboard({
                   </>
                 ) : (
                   <p className="dashboard-action-state">
-                    {complete
-                      ? "Complete-trade entry times are not verified. Choose closed trades to inspect supported entries."
-                      : "No reliable entry times in this selection. Equal timestamps or conflicting fill metadata are excluded."}
+                    No entry times with P&L are available for this selection.
                   </p>
                 )}
               </Panel>

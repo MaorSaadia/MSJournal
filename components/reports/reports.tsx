@@ -214,7 +214,7 @@ export function Reports() {
       : q.tab === "behavior"
         ? "records"
         : "active days",
-    basis = `${q.basis} · ${complete ? "complete trades" : portions ? "closed trades" : q.tab === "behavior" ? "closed records" : "realized activity"}`,
+    basis = `${q.basis} · ${complete ? "grouped trades" : portions ? "recorded exits" : q.tab === "behavior" ? "closed records" : "realized activity"}`,
     s = data?.summary;
   const inspect = (target: string) => {
     save();
@@ -401,8 +401,8 @@ export function Reports() {
         {q.tab !== "behavior" &&
           select("analysis", "Analyze", [
             ["activity", "Realized activity"],
-            ["complete", "Complete trades"],
-            ["portions", "Closed trades"],
+            ["complete", "Grouped trades"],
+            ["portions", "Recorded exits"],
           ])}
         <details className="report-extra">
           <summary>Instrument filters</summary>
@@ -453,7 +453,7 @@ export function Reports() {
       {q.tab === "behavior" && (
         <section className="report-toolbar" aria-label="Behavior filters">
           {select("behaviorBasis", "Compare", [
-            ["complete", "Complete trades"],
+            ["complete", "Grouped trades"],
             ["records", "Trade records"],
           ])}
           {select("review", "Review coverage", [
@@ -552,11 +552,9 @@ export function Reports() {
           )}
           {unsupported ? (
             <section className="report-card report-empty">
-              <h2>Complete trades aren’t available for this selection</h2>
+              <h2>No grouped trades in this selection</h2>
               <p>
-                Performance imports contain closed trades and shared-fill
-                groups. Their results remain available as realized activity and
-                closed-record behavior comparisons.
+                Imported exits remain available in realized activity.
               </p>
               <button
                 onClick={() =>
@@ -611,11 +609,11 @@ export function Reports() {
                 <Metric
                   label={
                     complete
-                      ? "Complete trades"
+                      ? "Grouped trades"
                       : q.tab === "behavior"
                         ? "Included records"
                         : portions
-                          ? "Closed trades"
+                          ? "Recorded exits"
                           : "Active days"
                   }
                   value={String(s.count)}
@@ -907,8 +905,8 @@ export function Reports() {
           )}
           <div className="report-footnote">
             <span>
-              {data.closedRecords} closed records · {data.supportedComplete}{" "}
-              supported complete trades in the closing range
+              {data.closedRecords} other records · {data.supportedComplete}{" "}
+              grouped trades in the closing range
             </span>
             <button onClick={state.refresh}>Refresh report</button>
           </div>

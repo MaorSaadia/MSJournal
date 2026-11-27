@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
 import { and, eq, inArray, sql, gte, lt, isNull, count } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -72,7 +73,7 @@ export async function calendarData(
           .where(eq(userPreferences.userId, owner.id));
         // Both locations use the saved display zone; immutable demo and source timestamps stay unchanged.
         const timezone =
-            contextTimezone ?? pref?.displayTimezone ?? "Asia/Jerusalem",
+            contextTimezone ?? pref?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE,
           weekStartsOn = pref?.weekStartsOn === 1 ? 1 : 0;
         const owned =
           params.mode === "demo"
@@ -321,6 +322,7 @@ export async function calendarData(
             weekStartsOn,
             params.basis,
             recordIds,
+            params.mode === "real" ? pref?.breakevenThreshold ?? "0" : "0",
           ),
           accounts,
           mode: params.mode,

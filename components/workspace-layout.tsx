@@ -31,7 +31,7 @@ export async function WorkspaceLayout({
 
 export function WorkspaceFrame({ owner, preferences, children }: {
   owner: { id: string; name: string };
-  preferences: { displayTimezone: string; weekStartsOn: 0 | 1 };
+  preferences: { displayTimezone: string; weekStartsOn: 0 | 1; breakevenThreshold?: string };
   children: React.ReactNode;
 }) {
   return (
@@ -40,6 +40,7 @@ export function WorkspaceFrame({ owner, preferences, children }: {
       userId={owner.id}
       timezone={preferences.displayTimezone}
       weekStartsOn={preferences.weekStartsOn}
+      breakevenThreshold={preferences.breakevenThreshold}
     >
       <Shell displayName={owner.name}>{children}</Shell>
     </CalendarCacheProvider>

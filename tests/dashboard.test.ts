@@ -4,9 +4,12 @@ import {
   type BalanceAccount,
   type CashAdjustment,
 } from "@/lib/balances/model";
-import { summary, isCompleteTrade } from "@/lib/journal/statistics";
-import { portionEntry, type Portion } from "@/lib/journal/processing";
+import { summary, isCompleteTrade, tradeOutcome, journalRecordKind } from "@/lib/journal/statistics";
+import { portionEntry, processPortions, type Portion } from "@/lib/journal/processing";
 import { dashboardSchema } from "@/lib/dashboard/model";
+import { calendarPerformance } from "@/lib/calendar/model";
+import { reportSchema, summarizeReports, type ReportRecord } from "@/lib/reports/model";
+import { preferencesSchema } from "@/lib/accounts/validation";
 const account: BalanceAccount = {
   id: "a",
   displayName: "Synthetic",
@@ -38,6 +41,55 @@ const cash = (id: string, amount: string, time: string): CashAdjustment => ({
   amount,
   kind: Number(amount) > 0 ? "deposit" : "withdrawal",
   explanation: "Synthetic",
+});
+describe("Configurable breakeven range", () => {
+  it("classifies both exact edges and keeps monetary totals and unknown fees intact", () => {
+    const values = ["5", "-5.00", "5.00000001", "-5.00000001", "0", "1.25"];
+    expect(values.map((value) => tradeOutcome(value, "5"))).toEqual(["zero", "zero", "profit", "loss", "zero", "zero"]);
+    expect(tradeOutcome(null, "5")).toBeNull();
+    expect(summary(values, false, true, "5")).toMatchObject({
+      wins: 1, losses: 1, zeros: 4, winRate: "16.7", total: "1.25",
+    });
+    expect(summary([...values, null], false, true, "5")).toMatchObject({ total: null, zeros: null });
+    expect(summary(values)).toMatchObject({ wins: 3, losses: 2, zeros: 1, total: "1.25" });
+  });
+  it("automatically classifies linked exits together on the latest exit day", () => {
+    const rows = [portion("one", "5", "2026-10-01T14:00:00Z"), portion("two", "40", "2026-10-02T14:01:00Z")];
+    rows[1].buyFillId = rows[0].buyFillId;
+    const [group] = processPortions(rows);
+    expect(group.sourceIds).toEqual(["one", "two"]);
+    expect(group.grossPnl).toBe("45");
+    const fees = { one: { amount: "0", kind: "Manual" as const }, two: { amount: "41", kind: "Manual" as const } };
+    const range = { start: "2026-10-01", end: "2026-10-02" };
+    const calendar = calendarPerformance(rows, fees, { ...range, accounts: ["a"] }, "UTC");
+    expect(calendar.days.map((day) => [day.net, day.netWins])).toEqual([["5", 1], ["-1", 0]]);
+    const result: Omit<ReportRecord, "type"> = {
+      id: "position", accountId: "a", account: "Account", symbol: "MNQZ6", root: "MNQ", direction: "long",
+      status: group.status, entry: group.entryAt, exit: group.exitAt, duration: null,
+      quantity: group.closedQuantity, entryPrice: group.entryPrice, exitPrice: group.exitPrice,
+      gross: group.grossPnl, fees: "41", net: "4",
+      estimated: false, feeKind: "Manual", fullGross: group.grossPnl, partial: false, imported: null,
+      reviewData: { status: "unreviewed", mistakes: [], emotions: { before: [], during: [], after: [] }, adherence: null },
+    };
+    const reports = (analysis: "complete" | "portions" | "activity", basis: "gross" | "net", status = group.status) => summarizeReports({
+      q: reportSchema.parse({ ...range, analysis, basis }), ids: ["a"], timezone: "UTC", portions: rows, fees,
+      records: [{ ...result, status, type: journalRecordKind(status) }], tags: [], breakevenThreshold: "5",
+    });
+    expect(reports("portions", "net").summary).toMatchObject({ wins: 1, losses: 1, zeros: 0, total: "4" });
+    expect(reports("complete", "gross").summary).toMatchObject({ wins: 1, zeros: 0, total: "45" });
+    expect(reports("complete", "net").summary).toMatchObject({ wins: 0, zeros: 1, total: "4" });
+    expect(reports("complete", "net").days.map((day) => day.date)).toEqual(["2026-10-02"]);
+    expect(reports("activity", "net").summary).toMatchObject({ wins: 0, losses: 0, zeros: 2, total: "4", best: "5", worst: "-1" });
+    expect(reports("complete", "net", "Needs review").summary.count).toBe(0);
+  });
+  it("accepts cents and zero, and rejects negative or ambiguous preference input", () => {
+    const input = { displayName: "Trader", displayTimezone: "UTC", currency: "USD" };
+    for (const breakevenThreshold of ["0", "5", "0.05"])
+      expect(preferencesSchema.safeParse({ ...input, breakevenThreshold }).success).toBe(true);
+    for (const breakevenThreshold of ["-1", "", "5.555", "5e2", "NaN"])
+      expect(preferencesSchema.safeParse({ ...input, breakevenThreshold }).success).toBe(false);
+    expect(preferencesSchema.safeParse(input).success).toBe(true);
+  });
 });
 describe("Day 8 dashboard statistics and balance boundaries", () => {
   it("counts breakeven portions, uses exact decimals and keeps empty denominators unknown", () => {

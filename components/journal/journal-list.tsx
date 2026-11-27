@@ -21,6 +21,7 @@ import {
   type ViewRecord,
 } from "@/lib/journal/view-model";
 import { D } from "@/lib/journal/processing";
+import { tradeOutcome } from "@/lib/journal/statistics";
 import { journalMoney } from "@/lib/journal/calculations";
 import { journalTimestamp } from "@/lib/timezones";
 
@@ -82,8 +83,8 @@ const chipValues: Record<string, string> = {
   closed: "Closed in range",
   net: "Net",
   gross: "Gross",
-  trade: "Complete trades",
-  portion: "Closed trades",
+  trade: "Grouped trades",
+  portion: "Other records",
   matched: "Matched trades",
   review: "Needs review",
   profit: "Profitable",
@@ -93,6 +94,7 @@ const chipValues: Record<string, string> = {
   short: "Short",
   unknown: "Unknown",
 };
+const outcomeText = { profit: "Profit", loss: "Loss", zero: "Breakeven", unknown: "Net unknown" };
 const subscribe = (fn: () => void) => {
   window.addEventListener("msjournal:table-preferences", fn);
   window.addEventListener("storage", fn);
@@ -371,12 +373,12 @@ export function JournalList() {
                 </div>
               )}
             <div>
-              <small>Complete trades</small>
+              <small>Grouped trades</small>
               <strong>{summary.trades}</strong>
             </div>
             {summary.portions > 0 && (
-              <div title="Reported closed trades and shared-fill groups do not establish complete flat-to-flat trades.">
-                <small>Trade records</small>
+              <div title="Includes records with unclear grouping or only some exits in the selected range.">
+                <small>Other records</small>
                 <strong>{summary.portions}</strong>
               </div>
             )}
@@ -520,8 +522,8 @@ export function JournalList() {
           ])}
         </div>
         {control("outcomeBasis", "Statistics basis", [
-          ["portions", "Closed trades"],
-          ["complete", "Complete trades"],
+          ["portions", "Recorded exits"],
+          ["complete", "Grouped trades"],
         ])}
         {control("basis", "P&L basis", [
           ["gross", "Gross"],
@@ -562,8 +564,8 @@ export function JournalList() {
             ])}
             {control("type", "Record type", [
               ["all", "All records"],
-              ["trade", "Complete trades"],
-              ["portion", "Closed trades"],
+              ["trade", "Grouped trades"],
+              ["portion", "Other records"],
             ])}
             {control("status", "Grouping status", [
               ["all", "All statuses"],
@@ -882,22 +884,14 @@ export function JournalList() {
                           {key === "symbol" && <ReviewMarks record={r} />}
                           {key === "symbol" && (
                             <small className="tv-outcome">
-                              {(q.basis === "gross" ? r.gross : r.net) === null
-                                ? "Net unknown"
-                                : new D(
-                                      (q.basis === "gross" ? r.gross : r.net)!,
-                                    ).gt(0)
-                                  ? "Profit"
-                                  : new D(
-                                        (q.basis === "gross"
-                                          ? r.gross
-                                          : r.net)!,
-                                      ).lt(0)
-                                    ? "Loss"
-                                    : "Breakeven"}
+                              {r.type !== "trade" ? "Outcome unclear" : r.partial ? "Partial contribution"
+                                : outcomeText[tradeOutcome(
+                                    q.basis === "gross" ? r.gross : r.net,
+                                    data?.breakevenThreshold,
+                                  ) ?? "unknown"]}
                             </small>
                           )}
-                          {key === "symbol" && r.partial && (
+                          {key === "symbol" && r.partial && r.type !== "trade" && (
                             <small>Partial contribution</small>
                           )}
                         </td>

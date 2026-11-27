@@ -34,6 +34,7 @@ import {
 import { journalMoney } from "@/lib/journal/calculations";
 import { journalTimestamp } from "@/lib/timezones";
 import { D } from "@/lib/journal/processing";
+import { tradeOutcome } from "@/lib/journal/statistics";
 import {
   monthSchema,
   daySchema,
@@ -217,14 +218,11 @@ export function TradingCalendar({
           : d.netStatistics.winRate
         : null,
       winPercent = winRate === null ? null : `${winRate}%`,
+      result = tradeOutcome(value, data?.breakevenThreshold),
       outcome = d
-        ? value === null
-          ? "Net unavailable"
-          : new D(value).isZero()
-            ? "Breakeven"
-            : new D(value).gt(0)
-              ? "Profit"
-              : "Loss"
+        ? result === "zero" ? "Breakeven day"
+          : result === "profit" ? "Profit"
+          : result === "loss" ? "Loss" : "Net unavailable"
         : "No realized activity";
     return (
       <button
@@ -232,7 +230,7 @@ export function TradingCalendar({
         key={date}
         disabled={!inMonth}
         onClick={(e) => chooseDay(date, e)}
-        className={`calendar-day ${d ? (new D(value ?? 0).gt(0) ? "winning-day" : new D(value ?? 0).lt(0) ? "losing-day" : "flat-day") : ""} ${!inMonth ? "outside-month" : ""} ${!inRange ? "outside-range" : ""} ${date === data?.today ? "calendar-today" : ""} ${date === selectedDay ? "calendar-selected" : ""}`}
+        className={`calendar-day ${result === "profit" ? "winning-day" : result === "loss" ? "losing-day" : result === "zero" ? "flat-day" : ""} ${!inMonth ? "outside-month" : ""} ${!inRange ? "outside-range" : ""} ${date === data?.today ? "calendar-today" : ""} ${date === selectedDay ? "calendar-selected" : ""}`}
         aria-label={`${dateLabel(date)}, ${!inMonth ? "adjacent month, not included" : !inRange ? "outside selected date range" : d ? `${outcome}, ${journalMoney(value, true)}, ${d.count} ${countLabel}` : "no imported realized activity"}${inMonth ? ". View day details" : ""}`}
         aria-pressed={date === selectedDay}
       >
@@ -274,13 +272,17 @@ export function TradingCalendar({
                 {d.count} {d.count === 1 ? "trade" : "trades"}
               </span>
             </span>
-            <span
-              className="calendar-day-win-rate"
-              aria-label={`Trade win percentage: ${winPercent ?? "unavailable"}, ${basis === "gross" ? "before fees" : "after fees"}. Breakeven results are included in the total.`}
-              title={`Winning trades active this day / all trades active this day, ${basis === "gross" ? "before" : "after"} fees. Breakeven results count in the total.`}
-            >
-              {winPercent ?? "—"}
-            </span>
+            {result === "zero" ? (
+              <span className="calendar-day-win-rate" title="Daily P&L is within the breakeven range.">Breakeven day</span>
+            ) : (
+              <span
+                className="calendar-day-win-rate"
+                aria-label={`Trade win percentage: ${winPercent ?? "unavailable"}, ${basis === "gross" ? "before fees" : "after fees"}.`}
+                title={`Winning trade contributions / all trade contributions for this day, ${basis === "gross" ? "before" : "after"} fees.`}
+              >
+                {winPercent ?? "—"}
+              </span>
+            )}
           </>
         )}
       </button>

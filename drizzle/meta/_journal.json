@@ -134,6 +134,20 @@
       "when": 1795158162849,
       "tag": "0018_contact_submissions",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795773823307,
+      "tag": "0019_breakeven_threshold",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795787838265,
+      "tag": "0020_default_journal_timezone",
+      "breakpoints": true
     }
   ]
 }

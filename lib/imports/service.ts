@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
 import { assertAccountActivity } from "@/lib/billing/entitlements";
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -47,7 +48,7 @@ function importFeeParts(files: ParsedFile[], stored: Map<string, Stored[]>) {
 }
 async function displayZone(db: DB | TX, userId: string) {
   const [pref] = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId));
-  return pref?.displayTimezone ?? "Asia/Jerusalem";
+  return pref?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE;
 }
 async function selectedAccount(
   db: DB | TX,

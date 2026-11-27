@@ -1,0 +1,2 @@
+ALTER TABLE "user_preferences" ADD COLUMN "breakeven_threshold" numeric(11, 2) DEFAULT '0' NOT NULL;--> statement-breakpoint
+ALTER TABLE "user_preferences" ADD CONSTRAINT "user_preferences_breakeven_threshold_check" CHECK ("user_preferences"."breakeven_threshold" >= 0);

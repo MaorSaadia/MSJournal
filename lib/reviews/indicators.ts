@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { userPreferences, tradingAccounts } from "@/db/schema";
@@ -29,7 +30,7 @@ export async function reviewIndicators(
           .select()
           .from(userPreferences)
           .where(eq(userPreferences.userId, owner.id));
-        const timezone = prefs?.displayTimezone ?? "Asia/Jerusalem";
+        const timezone = prefs?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE;
         const available =
           q.mode === "demo"
             ? demoAccounts.map((a) => a.id)

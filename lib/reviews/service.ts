@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
 import { assertAccountActivity, billingLock } from "@/lib/billing/entitlements";
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, sql, lt, or, count } from "drizzle-orm";
@@ -188,7 +189,7 @@ async function reviewData(
     : [];
   return {
     userId: ownerId,
-    timezone: pref?.displayTimezone ?? "Asia/Jerusalem",
+    timezone: pref?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE,
     id: row?.id ?? null,
     recordId: row?.recordId ?? recordId,
     revision: row?.revision ?? 0,

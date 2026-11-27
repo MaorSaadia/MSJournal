@@ -39,6 +39,27 @@ const filter = {
   end: "2026-09-30",
 };
 describe("shared calendar realized activity", () => {
+  it("counts daily totals within both breakeven boundaries without rounding or changing P&L", () => {
+    const rows = [
+      p("a", "2026-09-02T12:00:00Z", "150.84"),
+      p("b", "2026-09-03T12:00:00Z", "-100"),
+      p("c", "2026-09-04T12:00:00Z", "100"),
+      p("d", "2026-09-05T12:00:00Z", "100.00000001"),
+    ];
+    const fees: Record<string, PortionFee> = {
+      a: { amount: "100", kind: "Manual" },
+      b: { amount: "0", kind: "Manual" },
+      c: { amount: "0", kind: "Manual" },
+      d: { amount: "0", kind: "Manual" },
+    };
+    const net = aggregateCalendar(rows, fees, filter, "UTC", "2026-09", 0, "net", {}, "100");
+    expect(net.days[0].net).toBe("50.84");
+    expect(net.summary).toMatchObject({ activeDays: 4, positive: 1, zero: 3, negative: 0, total: "150.84000001" });
+    expect(net.weeks[0].summary.zero).toBe(3);
+    const gross = aggregateCalendar(rows, { ...fees, a: { kind: "Unknown", amount: null } }, filter, "UTC", "2026-09", 0, "net", {}, "100");
+    expect(gross.basis).toBe("gross");
+    expect(gross.summary).toMatchObject({ positive: 2, zero: 2, total: "250.84000001" });
+  });
   it("counts grouped trades per active day and combines their outcomes without changing amounts", () => {
     const rows = [
       p("a", "2026-09-02T12:00:00Z", "10"),

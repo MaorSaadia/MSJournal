@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
 import { and, eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -34,7 +35,7 @@ export async function listTemplates(headers?: Headers): Promise<TemplateList> {
         .orderBy(desc(strategyTemplates.updatedAt));
       return {
         userId: owner.id,
-        timezone: pref?.displayTimezone ?? "Asia/Jerusalem",
+        timezone: pref?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE,
         templates: rows.map((r) => ({
           id: r.id,
           revision: r.revision,

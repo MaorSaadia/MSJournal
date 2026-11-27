@@ -80,7 +80,7 @@ describe("Trade View query semantics", () => {
       ).map((r) => r.id),
     ).toEqual(["a", "b"]);
   });
-  it("retains unknown fees and omits mixed or partial trade win rate", () => {
+  it("retains unknown fees and counts only complete records in trade win rate", () => {
     const q = viewSchema.parse({ basis: "net" });
     expect(summaryOf([row("a", "3", null)], q).net).toBeNull();
     expect(summaryOf([row("a", "3", "0")], q).net).toBe("3");
@@ -90,6 +90,8 @@ describe("Trade View query semantics", () => {
     expect(
       summaryOf([{ ...row("a", "3"), partial: true }], q).winRate,
     ).toBeNull();
+    expect(summaryOf([row("a", "4", "0"), { ...row("b", "80", null), type: "portion" }], q, "5"))
+      .toMatchObject({ net: null, winRate: "0.0", statistics: { count: 1, zeros: 1 } });
     expect(
       summaryOf([{ ...row("a", "3"), estimated: true }], q).estimated,
     ).toBe(true);

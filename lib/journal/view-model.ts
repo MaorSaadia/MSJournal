@@ -149,6 +149,7 @@ export type ViewSummary = {
   winRate: string | null;
 };
 export type TradeViewData = {
+  breakevenThreshold?: string;
   strategyRecoveryCount?: number;
   tags?: ReviewTag[];
   recoveryCount?: number;
@@ -176,16 +177,19 @@ export function rangeBounds(q: ViewQuery, timezone: string) {
     end: q.end ? dayBounds(q.end, timezone).end : null,
   };
 }
-export function summaryOf(rows: ViewRecord[], q: ViewQuery): ViewSummary {
+export function summaryOf(rows: ViewRecord[], q: ViewQuery, breakevenThreshold = "0"): ViewSummary {
   const trades = rows.filter(isCompleteTrade);
   const covered = rows.filter((r) => r.net !== null).length;
-  return {
-    statistics: summary(
-      (q.outcomeBasis === "complete" ? trades : rows).map((r) =>
-        q.basis === "gross" ? r.gross : r.net,
-      ),
-      rows.some((r) => r.estimated),
+  const statistics = summary(
+    (q.outcomeBasis === "complete" ? trades : rows).map((r) =>
+      q.basis === "gross" ? r.gross : r.net,
     ),
+    rows.some((r) => r.estimated),
+    true,
+    q.outcomeBasis === "complete" ? breakevenThreshold : "0",
+  );
+  return {
+    statistics,
     count: rows.length,
     trades: trades.length,
     portions: rows.length - trades.length,
@@ -202,14 +206,7 @@ export function summaryOf(rows: ViewRecord[], q: ViewQuery): ViewSummary {
       ...new Set(rows.filter((r) => r.net === null).map((r) => r.accountId)),
     ],
     estimated: rows.some((r) => r.estimated),
-    winRate:
-      rows.length &&
-      trades.length === rows.length &&
-      !rows.some((r) => r.partial) &&
-      (q.basis === "gross" || covered === rows.length)
-        ? summary(trades.map((r) => (q.basis === "gross" ? r.gross : r.net)))
-            .winRate
-        : null,
+    winRate: q.outcomeBasis === "complete" ? statistics.winRate : null,
   };
 }
 export function filterDemo(rows: ViewRecord[], q: ViewQuery, timezone: string) {

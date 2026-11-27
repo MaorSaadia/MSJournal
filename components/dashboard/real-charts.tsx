@@ -1,4 +1,5 @@
 "use client";
+import { tradeOutcome } from "@/lib/journal/statistics";
 import {
   ResponsiveContainer,
   LineChart,
@@ -135,7 +136,7 @@ export function PortionTimeChart({
   onInspect: (id: string) => void;
 }) {
   const reduced = useReducedMotion(),
-    rows = data.timePoints.map((p) => ({ ...p, result: Number(p.value) }));
+    rows = data.timePoints.map((p) => ({ ...p, result: Number(p.value), outcome: tradeOutcome(p.value, data.breakevenThreshold) }));
   return (
     <div
       className="chart-container"
@@ -212,9 +213,9 @@ export function PortionTimeChart({
               <Cell
                 key={p.id}
                 fill={
-                  p.result > 0
+                  p.outcome === "profit"
                     ? "var(--positive)"
-                    : p.result < 0
+                    : p.outcome === "loss"
                       ? "var(--negative)"
                       : "var(--violet)"
                 }

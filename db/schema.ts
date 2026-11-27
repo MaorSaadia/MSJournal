@@ -6,6 +6,7 @@ import type { Playbook } from "@/lib/strategies/model";
 import type { DailyFields, ObservationMeta } from "@/lib/daily/model";
 import { sql } from "drizzle-orm";
 import type { ReviewFields } from "@/lib/reviews/model";
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
 import {
   pgTable,
   text,
@@ -1141,10 +1142,11 @@ export const userPreferences = pgTable(
       .primaryKey()
       .references(() => user.id, { onDelete: "cascade" }),
     displayTimezone: text("display_timezone")
-      .default("Asia/Jerusalem")
+      .default(DEFAULT_JOURNAL_TIMEZONE)
       .notNull(),
     currency: text("currency").default("USD").notNull(),
     weekStartsOn: integer("week_starts_on").default(0).notNull(),
+    breakevenThreshold: numeric("breakeven_threshold", { precision: 11, scale: 2 }).default("0").notNull(),
     propFirmNames: jsonb("prop_firm_names").$type<string[]>().default([]).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
@@ -1152,6 +1154,7 @@ export const userPreferences = pgTable(
   },
   (table) => [
     check("user_preferences_currency_check", sql`${table.currency} = 'USD'`),
+    check("user_preferences_breakeven_threshold_check", sql`${table.breakevenThreshold} >= 0`),
     check(
       "user_preferences_week_start_check",
       sql`${table.weekStartsOn} in (0, 1)`,

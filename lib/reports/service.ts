@@ -1,5 +1,6 @@
 import "server-only";
-import { REAL_RECORD_KIND } from "@/lib/journal/statistics";
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
+import { MATCHED_RECORD_STATUS } from "@/lib/journal/statistics";
 import { eq, sql, and, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
@@ -49,7 +50,8 @@ export async function reports(
           .select()
           .from(userPreferences)
           .where(eq(userPreferences.userId, owner.id));
-        const timezone = pref?.displayTimezone ?? "Asia/Jerusalem";
+        const timezone = pref?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE;
+        const breakevenThreshold = q.mode === "real" ? pref?.breakevenThreshold ?? "0" : "0";
         const owned = await tx
           .select()
           .from(tradingAccounts)
@@ -216,7 +218,7 @@ export async function reports(
             ? sql`left join journal_reviews rv on rv.record_id=r.id and rv.owner_id=${owner.id} and rv.trading_account_id=r.trading_account_id and rv.needs_reassignment=false`
             : sql``;
           const result =
-            await tx.execute(sql`select r.id::text,r.trading_account_id::text as "accountId",a.display_name as account,r.symbol,r.direction,r.status,${REAL_RECORD_KIND}::text as type,r.entry_at as entry,r.exit_at as exit,extract(epoch from r.exit_at-r.entry_at)::text as duration,r.gross_pnl::text as gross,r.fees::text as fees,(r.gross_pnl-r.fees)::text as net,r.fee_kind as "feeKind",(r.fee_kind in ('Estimated','Mixed')) as estimated,${reviewProjection}
+            await tx.execute(sql`select r.id::text,r.trading_account_id::text as "accountId",a.display_name as account,r.symbol,r.direction,r.status,case when r.status=${MATCHED_RECORD_STATUS} then 'trade' else 'portion' end as type,r.entry_at as entry,r.exit_at as exit,extract(epoch from r.exit_at-r.entry_at)::text as duration,r.gross_pnl::text as gross,r.fees::text as fees,(r.gross_pnl-r.fees)::text as net,r.fee_kind as "feeKind",(r.fee_kind in ('Estimated','Mixed')) as estimated,${reviewProjection}
     from journal_records r join trading_accounts a on a.id=r.trading_account_id and a.owner_id=${owner.id} ${reviewJoin}
     where r.owner_id=${owner.id} and r.current=true and ${scope} and ${symbol} and r.exit_at>=${bounds.start}::timestamptz and r.exit_at<${bounds.end}::timestamptz`);
           records = result.rows.map((raw) => {
@@ -354,6 +356,7 @@ export async function reports(
                   fees,
                   records: selectedRecords,
                   tags: [],
+                  breakevenThreshold,
                 }).summary;
                 const links =
                   q.analysis === "complete"
@@ -400,6 +403,7 @@ export async function reports(
           records,
           tags: allTags,
           unresolved,
+          breakevenThreshold,
         });
         // Account labels are owned metadata, including parents that close after the activity range.
         data.groups.account?.forEach((g) => {

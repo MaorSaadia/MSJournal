@@ -72,7 +72,7 @@ export function RealActivity({
                         onClick={onInspect}
                         aria-label={text}
                         tabIndex={outside ? -1 : 0}
-                        className={`heat-cell intensity-${Math.min(day?.count ?? 0, 4)} ${day?.total === "0" ? "heat-flat" : ""} ${outside ? "heat-outside" : ""}`}
+                        className={`heat-cell intensity-${Math.min(day?.count ?? 0, 4)} ${day?.outcome === "zero" ? "heat-flat" : ""} ${outside ? "heat-outside" : ""}`}
                       />
                     </TooltipTrigger>
                     <TooltipContent>{text}</TooltipContent>

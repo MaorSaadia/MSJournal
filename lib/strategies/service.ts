@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
 import { and, eq, sql, isNull, count, desc } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -61,7 +62,7 @@ async function timezone(tx: StrategyTx, userId: string) {
     .select()
     .from(userPreferences)
     .where(eq(userPreferences.userId, userId));
-  return p?.displayTimezone ?? "Asia/Jerusalem";
+  return p?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE;
 }
 export async function strategyData(
   tx: StrategyTx,

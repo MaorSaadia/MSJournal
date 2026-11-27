@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
 import { assertAccountActivity } from "@/lib/billing/entitlements";
 import { createHash } from "node:crypto";
 import { and, eq, inArray, sql, desc } from "drizzle-orm";
@@ -315,7 +316,7 @@ export async function getFees(input: unknown, headers: Headers) {
         .select()
         .from(userPreferences)
         .where(eq(userPreferences.userId, user.id));
-      const timezone = pref?.displayTimezone ?? "Asia/Jerusalem";
+      const timezone = pref?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE;
       const parts = await selectParts(tx, user.id, scope, timezone);
       if (parts.length > 10000)
         throw new ReviewError(
@@ -396,7 +397,7 @@ export async function previewFees(input: unknown, headers: Headers) {
         .select()
         .from(userPreferences)
         .where(eq(userPreferences.userId, user.id));
-      const timezone = pref?.displayTimezone ?? "Asia/Jerusalem";
+      const timezone = pref?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE;
       const parts = await selectParts(tx, user.id, body.scope, timezone);
       return {
         userId: user.id,
@@ -425,7 +426,7 @@ export async function saveFees(input: unknown, headers: Headers) {
       .select()
       .from(userPreferences)
       .where(eq(userPreferences.userId, user.id));
-    const timezone = pref?.displayTimezone ?? "Asia/Jerusalem";
+    const timezone = pref?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE;
     const parts = await selectParts(tx, user.id, body.scope, timezone);
     const result = await applyFeeTotal(
       tx,

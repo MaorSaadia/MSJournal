@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
 import { and, eq, sql, count } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { processGoals, goalCheckins, userPreferences } from "@/db/schema";
@@ -29,7 +30,7 @@ export async function getProgress(input: unknown, headers: Headers) {
         .select()
         .from(userPreferences)
         .where(eq(userPreferences.userId, owner.id));
-      const timezone = pref?.displayTimezone ?? "Asia/Jerusalem",
+      const timezone = pref?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE,
         weekStartsOn = pref?.weekStartsOn === 1 ? 1 : 0;
       const today = todayIn(timezone);
       const goals = await tx
@@ -216,7 +217,7 @@ export async function saveGoal(input: unknown, headers: Headers) {
         .values({
           ...body.fields,
           ownerId: owner.id,
-          timezone: pref?.displayTimezone ?? "Asia/Jerusalem",
+          timezone: pref?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE,
         })
         .returning({ id: processGoals.id });
       return { id: created.id };
@@ -286,7 +287,7 @@ export async function saveCheckin(input: unknown, headers: Headers) {
       .where(eq(userPreferences.userId, owner.id));
     if (
       body.state === "done" &&
-      body.date > todayIn(pref?.displayTimezone ?? "Asia/Jerusalem")
+      body.date > todayIn(pref?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE)
     )
       throw new ReviewError("Future dates cannot be marked Done.");
     const scope = and(

@@ -16,6 +16,8 @@ import { calculateMsScore, msScoreConvention } from "@/lib/dashboard/ms-score";
 
 function OutcomeGauge({ stats }: { stats: Summary }) {
   const counts = [stats.wins, stats.zeros, stats.losses];
+  const colors = ["var(--positive)", "var(--muted-foreground)", "var(--negative)"];
+  const classes = ["positive", "muted", "negative"];
   const total = counts.reduce<number>((sum, value) => sum + (value ?? 0), 0);
   let offset = 0;
   return (
@@ -42,9 +44,7 @@ function OutcomeGauge({ stats }: { stats: Summary }) {
                 d="M8 48 A42 42 0 0 1 92 48"
                 pathLength={100}
                 fill="none"
-                stroke={
-                  ["var(--positive)", "var(--violet)", "var(--negative)"][i]
-                }
+                stroke={colors[i]}
                 strokeWidth="6"
                 strokeDasharray={`${length} ${100 - length}`}
                 strokeDashoffset={-start}
@@ -54,7 +54,7 @@ function OutcomeGauge({ stats }: { stats: Summary }) {
       </svg>
       <div className="outcome-counts">
         {counts.map((n, i) => (
-          <span key={i} className={["positive", "violet-text", "negative"][i]}>
+          <span key={i} className={classes[i]}>
             {n ?? "—"}
           </span>
         ))}
@@ -71,8 +71,8 @@ export function RealMetricCards({
   complete: boolean;
 }) {
   const s = data.outcomes,
-    days = data.realizedSummary,
-    unit = complete ? "trades" : "recorded trades";
+    days = data.dayOutcomes,
+    unit = complete ? "trades" : "recorded exits";
   // Monetary weights are used only to paint the visualization. Displayed statistics remain server values.
   const gain = Number(s.averageWin ?? 0) * (s.wins ?? 0),
     loss = Math.abs(Number(s.averageLoss ?? 0)) * (s.losses ?? 0);
@@ -87,7 +87,7 @@ export function RealMetricCards({
       kind: "pnl",
     },
     {
-      label: "Trade Win",
+      label: complete ? "Trade Win" : "Winning exits",
       value: s.winRate == null ? "—" : `${s.winRate}%`,
       help: `Winning ${unit} divided by all selected ${unit}, including breakevens. Counts: wins / breakevens / losses.`,
       kind: "outcomes",
@@ -95,13 +95,13 @@ export function RealMetricCards({
     {
       label: "Profit factor",
       value: s.profitFactor ?? "—",
-      help: `${s.profitFactorNote} Positive ${data.basis} P&L / absolute negative P&L. The donut represents monetary totals, not outcome counts. ${unit}.`,
+      help: `${s.profitFactorNote} Winning ${data.basis} P&L / absolute losing P&L. The donut represents monetary totals by outcome. ${unit}.`,
       kind: "factor",
     },
     {
       label: "Winning days",
       value: days.winRate == null ? "—" : `${days.winRate}%`,
-      help: "Profitable / all active local exit days, including breakevens. Counts: profitable / breakeven / losing days.",
+      help: `Profitable days divided by all active days for the selected accounts and dates, using ${data.basis} P&L. The daily breakeven range is ±${journalMoney(data.dayBreakevenThreshold)}. The counts show winning, breakeven, and losing days in that order.`,
       kind: "days",
     },
     {
@@ -266,7 +266,7 @@ export function PerformanceProfile({
         </div>
       </div>
       <p className="ms-score-context">
-        {complete ? "Full positions" : "Closed trades"} / {data.basis} P&L
+        {complete ? "Grouped trades" : "Recorded exits"} / {data.basis} P&L
         {fallback ? " / fees incomplete" : ""}
         {score.value !== null && score.early ? " / early sample" : ""}
       </p>

@@ -15,6 +15,7 @@ import {
   sum,
 } from "@/lib/journal/processing";
 import { TradeExits } from "@/components/journal/trade-exits";
+import { journalRecordKind, tradeOutcome } from "@/lib/journal/statistics";
 import { DetailNavigation } from "@/components/journal/detail-navigation";
 import { demoRecords } from "@/lib/journal/view-service";
 import { viewSchema } from "@/lib/journal/view-model";
@@ -157,6 +158,10 @@ export default async function Page({
     },
     timezone,
   );
+  const grossSelected = selection.success && selection.data.basis === "gross";
+  const outcome = tradeOutcome(grossSelected ? record.grossPnl : net, prefs.breakevenThreshold);
+  const outcomeLabel = outcome === "zero" ? "Breakeven" : outcome === "profit" ? "Win" : outcome === "loss" ? "Loss" : "Fees needed";
+  const resultLabel = grossSelected ? "gross" : record.feeKind === "Estimated" || record.feeKind === "Mixed" ? "estimated net" : "net";
   const contribution =
     selection.success && selection.data.dateBasis === "activity"
       ? realizedPerformance(
@@ -212,6 +217,12 @@ export default async function Page({
           <p className="muted">{tradeText(record.explanation)}</p>
           {(record.feeKind === "Allocated" || record.feeKind === "Mixed") && <p className="muted">Some or all fees may be allocated from an entered report total by closed quantity. These are not broker-reported per-trade charges. <Link href={`/fees?accountId=${record.tradingAccountId}`}>Review fee totals →</Link></p>}
           <div className="journal-summary">
+            {journalRecordKind(record.status) === "trade" && (
+              <div>
+                <small>Grouped outcome · {resultLabel}</small>
+                <strong>{outcomeLabel}</strong>
+              </div>
+            )}
             <div>
               <small>Gross P&L</small>
               <strong>{journalMoney(record.grossPnl, true)}</strong>
@@ -262,8 +273,7 @@ export default async function Page({
           <p className="small muted">
             Source gross sum {journalMoney(sum(parts.map((p) => p.grossPnl)))} =
             derived gross {journalMoney(record.grossPnl)}. Daily realized P&L
-            uses each exit’s exit date; this group’s final exit is only for
-            list order. Fees are never added twice.
+            follows each exit date. Grouped trade statistics use the last imported exit.
           </p>
         </section>
         {contribution && (

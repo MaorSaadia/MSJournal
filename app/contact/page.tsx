@@ -1,3 +1,4 @@
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
 import { PublicWebAnalytics } from "@/components/public-web-analytics";
 import { indexableDeployment } from "@/lib/seo";
 import Link from "next/link";
@@ -53,7 +54,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
       </div>
     </div>
   );
-  if (session) return <WorkspaceFrame owner={session.user} preferences={preferences ?? { displayTimezone: "Asia/Jerusalem", weekStartsOn: 0 }}>{content}</WorkspaceFrame>;
+  if (session) return <WorkspaceFrame owner={session.user} preferences={preferences ?? { displayTimezone: DEFAULT_JOURNAL_TIMEZONE, weekStartsOn: 0 }}>{content}</WorkspaceFrame>;
   return <div className="login-page contact-page">
     <PublicWebAnalytics enabled={indexableDeployment} />
     <header className="login-header">

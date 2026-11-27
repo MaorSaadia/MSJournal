@@ -40,15 +40,17 @@ export function CalendarCacheProvider({
   userId,
   timezone,
   weekStartsOn,
+  breakevenThreshold = "0",
   children,
 }: {
   userId: string;
   timezone: string;
   weekStartsOn: 0 | 1;
+  breakevenThreshold?: string;
   children: React.ReactNode;
 }) {
   const router = useRouter(),
-    identity = JSON.stringify([userId, timezone, "USD", weekStartsOn]);
+    identity = JSON.stringify([userId, timezone, "USD", weekStartsOn, breakevenThreshold]);
   const { cache } = useMemo(
     () => ({ identity, cache: new CalendarQueryCache() }),
     [identity],
@@ -237,7 +239,7 @@ export function usePrivateRequest<
     router = useRouter();
   const key =
     query !== null
-      ? identity + "|daily-stats-v2|" + endpoint + "|" + query
+      ? identity + "|daily-stats-v3|" + endpoint + "|" + query
       : null;
   const state = useSyncExternalStore(
     cache.subscribe,

@@ -152,5 +152,6 @@ export const preferencesSchema = z
     displayTimezone: timezoneSchema,
     currency: z.literal("USD"),
     weekStartsOn: z.union([z.literal(0), z.literal(1)]).optional(),
+    breakevenThreshold: z.string().trim().regex(/^\d{1,9}(?:\.\d{1,2})?$/, "Enter a nonnegative USD amount with up to two decimal places.").optional(),
   })
   .strict();

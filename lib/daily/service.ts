@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
 import { assertAccountActivity } from "@/lib/billing/entitlements";
 import { validatePlans } from "@/lib/strategies/service";
 import { and, eq, sql, gte, lte, count, desc, inArray } from "drizzle-orm";
@@ -41,7 +42,7 @@ async function preference(tx: Tx, userId: string) {
     .select()
     .from(userPreferences)
     .where(eq(userPreferences.userId, userId));
-  return p?.displayTimezone ?? "Asia/Jerusalem";
+  return p?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE;
 }
 async function template(tx: Tx, userId: string) {
   const [t] = await tx

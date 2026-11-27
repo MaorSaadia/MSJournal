@@ -20,15 +20,28 @@ export type Summary = {
 };
 const average = (values: string[]) =>
   values.length ? new D(sum(values)).div(values.length).toFixed() : null;
+export function tradeOutcome(value: string | null, breakevenThreshold = "0") {
+  if (value === null) return null;
+  const amount = new D(value);
+  if (amount.abs().lte(breakevenThreshold)) return "zero";
+  return amount.isPositive() ? "profit" : "loss";
+}
+
 export function summary(
   values: (string | null)[],
   estimated = false,
   rounded = true,
+  breakevenThreshold = "0",
 ): Summary {
   const eligible = values.every((v) => v !== null),
     known = values.filter((v): v is string => v !== null),
-    positive = known.filter((v) => new D(v).gt(0)),
-    negative = known.filter((v) => new D(v).lt(0));
+    positive: string[] = [],
+    negative: string[] = [];
+  for (const value of known) {
+    const outcome = tradeOutcome(value, breakevenThreshold);
+    if (outcome === "profit") positive.push(value);
+    if (outcome === "loss") negative.push(value);
+  }
   return {
     count: values.length,
     covered: known.length,
@@ -80,11 +93,13 @@ export function summary(
   };
 }
 
-// Only records explicitly published as complete may enter complete-trade outcomes.
-// Shared-fill graphs and matched quantities alone do not prove a flat account.
+// Grouped statistics require a matched record and its full imported contribution.
 export function isCompleteTrade(r: { type: string; partial?: boolean }) {
   return r.type === "trade" && !r.partial;
 }
 
-// Current Performance-only publication makes no claim of complete positions.
-export const REAL_RECORD_KIND = "portion" as const;
+export const MATCHED_RECORD_STATUS = "Matched portions";
+
+export function journalRecordKind(status: string) {
+  return status === MATCHED_RECORD_STATUS ? "trade" as const : "portion" as const;
+}

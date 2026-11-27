@@ -20,7 +20,7 @@ import { getJournal } from "@/lib/journal/service";
 import { reportSchema, summarizeReports } from "@/lib/reports/model";
 import { D, portionEntry, portionExit, sum } from "@/lib/journal/processing";
 import { localDay, realizedPerformance } from "@/lib/journal/calculations";
-import { summary, isCompleteTrade } from "@/lib/journal/statistics";
+import { summary, isCompleteTrade, tradeOutcome } from "@/lib/journal/statistics";
 import { automaticBaselines, type BalancePhase } from "@/lib/balances/automatic";
 import { balanceEstimates } from "@/lib/balances/model";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
@@ -55,6 +55,7 @@ export async function dashboardData(input: unknown, headers?: Headers) {
     };
     // Reports is the daily realized service. Statistics use the same decimal helper.
     const timezone = preferences.displayTimezone;
+    const breakevenThreshold = preferences.breakevenThreshold ?? "0";
     // Filter published parents by their saved assessments, then use each source
     // contribution once. The full journal remains the account-balance ledger.
     let performancePortions = journal.portions;
@@ -92,6 +93,12 @@ export async function dashboardData(input: unknown, headers?: Headers) {
       realized.selected.some((p) => journal.fees[p.id]?.amount == null)
         ? "gross"
         : q.basis;
+    const dayOutcomes = summary(
+      realized.days.map((day) => day[basis]),
+      basis === "net" && realized.estimated,
+      true,
+      breakevenThreshold,
+    );
     const report = summarizeReports({
       q: reportSchema.parse({
         start: q.start,
@@ -108,6 +115,7 @@ export async function dashboardData(input: unknown, headers?: Headers) {
       fees: journal.fees,
       records: [],
       tags: [],
+      breakevenThreshold,
     });
     const parents = new Map(
       journal.records.flatMap((r) => r.sourceIds.map((id) => [id, r] as const)),
@@ -144,7 +152,8 @@ export async function dashboardData(input: unknown, headers?: Headers) {
               ? p.grossPnl
               : new D(p.grossPnl).minus(journal.fees[p.id].amount!).toFixed(),
           );
-    const outcomes = summary(values, basis === "net" && realized.estimated);
+    const outcomeThreshold = q.outcomeBasis === "complete" ? breakevenThreshold : "0";
+    const outcomes = summary(values, basis === "net" && realized.estimated, true, outcomeThreshold);
     const reviewRows = selectedParentIds.length
       ? await getDb()
           .select({
@@ -174,38 +183,44 @@ export async function dashboardData(input: unknown, headers?: Headers) {
     };
     const timeCandidates =
       q.outcomeBasis === "complete"
-        ? []
+        ? complete.map((record, i) => ({
+            id: record.id,
+            recordId: record.id,
+            symbol: record.symbol,
+            direction: record.direction,
+            entry: record.entryAt,
+            exit: record.exitAt,
+            value: values[i],
+          }))
         : realized.selected.map((p) => {
-            const parent = parents.get(p.id),
-              entry = parent?.direction === "unknown" ? null : portionEntry(p);
-            return { p, parent, entry };
+            const parent = parents.get(p.id);
+            return {
+              id: p.id,
+              recordId: parent?.id ?? p.id,
+              symbol: p.symbol,
+              direction: parent?.direction ?? "unknown" as const,
+              entry: parent && parent.direction !== "unknown" ? portionEntry(p) : null,
+              exit: portionExit(p),
+              value: basis === "gross" ? p.grossPnl : new D(p.grossPnl).minus(journal.fees[p.id].amount!).toFixed(),
+            };
           });
     const known = timeCandidates.filter(
-      (x): x is typeof x & { entry: string } => x.entry !== null,
+      (x): x is typeof x & { entry: string; value: string } => x.entry !== null && x.value !== null,
     );
     const timePoints = known
-      .sort((a, b) => portionExit(b.p).localeCompare(portionExit(a.p)))
+      .sort((a, b) => b.exit.localeCompare(a.exit))
       .slice(0, 500)
-      .map(({ p, parent, entry }) => {
+      .map((point) => {
         const parts = new Intl.DateTimeFormat("en-GB", {
           timeZone: timezone,
           hour: "2-digit",
           minute: "2-digit",
           hourCycle: "h23",
-        }).format(entry ? new Date(entry) : new Date());
+        }).format(new Date(point.entry));
         const [hour, minute] = parts.split(":").map(Number);
         return {
-          id: p.id,
-          recordId: parent!.id,
-          symbol: p.symbol,
-          direction: parent!.direction,
-          entry,
-          exit: portionExit(p),
+          ...point,
           minutes: hour * 60 + minute,
-          value:
-            basis === "gross"
-              ? p.grossPnl
-              : new D(p.grossPnl).minus(journal.fees[p.id].amount!).toFixed(),
         };
       });
     const cash = ids.length
@@ -269,11 +284,15 @@ export async function dashboardData(input: unknown, headers?: Headers) {
       currency: "USD" as const,
       basis,
       requestedBasis: q.basis,
+      breakevenThreshold: outcomeThreshold,
+      dayBreakevenThreshold: breakevenThreshold,
+      dayOutcomes,
       outcomeBasis: q.outcomeBasis,
       outcomes,
       realizedSummary: report.summary,
       days: report.days.map((day) => ({
         ...day,
+        outcome: tradeOutcome(day.total, breakevenThreshold),
         count: realized.days.find((d) => d.date === day.date)?.count ?? 0,
       })),
       feeCoverage: realized.feeCoverage,

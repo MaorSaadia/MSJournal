@@ -1,7 +1,7 @@
 import "server-only";
 import { assertAccountActivity } from "@/lib/billing/entitlements";
 import { alignImportedPhaseStart } from "@/lib/props/import-start-service";
-import { REAL_RECORD_KIND } from "./statistics";
+import { journalRecordKind } from "./statistics";
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -307,7 +307,7 @@ export async function getJournal(headers?: Headers, transaction?: Tx) {
       portions: sources.filter((p) => published.has(p.id)).map(portion),
       records: records.map((r) => ({
         ...r,
-        type: REAL_RECORD_KIND,
+        type: journalRecordKind(r.status),
         entryAt: r.entryAt?.toISOString() ?? null,
         exitAt: r.exitAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
@@ -354,6 +354,7 @@ export async function getJournal(headers?: Headers, transaction?: Tx) {
   );
 }
 export type JournalData = Awaited<ReturnType<typeof getJournal>>;
+
 export async function journalDetails(id: string, headers?: Headers) {
   const user = await requireUser(headers);
   z.uuid().parse(id);

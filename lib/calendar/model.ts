@@ -13,7 +13,7 @@ import {
   type Portion,
   type PortionFee,
 } from "@/lib/journal/processing";
-import { summary } from "@/lib/journal/statistics";
+import { summary, tradeOutcome } from "@/lib/journal/statistics";
 
 // Keep realized amounts on their exit day, but count a published journal record
 // once per day rather than once per source portion. Never infer new positions.
@@ -43,13 +43,15 @@ export function calendarPerformance(
           ? new D(gross[i]).minus(sum(parts.map((p) => fees[p.id].amount!))).toFixed()
           : null,
       );
+      const grossStatistics = summary(gross);
+      const netStatistics = summary(net, day.estimated);
       return {
         ...day,
         count: trades.length,
-        grossWins: gross.filter((value) => new D(value).gt(0)).length,
-        netWins: day.feeAmount === null ? null : net.filter((value) => value !== null && new D(value).gt(0)).length,
-        grossStatistics: summary(gross),
-        netStatistics: summary(net, day.estimated),
+        grossWins: grossStatistics.wins!,
+        netWins: netStatistics.wins,
+        grossStatistics,
+        netStatistics,
       };
     }),
   };
@@ -112,8 +114,9 @@ export type CalendarDay = ReturnType<
   typeof realizedPerformance
 >["days"][number];
 export type Basis = "gross" | "net";
-export function summarize(days: CalendarDay[], basis: Basis) {
+export function summarize(days: CalendarDay[], basis: Basis, breakevenThreshold = "0") {
   const value = (d: CalendarDay) => (basis === "gross" ? d.gross : d.net);
+  const outcomes = days.map((day) => tradeOutcome(value(day), breakevenThreshold));
   const complete = days.every((d) => value(d) !== null);
   const total = complete ? sum(days.map((d) => value(d)!)) : null;
   const ranked = days
@@ -122,12 +125,9 @@ export function summarize(days: CalendarDay[], basis: Basis) {
   return {
     total,
     activeDays: days.length,
-    positive: days.filter((d) => value(d) !== null && new D(value(d)!).gt(0))
-      .length,
-    negative: days.filter((d) => value(d) !== null && new D(value(d)!).lt(0))
-      .length,
-    zero: days.filter((d) => value(d) !== null && new D(value(d)!).isZero())
-      .length,
+    positive: outcomes.filter((outcome) => outcome === "profit").length,
+    negative: outcomes.filter((outcome) => outcome === "loss").length,
+    zero: outcomes.filter((outcome) => outcome === "zero").length,
     count: days.reduce((n, d) => n + d.count, 0),
     best: ranked.at(0) ?? null,
     worst: ranked.at(-1) ?? null,
@@ -142,6 +142,7 @@ export function aggregateCalendar(
   weekStartsOn: 0 | 1,
   requested: Basis,
   recordIds: Record<string, string> = {},
+  breakevenThreshold = "0",
 ) {
   const scope = {
     ...filter,
@@ -157,6 +158,7 @@ export function aggregateCalendar(
     summary: summarize(
       performance.days.filter((d) => dates.includes(d.date)),
       basis,
+      breakevenThreshold,
     ),
   }));
   return {
@@ -166,10 +168,11 @@ export function aggregateCalendar(
     basis,
     requestedBasis: requested,
     netAvailable,
+    breakevenThreshold,
     estimated: performance.estimated,
     days: performance.days,
     weeks,
-    summary: summarize(performance.days, basis),
+    summary: summarize(performance.days, basis, breakevenThreshold),
     range: { start: filter.start, end: filter.end },
   };
 }

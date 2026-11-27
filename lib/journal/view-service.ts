@@ -1,5 +1,5 @@
 import "server-only";
-import { REAL_RECORD_KIND } from "@/lib/journal/statistics";
+import { DEFAULT_JOURNAL_TIMEZONE } from "@/lib/timezones";
 import { demoReviews } from "@/data/demo-reviews";
 import { ReviewError } from "@/lib/reviews/model";
 import type { ExportRecord } from "@/lib/exports/csv";
@@ -17,7 +17,7 @@ import { NotFoundError } from "@/lib/accounts/service";
 import { WorkspaceUnavailableError } from "@/lib/server-error";
 import { accounts as demoAccounts, trades } from "@/data/demo";
 import { D } from "./processing";
-import { summary } from "./statistics";
+import { MATCHED_RECORD_STATUS, summary } from "./statistics";
 import { durationBounds } from "./analysis-filters";
 import {
   viewSchema,
@@ -78,7 +78,8 @@ export async function tradeView(
           .select()
           .from(userPreferences)
           .where(eq(userPreferences.userId, user.id));
-        const timezone = pref?.displayTimezone ?? "Asia/Jerusalem";
+        const timezone = pref?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE;
+        const breakevenThreshold = pref?.breakevenThreshold ?? "0";
         const accounts =
           q.mode === "demo"
             ? demoAccounts.map((a) => ({
@@ -171,8 +172,15 @@ export async function tradeView(
         // One row per published parent. Portions only supply the selected-period contribution.
         const partValue =
           q.basis === "gross" ? sql`p.gross_pnl` : sql`p.gross_pnl-f.amount`;
+        const matchesOutcome = (value: typeof partValue, threshold: string) => sql`(
+          ${q.outcome}='all' or case ${q.outcome}
+            when 'profit' then (${value}) > ${threshold}::numeric
+            when 'loss' then (${value}) < -${threshold}::numeric
+            else abs(${value}) <= ${threshold}::numeric end
+        )`;
+        const recordValue = q.basis === "gross" ? sql`gross::numeric` : sql`net::numeric`;
         const partOutcome = sql`(${q.outcomeBasis} <> 'portions' or (
-          (${q.outcome}='all' or case ${q.outcome} when 'profit' then ${partValue}>0 when 'loss' then ${partValue}<0 else ${partValue}=0 end)
+          ${matchesOutcome(partValue, "0")}
           and (${q.min ?? null}::numeric is null or ${partValue}>=${q.min ?? null}::numeric)
           and (${q.max ?? null}::numeric is null or ${partValue}<=${q.max ?? null}::numeric)))`;
         if (q.strategy && q.strategy !== "unassigned") {
@@ -192,7 +200,7 @@ export async function tradeView(
           coalesce(substring(r.symbol from '^([A-Z0-9]+?)[FGHJKMNQUVXZ][0-9]{1,4}$'),r.symbol) as root,
           case when rv.status='reviewed' then 'reviewed' when rv.has_content or coalesce(images.n,0)>0 then 'draft' else 'unreviewed' end as "reviewStatus",
           coalesce(rv.has_notes,false) as "hasNotes", coalesce(images.n,0)::int as "imageCount", rv.fields as "reviewFields",
-          r.direction, r.status, ${REAL_RECORD_KIND}::text as type, r.entry_at as entry, r.exit_at as exit,
+          r.direction, r.status, case when r.status=${MATCHED_RECORD_STATUS} then 'trade' else 'portion' end as type, r.entry_at as entry, r.exit_at as exit,
           extract(epoch from r.exit_at-r.entry_at)::text as duration,
           contribution.quantity::text as quantity, r.entry_price::text as "entryPrice", r.exit_price::text as "exitPrice",
           contribution.values as "sourceValues", contribution.gross::text as gross, contribution.fees::text as fees,
@@ -239,11 +247,10 @@ export async function tradeView(
         and (${q.symbol ?? null}::text is null or symbol=${q.symbol ?? null})
         and (${q.root ?? null}::text is null or root=${q.root ?? null})
         and (${q.dateBasis}='activity' or ${q.direction}='all' or direction=${q.direction})
-        and (${q.type} in ('all','portion'))
+        and (${q.type}='all' or type=${q.type})
         and (${q.status}='all' or status=case when ${q.status}='review' then 'Needs review' else 'Matched portions' end)
         and (${q.search}='' or position(lower(${q.search}) in lower(account || ' ' || symbol))>0)
-        and (${q.outcomeBasis}='portions' or ${q.outcome}='all' or (${q.basis}='gross' and case ${q.outcome} when 'profit' then gross::numeric>0 when 'loss' then gross::numeric<0 else gross::numeric=0 end)
-          or (${q.basis}='net' and case ${q.outcome} when 'profit' then net::numeric>0 when 'loss' then net::numeric<0 else net::numeric=0 end))
+        and (${q.outcomeBasis}='portions' or ${q.outcome}='all' or (type='trade' and not partial and ${matchesOutcome(recordValue, breakevenThreshold)}))
         and (${q.outcomeBasis}='portions' or ${q.min ?? null}::numeric is null or (case when ${q.basis}='gross' then gross else net end)::numeric>=${q.min ?? null}::numeric)
         and (${q.outcomeBasis}='portions' or ${q.max ?? null}::numeric is null or (case when ${q.basis}='gross' then gross else net end)::numeric<=${q.max ?? null}::numeric)
       )`;
@@ -275,7 +282,7 @@ export async function tradeView(
             timezone,
             accounts,
             rows,
-            summary: summaryOf(rows, q),
+            summary: summaryOf(rows, q, breakevenThreshold),
             page: 1,
             pages: 1,
             sourceCount: 0,
@@ -287,7 +294,10 @@ export async function tradeView(
           await tx.execute(sql`${cte}, ordered as (select *, row_number() over(order by ${sort} ${order} nulls last,id asc) as position,
         lag(id) over(order by ${sort} ${order} nulls last,id asc) as previous,
         lead(id) over(order by ${sort} ${order} nulls last,id asc) as next from filtered), totals as (
-        select jsonb_agg("sourceValues") as "sourceValues", count(*)::int as count, 0 as trades, count(*)::int as portions,
+        select jsonb_agg("sourceValues") as "sourceValues",
+          jsonb_agg(case when ${q.basis}='gross' then gross else net end) filter (where type='trade' and not partial) as "completeValues",
+          count(*)::int as count, (count(*) filter (where type='trade' and not partial))::int as trades,
+          (count(*) filter (where type<>'trade' or partial))::int as portions,
           coalesce(sum(gross::numeric),0)::text as gross,
           case when count(net)=count(*) then coalesce(sum(net::numeric),0)::text else null end as net,
           sum(net::numeric)::text as "knownNet",
@@ -311,16 +321,19 @@ export async function tradeView(
         >;
         const rawSummary = data.summary as typeof data.summary & {
           sourceValues: (string | null)[][] | null;
+          completeValues: (string | null)[] | null;
         };
         data.summary.statistics = summary(
           q.outcomeBasis === "portions"
             ? (rawSummary.sourceValues ?? []).flat()
-            : [],
+            : rawSummary.completeValues ?? [],
           data.summary.estimated,
+          true,
+          q.outcomeBasis === "complete" ? breakevenThreshold : "0",
         );
-        delete (
-          data.summary as typeof data.summary & { sourceValues?: unknown }
-        ).sourceValues;
+        data.summary.winRate = q.outcomeBasis === "complete" ? data.summary.statistics.winRate : null;
+        Reflect.deleteProperty(data.summary, "sourceValues");
+        Reflect.deleteProperty(data.summary, "completeValues");
         data.rows.forEach((row) => {
           delete (row as typeof row & { sourceValues?: unknown }).sourceValues;
         });
@@ -344,6 +357,7 @@ export async function tradeView(
           ),
           userId: user.id,
           timezone,
+          breakevenThreshold,
           accounts,
           pages,
           page: Math.min(q.page, pages),

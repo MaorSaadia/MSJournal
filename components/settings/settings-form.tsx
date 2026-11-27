@@ -37,6 +37,7 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
       displayTimezone: preferences.displayTimezone,
       currency: "USD",
       weekStartsOn: preferences.weekStartsOn,
+      breakevenThreshold: preferences.breakevenThreshold ?? "0",
     },
   });
   async function save(values: z.infer<typeof preferencesSchema>) {
@@ -139,6 +140,20 @@ export function SettingsForm({ preferences }: { preferences: Preferences }) {
           <label className="form-field">
             Display currency
             <input {...register("currency")} readOnly aria-readonly="true" />
+          </label>
+          <label className="form-field settings-field-wide">
+            Breakeven range (USD)
+            <input
+              {...register("breakevenThreshold")}
+              inputMode="decimal"
+              disabled={!hydrated || isSubmitting}
+              aria-invalid={!!errors.breakevenThreshold}
+              aria-describedby="breakeven-range-help"
+            />
+            <small id="breakeven-range-help">
+              Enter 5 to count a grouped trade or trading day from −$5.00 through +$5.00 as breakeven. Enter 0 for exact zero. The range uses the grouped trade or daily total in your Gross or Net view.
+            </small>
+            {errors.breakevenThreshold && <span className="form-error">{errors.breakevenThreshold.message}</span>}
           </label>
           {error && (
             <p role="alert" className="form-error settings-field-wide">

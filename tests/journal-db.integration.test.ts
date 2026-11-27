@@ -175,6 +175,9 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
           name: "Disposable journal fixture",
         })),
       );
+      await db.insert(schema.userPreferences).values(
+        users.map((userId) => ({ userId, displayTimezone: "Asia/Jerusalem" })),
+      );
       await db.insert(schema.tradingAccounts).values(
         accounts.map((id, i) => ({
           id,
@@ -242,13 +245,20 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
       expect(new D(data.records[0].grossPnl).eq("40")).toBe(true);
       expect(data.records[0].fees).toBeNull();
       expect((await tradeView({})).summary.net).toBeNull();
+      expect((await tradeView({ type: "trade", basis: "gross" })).summary).toMatchObject({ trades: 1, statistics: { wins: 1 } });
       await setManualFees({ recordId: stable, total: "0" });
+      expect((await getJournal()).records[0].type).toBe("trade");
       expect(new D((await getJournal()).records[0].fees!).eq(0)).toBe(true);
       await importRows([rowB, rowC]);
       await processAccount(accounts[0]);
       data = await getJournal();
       expect(data.records).toHaveLength(1);
       expect(data.records[0].id).toBe(stable);
+      expect(data.records[0].type).toBe("trade");
+      expect((await tradeView({ type: "trade", basis: "gross" })).summary)
+        .toMatchObject({ trades: 1, statistics: { total: "75", wins: 1 } });
+      expect((await tradeView({ dateBasis: "activity", start: "2026-10-01", basis: "gross" })).summary)
+        .toMatchObject({ trades: 0, statistics: { count: 0 } });
       expect(new D(data.records[0].grossPnl).eq("75")).toBe(true);
       expect(data.records[0].fees).toBeNull();
       expect(
@@ -370,8 +380,7 @@ describe.skipIf(process.env.MSJOURNAL_TEST_DISPOSABLE !== "true")(
       const full = await tradeView({ start: "2026-10-01", end: "2026-10-01" });
       expect(full.summary.count).toBe(1);
       expect(new D(full.summary.gross).eq("75")).toBe(true);
-      expect(full.summary.trades).toBe(0);
-      expect(full.summary.portions).toBe(1);
+      expect(full.summary.trades).toBe(1);
       expect(
         (
           await tradeView({

@@ -317,6 +317,11 @@
   color: var(--negative);
   border-color: #d8a9ac;
 }
+.calendar-refined .flat-day {
+  background: #dce1e7;
+  border-color: #b3bdc9;
+  color: var(--foreground);
+}
 .dark .calendar-refined .winning-day {
   background: #073b30;
   border-color: #246b54;
@@ -326,6 +331,11 @@
   background: #462329;
   border-color: #804249;
   color: var(--negative);
+}
+.dark .calendar-refined .flat-day {
+  background: #343b45;
+  border-color: #606b7a;
+  color: var(--foreground);
 }
 .calendar-refined .winning-day .day-number,
 .calendar-refined .losing-day .day-number {

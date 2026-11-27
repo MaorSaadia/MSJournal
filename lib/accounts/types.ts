@@ -10,6 +10,7 @@ export type Preferences = {
   displayTimezone: string;
   currency: "USD";
   weekStartsOn: 0 | 1;
+  breakevenThreshold: string;
 };
 export function authorizedSelection(
   accounts: Pick<TradingAccount, "id" | "archivedAt">[],

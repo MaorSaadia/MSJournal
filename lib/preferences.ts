@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_JOURNAL_TIMEZONE } from "./timezones";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { user, userPreferences } from "@/db/schema";
@@ -16,9 +17,10 @@ export async function getPreferences(headers?: Headers): Promise<Preferences> {
     return {
       displayName: owner.name,
       email: owner.email,
-      displayTimezone: preferences?.displayTimezone ?? "Asia/Jerusalem",
+      displayTimezone: preferences?.displayTimezone ?? DEFAULT_JOURNAL_TIMEZONE,
       currency: "USD",
       weekStartsOn: preferences?.weekStartsOn === 1 ? 1 : 0,
+      breakevenThreshold: preferences?.breakevenThreshold ?? "0",
     };
   } catch {
     throw new WorkspaceUnavailableError();
@@ -40,6 +42,7 @@ export async function savePreferences(input: unknown, headers?: Headers) {
           displayTimezone: values.displayTimezone,
           currency: "USD",
           weekStartsOn: values.weekStartsOn ?? 0,
+          breakevenThreshold: values.breakevenThreshold ?? "0",
         })
         .onConflictDoUpdate({
           target: userPreferences.userId,
@@ -47,6 +50,9 @@ export async function savePreferences(input: unknown, headers?: Headers) {
             displayTimezone: values.displayTimezone,
             ...(values.weekStartsOn !== undefined
               ? { weekStartsOn: values.weekStartsOn }
+              : {}),
+            ...(values.breakevenThreshold !== undefined
+              ? { breakevenThreshold: values.breakevenThreshold }
               : {}),
             updatedAt: new Date(),
           },

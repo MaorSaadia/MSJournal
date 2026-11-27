@@ -1,6 +1,8 @@
+export const DEFAULT_JOURNAL_TIMEZONE = "America/New_York";
+
 export const FEATURED_TIMEZONES = [
+  { id: DEFAULT_JOURNAL_TIMEZONE, label: "New York" },
   { id: "Asia/Jerusalem", label: "Israel" },
-  { id: "America/New_York", label: "New York" },
   { id: "America/Chicago", label: "Chicago" },
   { id: "America/Los_Angeles", label: "Los Angeles" },
   { id: "Europe/London", label: "London" },

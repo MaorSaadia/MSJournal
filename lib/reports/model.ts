@@ -1,5 +1,6 @@
 import {
   summary,
+  tradeOutcome,
   isCompleteTrade,
   type Summary,
 } from "@/lib/journal/statistics";
@@ -148,7 +149,7 @@ export function reportHref(
       q.tab === "behavior" || q.analysis === "complete" ? "closed" : "activity",
     ...(q.tab === "behavior"
       ? {
-          type: q.behaviorBasis === "complete" ? "trade" : "portion",
+          ...(q.behaviorBasis === "complete" ? { type: "trade" } : {}),
           review: q.review,
           ...(q.emotion
             ? { emotion: q.emotion, emotionStage: q.emotionStage }
@@ -183,6 +184,7 @@ export function summarizeReports({
   records,
   tags,
   unresolved = 0,
+  breakevenThreshold = "0",
 }: {
   q: ReportQuery;
   ids: string[];
@@ -192,6 +194,7 @@ export function summarizeReports({
   records: ReportRecord[];
   tags: ReviewTag[];
   unresolved?: number;
+  breakevenThreshold?: string;
 }) {
   const realized = realizedPerformance(
     portions,
@@ -217,9 +220,7 @@ export function summarizeReports({
   );
   const coverageBase = records.filter(
     (r) =>
-      (q.behaviorBasis === "complete"
-        ? isCompleteTrade(r)
-        : r.type === "portion") &&
+      (q.behaviorBasis !== "complete" || isCompleteTrade(r)) &&
       (q.direction === "all" || r.direction === q.direction),
   );
   const coverage = {
@@ -246,6 +247,7 @@ export function summarizeReports({
       : q.analysis === "complete";
   const outcomeMode =
     complete || (q.analysis === "portions" && q.tab !== "behavior");
+  const threshold = complete || (!outcomeMode && q.tab !== "behavior") ? breakevenThreshold : "0";
   const value = (r: ViewRecord) => (q.basis === "gross" ? r.gross : r.net);
   const items: Item[] =
     q.tab !== "behavior" && !complete
@@ -290,7 +292,7 @@ export function summarizeReports({
       total,
       average:
         total !== null && count ? new D(total).div(count).toFixed() : null,
-      winRate: outcomeMode ? summary(values).winRate : null,
+      winRate: outcomeMode ? summary(values, false, true, threshold).winRate : null,
       href: reportHref(q, ids, extra),
     };
   };
@@ -322,6 +324,8 @@ export function summarizeReports({
       ? items.map((i) => i.value)
       : days.map((d) => d.total),
     items.some((i) => i.estimated),
+    true,
+    threshold,
   );
   stats.maxDrawdown = eligible ? minimum.abs().toFixed() : null;
   if (!outcomeMode && q.tab !== "behavior" && eligible && days.length) {
@@ -472,19 +476,11 @@ export function summarizeReports({
           aggregate(
             key,
             {
-              profit: complete ? "Winning trades" : "Trade Win",
-              loss: complete ? "Losing trades" : "Losing trades",
-              zero: complete ? "Breakeven trades" : "Breakeven trades",
+              profit: complete ? "Winning trades" : "Profitable exits",
+              loss: complete ? "Losing trades" : "Losing exits",
+              zero: complete ? "Breakeven trades" : "Zero P&L exits",
             }[key]!,
-            items.filter(
-              (i) =>
-                i.value !== null &&
-                (key === "profit"
-                  ? new D(i.value).gt(0)
-                  : key === "loss"
-                    ? new D(i.value).lt(0)
-                    : new D(i.value).isZero()),
-            ),
+            items.filter((i) => tradeOutcome(i.value, threshold) === key),
             { outcome: key },
           ),
         )
@@ -500,7 +496,7 @@ export function summarizeReports({
     groups,
     distribution,
     coverage,
-    supportedComplete: records.filter(isCompleteTrade).length,
+    supportedComplete: records.filter((r) => isCompleteTrade(r) && (q.direction === "all" || r.direction === q.direction)).length,
     closedRecords: records.filter((r) => r.type === "portion").length,
     excludedEntry: complete ? chosen.filter((r) => r.entry === null).length : 0,
     excludedDuration: complete

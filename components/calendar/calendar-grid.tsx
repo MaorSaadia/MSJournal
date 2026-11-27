@@ -156,8 +156,7 @@ export function CalendarGrid({
           </div>
         </div>
         <p>
-          Realized amounts follow each exit in {data.timezone}. Zero P&L with
-          activity differs from a date with no imported records.{" "}
+          Realized amounts follow each exit in {data.timezone}. A breakeven day has trading activity and total P&L within the breakeven range.{" "}
           {data.mode === "real"
             ? "Complete trades are not verified; source record counts are in day details."
             : "Demo counts use complete closed trades."}{" "}
